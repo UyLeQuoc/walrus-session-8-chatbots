@@ -46,10 +46,18 @@ export interface MemoryPort {
 export interface WriteEvent {
   scope: MemoryScope;
   type: MemoryType;
-  blobId: string;
+  /** Present once the blob exists, or for a duplicate (the blob it matched). */
+  blobId: string | null;
+  jobId: string | null;
   textSha256: string;
   channel: string;
-  outcome: RememberOutcome["status"];
+  /**
+   * `accepted` fires immediately and should be persisted straight away: a
+   * deploy during the ~25 s write window must not lose a memory the user was
+   * already told about. `stored` or `failed` follows for the same job id.
+   */
+  outcome: "accepted" | "stored" | "failed" | "duplicate";
+  error?: string;
 }
 
 export interface CreatePortOptions {
@@ -88,6 +96,7 @@ export function createMemoryPort({ scope, by, channel, onWrite }: CreatePortOpti
           scope,
           type: input.type,
           blobId: outcome.blobId,
+          jobId: null,
           textSha256: sha,
           channel,
           outcome: "duplicate",
@@ -99,22 +108,36 @@ export function createMemoryPort({ scope, by, channel, onWrite }: CreatePortOpti
         };
       }
 
-      // The blob id arrives ~25 s later; record it then rather than blocking the reply.
+      // Record the accepted job now, so the memory survives a restart or deploy
+      // during the write window rather than vanishing after the user was told
+      // it was saved.
+      await onWrite?.({
+        scope,
+        type: input.type,
+        blobId: null,
+        jobId: outcome.jobId,
+        textSha256: sha,
+        channel,
+        outcome: "accepted",
+      });
+
+      // The blob id arrives ~25 s later; fill it in then.
       track(
         outcome.settled.then(async (s) => {
           if (s.status !== "stored" || !s.blobId) {
             console.error(
               `[memory] write failed in ${scope.namespace}: ${s.error ?? "no blob id"}`,
             );
-            return;
           }
           await onWrite?.({
             scope,
             type: input.type,
             blobId: s.blobId,
+            jobId: outcome.jobId,
             textSha256: sha,
             channel,
-            outcome: "accepted",
+            outcome: s.status,
+            error: s.error,
           });
         }),
       );

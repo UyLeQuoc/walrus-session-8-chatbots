@@ -1,69 +1,151 @@
-/** `pnpm hippo` — talk to hippo in the terminal as a guest person "cli". */
+/**
+ * `pnpm hippo` — hippo in the terminal, and a real channel like any other.
+ *
+ * It talks to the running server rather than the memory layer directly, so the
+ * CLI is the same person as the web chat once they are linked, and every slash
+ * command behaves identically. The session cookie is kept in ~/.hippo so the
+ * identity survives restarts.
+ */
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
-import { createMemoryPort, guestScope, loadEnv, readOperatorEnv } from "@hippo/memory";
-import type { ModelMessage } from "ai";
-import { gatherContext, runTurn } from "./agent.ts";
-import { createModel } from "./model.ts";
 
-loadEnv();
-const apiKey = process.env.OPENROUTER_API_KEY;
-if (!apiKey) throw new Error("OPENROUTER_API_KEY missing in .env");
-const env = readOperatorEnv();
-const memoryEnabled = !process.argv.includes("--no-memory");
-const personId = process.env.HIPPO_CLI_PERSON ?? "cli";
+const API_URL = process.env.HIPPO_API_URL ?? "http://localhost:8787";
+const DIR = join(homedir(), ".hippo");
+const FILE = join(DIR, "session.json");
 
-const model = createModel({
-  apiKey,
-  model: process.env.LLM_MODEL ?? "google/gemini-2.5-flash",
-  fallbackModel: process.env.LLM_FALLBACK_MODEL,
-});
-const port = createMemoryPort({
-  scope: guestScope(
-    {
-      key: env.MEMWAL_PRIVATE_KEY,
-      accountId: env.MEMWAL_ACCOUNT_ID,
-      serverUrl: env.MEMWAL_SERVER_URL,
-    },
-    personId,
-  ),
-  by: personId,
-  channel: "cli",
-  onWrite: (e) => console.log(`  ⟶ memory ${e.outcome} [${e.type}] blob ${e.blobId.slice(0, 12)}…`),
-});
-
-console.log(
-  `hippo cli · model ${model.id} · memory ${memoryEnabled ? "on" : "off"} · namespace ${port.scope.namespace}`,
-);
-console.log("type /quit to exit\n");
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const messages: ModelMessage[] = [];
-let sessionStart = true;
-
-while (true) {
-  const line = (await rl.question("you › ")).trim();
-  if (!line) continue;
-  if (line === "/quit") break;
-  messages.push({ role: "user", content: line });
-  const input = {
-    model,
-    port,
-    messages,
-    channel: "cli",
-    userHandle: personId,
-    memoryEnabled,
-    sessionStart,
-  };
-  const ctx = await gatherContext(input);
-  if (ctx.injected.length)
-    console.log(
-      `  (recalled ${ctx.injected.length}: ${ctx.injected.map((m) => m.distance.toFixed(2)).join(", ")})`,
-    );
-  const result = runTurn(input, ctx);
-  process.stdout.write("hippo › ");
-  for await (const chunk of result.textStream) process.stdout.write(chunk);
-  process.stdout.write("\n\n");
-  const responseMessages = (await result.response).messages;
-  messages.push(...responseMessages);
-  sessionStart = false;
+function loadCookie(): string | null {
+  try {
+    return (JSON.parse(readFileSync(FILE, "utf8")) as { cookie?: string }).cookie ?? null;
+  } catch {
+    return null;
+  }
 }
-rl.close();
+
+function saveCookie(cookie: string): void {
+  mkdirSync(DIR, { recursive: true });
+  writeFileSync(FILE, JSON.stringify({ cookie }, null, 2));
+}
+
+interface UIPart {
+  type: string;
+  text?: string;
+  delta?: string;
+  input?: { type?: string; text?: string };
+}
+
+let cookie = loadCookie();
+
+async function send(
+  messages: Array<{ id: string; role: string; parts: UIPart[] }>,
+  sessionStart: boolean,
+) {
+  const res = await fetch(`${API_URL}/api/chat`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-hippo-channel": "cli",
+      ...(cookie ? { cookie } : {}),
+    },
+    body: JSON.stringify({ messages, sessionStart }),
+  });
+  const setCookie = res.headers.get("set-cookie");
+  if (setCookie) {
+    cookie = setCookie.split(";")[0] ?? cookie;
+    if (cookie) saveCookie(cookie);
+  }
+  if (!res.ok) throw new Error(`server said ${res.status}: ${(await res.text()).slice(0, 200)}`);
+
+  const type = res.headers.get("content-type") ?? "";
+  if (type.includes("application/json")) {
+    const body = (await res.json()) as { text?: string };
+    return { text: body.text ?? "", streamed: false };
+  }
+
+  // Server-sent UI message stream.
+  const reader = res.body?.getReader();
+  if (!reader) return { text: "", streamed: false };
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let out = "";
+  let printedPrefix = false;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const payload = line.slice(6).trim();
+      if (!payload || payload === "[DONE]") continue;
+      let part: UIPart;
+      try {
+        part = JSON.parse(payload) as UIPart;
+      } catch {
+        continue;
+      }
+      if (part.type === "text-delta" && part.delta) {
+        if (!printedPrefix) {
+          process.stdout.write("hippo › ");
+          printedPrefix = true;
+        }
+        process.stdout.write(part.delta);
+        out += part.delta;
+      } else if (part.type === "tool-input-available" && part.input?.text) {
+        process.stdout.write(
+          `\n  ⟶ remembering [${part.input.type ?? "?"}] ${part.input.text.slice(0, 70)}\n`,
+        );
+        printedPrefix = false;
+      }
+    }
+  }
+  if (printedPrefix) process.stdout.write("\n");
+  return { text: out, streamed: true };
+}
+
+async function main() {
+  const health = await fetch(`${API_URL}/api/health`).catch(() => null);
+  if (!health?.ok) {
+    console.error(`No hippo server at ${API_URL}. Start one with: pnpm dev:server`);
+    process.exit(1);
+  }
+  const info = (await health.json()) as { model?: string };
+  console.log(`hippo cli · ${API_URL} · ${info.model ?? "?"}`);
+  console.log(
+    "/help for commands, /link to share this memory with another channel, /quit to exit\n",
+  );
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const messages: Array<{ id: string; role: string; parts: UIPart[] }> = [];
+  let sessionStart = true;
+
+  for (;;) {
+    const line = (await rl.question("you › ")).trim();
+    if (!line) continue;
+    if (line === "/quit" || line === "/exit") break;
+    messages.push({
+      id: String(messages.length + 1),
+      role: "user",
+      parts: [{ type: "text", text: line }],
+    });
+    try {
+      const { text, streamed } = await send(messages, sessionStart);
+      if (!streamed) console.log(`hippo › ${text}\n`);
+      else console.log();
+      messages.push({
+        id: `a${messages.length}`,
+        role: "assistant",
+        parts: [{ type: "text", text }],
+      });
+      sessionStart = false;
+    } catch (err) {
+      console.error(`  ${err instanceof Error ? err.message : err}\n`);
+      messages.pop();
+    }
+  }
+  rl.close();
+}
+
+await main();

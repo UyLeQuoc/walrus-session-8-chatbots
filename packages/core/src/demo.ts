@@ -54,7 +54,11 @@ async function main() {
     ),
     by: "mai",
     channel: "demo",
-    onWrite: (e) => console.log(`    stored [${e.type}] blob ${e.blobId.slice(0, 12)}…`),
+    onWrite: (e) => {
+      if (e.outcome === "stored" && e.blobId)
+        console.log(`    stored [${e.type}] blob ${e.blobId.slice(0, 12)}…`);
+      if (e.outcome === "failed") console.log(`    FAILED [${e.type}] ${e.error ?? ""}`);
+    },
   });
 
   console.log(`hippo memory eval · model ${model.id} · namespace ${port.scope.namespace}\n`);

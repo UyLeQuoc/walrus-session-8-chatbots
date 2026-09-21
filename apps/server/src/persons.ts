@@ -43,16 +43,31 @@ export async function resolvePerson(
 export async function portFor(person: Person, channel: string): Promise<MemoryPort> {
   const by = person.displayName ?? person.id.slice(0, 8);
   const onWrite = async (e: WriteEvent) => {
-    if (e.outcome !== "accepted") return;
-    await db.insert(memoryIndex).values({
-      personId: person.id,
-      accountId: e.scope.accountId,
-      namespace: e.scope.namespace,
-      blobId: e.blobId,
-      type: e.type,
-      textSha256: e.textSha256,
-      channel: e.channel,
-    });
+    if (e.outcome === "duplicate") return;
+    if (e.outcome === "accepted") {
+      await db.insert(memoryIndex).values({
+        personId: person.id,
+        accountId: e.scope.accountId,
+        namespace: e.scope.namespace,
+        jobId: e.jobId,
+        blobId: e.blobId,
+        status: "pending",
+        type: e.type,
+        textSha256: e.textSha256,
+        channel: e.channel,
+      });
+      return;
+    }
+    if (!e.jobId) return;
+    await db
+      .update(memoryIndex)
+      .set({
+        blobId: e.blobId,
+        status: e.outcome,
+        error: e.error ?? null,
+        settledAt: new Date(),
+      })
+      .where(eq(memoryIndex.jobId, e.jobId));
   };
   if (person.mode === "owned" && person.accountId) {
     const [key] = await db
@@ -92,4 +107,53 @@ export async function logTurn(
     })),
     writes,
   });
+}
+
+/**
+ * Fold `loser` into `winner`: identities, delegate keys, memory index rows and
+ * turn history all move across, then the empty person is deleted.
+ *
+ * This is what makes one human on Telegram, the web and the CLI a single memory
+ * rather than three. It is deliberately additive: nothing on Walrus is touched,
+ * only the mapping from channel identities to a person.
+ */
+export async function mergePersons(winnerId: string, loserId: string): Promise<void> {
+  if (winnerId === loserId) return;
+  await db.transaction(async (tx) => {
+    await tx
+      .update(channelIdentities)
+      .set({ personId: winnerId })
+      .where(eq(channelIdentities.personId, loserId));
+    await tx
+      .update(delegateKeys)
+      .set({ personId: winnerId })
+      .where(eq(delegateKeys.personId, loserId));
+    await tx
+      .update(memoryIndex)
+      .set({ personId: winnerId })
+      .where(eq(memoryIndex.personId, loserId));
+    await tx.update(turnLog).set({ personId: winnerId }).where(eq(turnLog.personId, loserId));
+    await tx.delete(people).where(eq(people.id, loserId));
+  });
+}
+
+/** The person that owns a wallet, if any. */
+export async function personByWallet(walletAddress: string): Promise<Person | null> {
+  const [row] = await db
+    .select({ person: people })
+    .from(channelIdentities)
+    .innerJoin(people, eq(people.id, channelIdentities.personId))
+    .where(
+      and(
+        eq(channelIdentities.channel, "wallet"),
+        eq(channelIdentities.externalId, walletAddress.toLowerCase()),
+      ),
+    )
+    .limit(1);
+  return row?.person ?? null;
+}
+
+export async function reloadPerson(personId: string): Promise<Person | null> {
+  const [row] = await db.select().from(people).where(eq(people.id, personId)).limit(1);
+  return row ?? null;
 }

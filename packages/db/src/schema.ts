@@ -108,7 +108,13 @@ export const turnLog = pgTable(
   (t) => [index("turn_log_person_idx").on(t.personId, t.createdAt)],
 );
 
-/** Local index of memories hippo wrote. Metadata only; text lives on Walrus. */
+/**
+ * Local index of memories hippo wrote. Metadata only; the text lives on Walrus.
+ *
+ * A row is inserted the moment the relayer accepts the job, not when the blob
+ * lands ~25 s later, so a deploy or crash in that window cannot lose the record
+ * of a memory the user was already told about.
+ */
 export const memoryIndex = pgTable(
   "memory_index",
   {
@@ -118,11 +124,18 @@ export const memoryIndex = pgTable(
       .references(() => people.id, { onDelete: "cascade" }),
     accountId: text("account_id").notNull(),
     namespace: text("namespace").notNull(),
-    blobId: text("blob_id").notNull(),
+    /** Null until the relayer finishes writing to Walrus. */
+    blobId: text("blob_id"),
+    jobId: text("job_id"),
+    status: text("status", { enum: ["pending", "stored", "failed"] })
+      .notNull()
+      .default("pending"),
+    error: text("error"),
     type: text("type").notNull(),
     textSha256: text("text_sha256").notNull(),
     channel: text("channel").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    settledAt: timestamp("settled_at", { withTimezone: true }),
   },
   (t) => [index("memory_index_person_idx").on(t.personId, t.createdAt)],
 );

@@ -8,6 +8,7 @@ import { and, desc, eq, memoryIndex, people, sql, turnLog } from "@hippo/db";
 import { explorer, MEMORY_TYPES, RelayerExtras } from "@hippo/memory";
 import { db, operator } from "./app-context.ts";
 import { env } from "./env.ts";
+import { createLinkCode, redeemLinkCode } from "./link.ts";
 import { type Person, portFor } from "./persons.ts";
 
 export interface CommandContext {
@@ -27,6 +28,7 @@ const HELP = `hippo remembers what you tell it, and the memory belongs to you.
 /memory search <q> search your memory
 /memory off | on   pause or resume remembering
 /memory forget     make everything unrecallable
+/link              use the same memory on another channel
 /whoami            your account and where the memory lives
 /proof             the memories behind my last answer
 /connect           own your memory in your own Walrus account
@@ -88,10 +90,10 @@ async function listMemories(ctx: CommandContext): Promise<CommandResult> {
   const summary = [...byType.entries()].map(([t, n]) => `${t} ${n}`).join(", ");
   const recent = rows
     .slice(0, 10)
-    .map(
-      (r) =>
-        `• [${r.type}] ${r.createdAt.toISOString().slice(0, 10)} · blob ${r.blobId.slice(0, 10)}…`,
-    )
+    .map((r) => {
+      const where = r.blobId ? `blob ${r.blobId.slice(0, 10)}…` : "writing to Walrus…";
+      return `• [${r.type}] ${r.createdAt.toISOString().slice(0, 10)} · ${where}`;
+    })
     .join("\n");
   return {
     text: `${rows.length} memories (${summary}).\n\n${recent}\n\nUse /memory search <question> to read them back.`,
@@ -132,6 +134,35 @@ async function forget(ctx: CommandContext): Promise<CommandResult> {
   }
 }
 
+async function link(ctx: CommandContext, arg: string): Promise<CommandResult> {
+  if (!arg.trim()) {
+    const { code, expiresInMinutes } = await createLinkCode(ctx.person);
+    return {
+      text: `Your link code is ${code}.\n\nOpen hippo on another channel (the web chat, Telegram, Discord, Slack or the CLI) and send:\n/link ${code}\n\nBoth conversations then share one memory. The code works once and expires in ${expiresInMinutes} minutes.`,
+    };
+  }
+  const result = await redeemLinkCode(ctx.person, arg);
+  if (result.ok) {
+    return {
+      text: "Linked. This channel and the one that gave you the code now share the same memory.",
+    };
+  }
+  switch (result.reason) {
+    case "self":
+      return {
+        text: "That code came from this same conversation. Run /link on the other channel instead.",
+      };
+    case "expired":
+      return {
+        text: "That code has expired or was already used. Run /link on the other channel for a fresh one.",
+      };
+    default:
+      return {
+        text: "That does not look like a link code. Run /link on the other channel to get one.",
+      };
+  }
+}
+
 async function proof(ctx: CommandContext): Promise<CommandResult> {
   const [last] = await db
     .select()
@@ -165,6 +196,8 @@ export async function handleCommand(
       return { text: HELP };
     case "whoami":
       return whoami(ctx);
+    case "link":
+      return link(ctx, arg);
     case "proof":
       return proof(ctx);
     case "connect":

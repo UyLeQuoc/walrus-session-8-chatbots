@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import { db } from "../app-context.ts";
 import { loadToken } from "../connect.ts";
 import { env } from "../env.ts";
+import { mergePersons, personByWallet } from "../persons.ts";
 
 const sui = createSuiClient(env.SUI_NETWORK);
 
@@ -73,6 +74,18 @@ export const connectRoutes = new Hono()
           409,
         );
       }
+      // If this wallet already belongs to a person from another channel, this is
+      // the same human arriving by a second route: fold the two together so the
+      // memory follows them rather than splitting in half.
+      let personId = row.personId;
+      if (body.walletAddress) {
+        const existing = await personByWallet(body.walletAddress);
+        if (existing && existing.id !== personId) {
+          await mergePersons(existing.id, personId);
+          personId = existing.id;
+        }
+      }
+
       await db.transaction(async (tx) => {
         await tx
           .update(delegateKeys)
