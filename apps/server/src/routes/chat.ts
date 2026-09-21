@@ -1,8 +1,10 @@
 import { gatherContext, runTurn } from "@hippo/core";
+import { desc, eq, memoryIndex } from "@hippo/db";
+import { explorer } from "@hippo/memory";
 import { convertToModelMessages, type UIMessage } from "ai";
 import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import { model } from "../app-context.ts";
+import { db, model } from "../app-context.ts";
 import { type CommandContext, handleCommand } from "../commands.ts";
 import { startConnect, startDisconnect } from "../connect.ts";
 import { env } from "../env.ts";
@@ -87,6 +89,33 @@ export const chatRoutes = new Hono()
           console.error("[web] logTurn", e),
         );
       },
+    });
+  })
+
+  /** The memories hippo wrote for this person, newest first, with links. */
+  .get("/api/me/memories", async (c) => {
+    const cookie = getCookie(c, COOKIE);
+    if (!cookie) return c.json({ memories: [] });
+    const person = await webPerson(CHANNEL, cookie, () => {});
+    const rows = await db
+      .select()
+      .from(memoryIndex)
+      .where(eq(memoryIndex.personId, person.id))
+      .orderBy(desc(memoryIndex.createdAt))
+      .limit(100);
+    return c.json({
+      memories: rows.map((r) => ({
+        id: r.id,
+        type: r.type,
+        status: r.status,
+        channel: r.channel,
+        createdAt: r.createdAt,
+        blobId: r.blobId,
+        // The ciphertext is public; only this account can read it. That is the
+        // point, so both links are offered.
+        ciphertextUrl: r.blobId ? explorer.blob(r.blobId) : null,
+        explorerUrl: r.blobId ? explorer.blobExplorer(r.blobId) : null,
+      })),
     });
   })
 

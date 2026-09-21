@@ -11,21 +11,37 @@ interface Me {
   namespace?: string;
 }
 
+interface Memory {
+  id: string;
+  type: string;
+  status: "pending" | "stored" | "failed";
+  channel: string;
+  createdAt: string;
+  blobId: string | null;
+  ciphertextUrl: string | null;
+  explorerUrl: string | null;
+}
+
 const CLAUDE_CODE_STEPS = [
   "/plugin marketplace add MystenLabs/MemWal",
   "/plugin install memwal@memwal-plugins",
-  "restart, then run memwal_login and sign in with the same wallet",
-  'ask it: "recall what you know about me in the hippo namespace"',
+  "restart, then memwal_login with the same wallet",
+  'ask it: "recall what you know about me", namespace hippo',
 ];
 
 export function MePage() {
   const [me, setMe] = useState<Me | null>(null);
+  const [memories, setMemories] = useState<Memory[]>([]);
 
   useEffect(() => {
     void fetch(`${API_URL}/api/me`, { credentials: "include" })
       .then((r) => r.json() as Promise<Me>)
       .then(setMe)
       .catch(() => setMe({ mode: "anonymous" }));
+    void fetch(`${API_URL}/api/me/memories`, { credentials: "include" })
+      .then((r) => r.json() as Promise<{ memories: Memory[] }>)
+      .then((d) => setMemories(d.memories))
+      .catch(() => setMemories([]));
   }, []);
 
   if (!me) return <p className="text-sm text-muted-foreground">Loading…</p>;
@@ -46,14 +62,15 @@ export function MePage() {
   }
 
   const owned = me.mode === "owned";
+  const stored = memories.filter((m) => m.status === "stored").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-xl font-semibold">My memory</h1>
         <p className="text-sm text-muted-foreground">
           {owned
-            ? "This memory lives in a Walrus Memory account you own on Sui. hippo holds a delegate key you can revoke at any time."
+            ? "This memory lives in a Walrus Memory account you own on Sui. hippo holds a delegate key you can take away."
             : "Right now hippo keeps your memory under its own account. Type /connect in the chat to move it into an account you own."}
         </p>
       </div>
@@ -61,6 +78,7 @@ export function MePage() {
       <dl className="rounded-lg border divide-y text-sm">
         <Row label="Mode" value={owned ? "owned by you" : "guest"} />
         <Row label="Memory" value={me.memoryEnabled ? "on" : "paused"} />
+        <Row label="Stored on Walrus" value={`${stored} of ${memories.length}`} />
         <Row label="Namespace" value={me.namespace ?? "—"} mono />
         {me.accountId && (
           <Row
@@ -77,19 +95,70 @@ export function MePage() {
             }
           />
         )}
-        {me.walletAddress && <Row label="Wallet" value={me.walletAddress} mono />}
+        {me.walletAddress && (
+          <Row label="Wallet" value={`${me.walletAddress.slice(0, 14)}…`} mono />
+        )}
       </dl>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="font-medium">What hippo wrote</h2>
+          <p className="text-sm text-muted-foreground">
+            Each one is an encrypted blob on Walrus. Anyone can download the ciphertext; only your
+            account can read it.
+          </p>
+        </div>
+        {memories.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nothing yet.</p>
+        ) : (
+          <ul className="divide-y rounded-lg border text-sm">
+            {memories.map((m) => (
+              <li key={m.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="flex items-center gap-2">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
+                    {m.type}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {new Date(m.createdAt).toISOString().slice(0, 10)} · {m.channel}
+                  </span>
+                </span>
+                {m.status === "stored" && m.explorerUrl ? (
+                  <span className="flex gap-3 text-xs">
+                    <a className="underline" href={m.explorerUrl} target="_blank" rel="noreferrer">
+                      blob
+                    </a>
+                    {m.ciphertextUrl && (
+                      <a
+                        className="underline"
+                        href={m.ciphertextUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        ciphertext
+                      </a>
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    {m.status === "pending" ? "writing to Walrus…" : "write failed"}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="space-y-2">
         <h2 className="font-medium">Read the same memory in Claude Code</h2>
         <p className="text-sm text-muted-foreground">
           {owned
-            ? "Your memory is not locked inside hippo. Sign in to Walrus Memory from any other client with the same wallet and it recalls the same facts."
+            ? "Your memory is not locked inside hippo. Sign in to Walrus Memory from another client with the same wallet and it recalls the same facts."
             : "Once you own the memory, any Walrus Memory client signed in with your wallet reads the same facts."}
         </p>
-        <ol className="space-y-1 text-sm">
+        <ol className="space-y-1">
           {CLAUDE_CODE_STEPS.map((s) => (
-            <li key={s} className="font-mono text-xs bg-muted rounded px-2 py-1">
+            <li key={s} className="rounded bg-muted px-2 py-1 font-mono text-xs">
               {s}
             </li>
           ))}
@@ -101,7 +170,8 @@ export function MePage() {
         <p>
           In the chat: <code>/memory</code> lists what hippo remembers, <code>/memory search</code>{" "}
           reads it back, <code>/memory forget</code> makes it unrecallable, <code>/proof</code>{" "}
-          shows the blobs behind the last answer, <code>/disconnect</code> revokes hippo on chain.
+          shows the blobs behind the last answer, <code>/link</code> shares this memory with another
+          channel, <code>/disconnect</code> revokes hippo on chain.
         </p>
       </section>
     </div>
