@@ -11,7 +11,7 @@
  * routes/connect.ts.
  */
 import { randomInt } from "node:crypto";
-import { and, connectTokens, eq, gt, isNull } from "@hippo/db";
+import { and, connectTokens, eq, gt, isNull, memoryIndex } from "@hippo/db";
 import { db } from "./app-context.ts";
 import { mergePersons, type Person } from "./persons.ts";
 
@@ -39,7 +39,7 @@ export async function createLinkCode(
 
 export type LinkOutcome =
   | { ok: true; alreadyLinked: boolean }
-  | { ok: false; reason: "unknown" | "expired" | "self" };
+  | { ok: false; reason: "unknown" | "expired" | "self" | "redeemer-has-memories" };
 
 /**
  * Redeem a code issued on another channel. The person who asked for the code
@@ -63,6 +63,23 @@ export async function redeemLinkCode(current: Person, rawCode: string): Promise<
     .limit(1);
   if (!row) return { ok: false, reason: "expired" };
   if (row.personId === current.id) return { ok: false, reason: "self" };
+
+  /**
+   * Redeeming folds this identity into the one that issued the code, so the
+   * redeemer gives up their person. That is exactly right when a new channel
+   * joins an existing memory, and exactly wrong if someone is talked into
+   * redeeming a stranger's code: they would hand over everything.
+   *
+   * Requiring the redeeming side to be empty removes the damage. The real use
+   * case is always a fresh channel, and anyone with memories on both sides can
+   * run /link from the other direction.
+   */
+  const [existing] = await db
+    .select({ id: memoryIndex.id })
+    .from(memoryIndex)
+    .where(eq(memoryIndex.personId, current.id))
+    .limit(1);
+  if (existing) return { ok: false, reason: "redeemer-has-memories" };
 
   await mergePersons(row.personId, current.id);
   await db
