@@ -41,26 +41,21 @@ Target 5, minimum 3, developers preferred so the Claude Code portability demo la
 
 Evidence to collect per user: baseline transcript, first "it remembered" moment, `/whoami` screenshot with explorer link, memory count.
 
-## Bug bounty candidates (verify each on mainnet before filing)
+## Bug bounty
 
-Each becomes a GitHub issue with repro, expected vs actual, environment (Gemini 2.5 Flash via OpenRouter, Node 20, macOS, SDK 0.1.7).
+Seven reports drafted with repros in `docs/issues/`, all hit while building on the managed mainnet relayer. File the first five; six and seven are lower severity and can follow.
 
-1. `remember()` is append-only with no idempotency key or dedupe option; repeated facts pollute recall.
-2. TS SDK has no `forget()`, `ask()`, or list-memories wrapper although the relayer exposes `/api/forget`, `/api/ask`, `/v1/owners/:owner/memories`.
-3. No endpoint returns a memory's text by ID; "list what you remember" is impossible without recall guesses.
-4. `recall()` has no default relevance cutoff; small namespaces return filler (documented, still friction).
-5. npm `latest` is 0.1.7 while docs and `SKILL.md` describe 0.1.8 APIs (check which methods differ).
-6. `MEMWAL_PRIVATE_KEY` vs `MEMWAL_KEY` naming split across docs.
-7. Sponsorship allowlist (create/add/remove only) is not in public docs, only in `sponsor.rs`.
-8. `restore()` has no cursor.
-9. Write rate limit 30/min per delegate key is undocumented in the public relayer page; multi-tenant guest pattern hits it.
-10. Whatever breaks in the connect flow (CORS, Enoki origins, gRPC vs JSON-RPC client differences).
-11. Vietnamese fact extraction / embedding quality if `analyze` mangles diacritics.
-12. zkLogin address split between apps (documented for Console, not for third-party builders); ask for Enoki Connect or a guide.
-13. Blob epochs purchased by the managed relayer, if `expires_at` is short.
-14. Security Delete API off on the managed relayer, if it is.
+| # | Title |
+|---|---|
+| 1 | `recall()` returns an empty list while reporting it dropped the matches |
+| 2 | `remember` jobs die from the relayer's own Sui RPC throttling |
+| 3 | The two documented `recall()` call forms are not equivalent |
+| 4 | Published mainnet contract IDs are stale |
+| 5 | A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet |
+| 6 | Write rate limit is 60/min, not the documented 30/min, weights unpublished |
+| 7 | `GET /api/whoami` 404s; `GET /v1/owners/:owner/agents` is flaky and miscounts |
 
-Aim for 5 high-quality issues, not 11 thin ones.
+Still to confirm before filing: Vietnamese fact extraction quality, blob epoch length, whether `restore()` pagination bites us, and anything the wallet connect flow throws once a second wallet is available.
 
 ## Article outline (Medium + Inkray)
 
