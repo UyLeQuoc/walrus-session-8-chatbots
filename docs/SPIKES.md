@@ -216,7 +216,7 @@ Two full eval runs, same script, same namespace size:
 | Run | Drop events | Exhausted all three retries |
 |---|---|---|
 | First (`demo-2026-09-21.txt`) | 4 | 0 |
-| Second (`demo-2026-09-21-cross-channel.txt`) | 12 | 3 |
+| Second (`demo-2026-09-21-cross-channel.txt`) | 9 | 3 |
 
 Both runs passed, because a session-start turn fires four recall queries and only
 some of them get dropped, but the trend matters: the failure is not rare and it
