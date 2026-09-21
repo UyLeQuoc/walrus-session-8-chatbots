@@ -17,7 +17,9 @@ Working and verified on mainnet:
 - A clean clone runs from the README alone: install, db:push, typecheck, test, build, smoke. Transcript in `docs/evidence/clean-clone-2026-09-21.md`.
 - Owned mode code exists end to end (connect page, sponsored transactions, on-chain verification, revoke) but has never been run against a real wallet.
 
-Eight findings are written up with repros in `docs/issues/`. The two that changed the design:
+A security review of the repo has been run and its three real findings are fixed, including an unauthenticated takeover in the connect callback. Results in `docs/evidence/security-review-2026-09-21.md`.
+
+Eight findings against Walrus Memory are written up with repros in `docs/issues/`. The two that changed the design:
 - `recall()` can return an empty list while reporting it found and discarded matches, so hippo retries before believing an empty result.
 - The relayer honours a delegate key that is absent from the account's on-chain `delegate_keys`, so "revoke on chain and the bot forgets" is unproven. hippo therefore deletes its own copy of the key on revoke, which makes the revoke true regardless.
 

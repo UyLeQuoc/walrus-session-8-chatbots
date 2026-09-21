@@ -70,9 +70,14 @@ leaked local absolute paths. Both fixed.
 
 **A link code is a one-message takeover if a user is tricked into redeeming
 one.** Whoever issues a code wins the merge, so "type `/link ABC123` to verify"
-would hand over an account. This is inherent to merging identities; the mitigation
-shipped is a warning line in the code's own message. Revisit if hippo ever has
-users who do not know each other.
+would hand over an account.
+
+Now mitigated properly rather than with a warning: redemption is refused when the
+redeeming conversation already has memories of its own. The real use case is
+always a fresh channel joining an existing memory, so the restriction costs
+nothing, and a phishing target with anything to lose is exactly the case it
+blocks. The message tells them to run `/link` from the other side instead. The
+warning line in the code's own message stays.
 
 **Connect tokens appear in request logs.** Private logs, ten-minute single-use
 tokens. Noted rather than fixed.
