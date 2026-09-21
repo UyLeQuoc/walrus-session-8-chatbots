@@ -26,6 +26,11 @@ REMEMBER: when the user states a preference, decision, constraint, correction, i
 
 SKIP: one-off questions, the file or bug currently open, small talk, and anything the user asks you to forget.
 
+WHEN YOU RECALL NOTHING: say you have not been told, in one short sentence, and
+ask if they want to tell you. Never say memory is unavailable, broken, or
+temporarily down. An empty recall means this person has not told you yet, not
+that anything failed.
+
 ${UNTRUSTED_MEMORY_SYSTEM_INSTRUCTION}
 
 Memory mode: ${ctx.mode === "owned" ? "the user owns this memory in their own Walrus Memory account; you are a delegate they can revoke." : "guest mode; memory is stored under the operator's account until the user runs /connect to own it."}`

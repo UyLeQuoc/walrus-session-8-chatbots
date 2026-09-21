@@ -32,6 +32,40 @@ const ASK: Array<{ q: string; expect: RegExp; why: string }> = [
 
 const INDEX_WAIT_MS = Number(process.env.DEMO_INDEX_WAIT_MS ?? 90_000);
 
+/**
+ * The same memory reached from a second "channel": a different MemoryPort, a
+ * different handle, no shared conversation, pointed at the same namespace. That
+ * is exactly what linking two channels does on the server, so this is the
+ * automated version of the manual web-to-CLI check in
+ * docs/evidence/cross-channel-2026-09-21.md.
+ */
+async function crossChannelCheck(
+  model: ReturnType<typeof createModel>,
+  namespace: string,
+  operator: { key: string; accountId: string; serverUrl: string },
+): Promise<boolean> {
+  const other = createMemoryPort({
+    scope: { mode: "guest", ...operator, namespace },
+    by: "mai",
+    channel: "telegram",
+  });
+  const turn = await completeTurn({
+    model,
+    port: other,
+    messages: [{ role: "user", content: "Which package manager do I use?" }],
+    channel: "telegram",
+    userHandle: "mai",
+    memoryEnabled: true,
+    sessionStart: true,
+  });
+  const ok = /pnpm/i.test(turn.text);
+  console.log(`
+CROSS-CHANNEL — a second channel, same memory`);
+  console.log(`  ${ok ? "PASS" : "FAIL"}  ${turn.text.replace(/\n/g, " ").slice(0, 120)}`);
+  console.log(`        recalled ${turn.ctx.injected.length} memories`);
+  return ok;
+}
+
 async function main() {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
@@ -111,10 +145,17 @@ async function main() {
     console.log(`        recalled ${turn.ctx.injected.length} memories`);
   }
 
+  const crossOk = await crossChannelCheck(model, port.scope.namespace, {
+    key: env.MEMWAL_PRIVATE_KEY,
+    accountId: env.MEMWAL_ACCOUNT_ID,
+    serverUrl: env.MEMWAL_SERVER_URL,
+  });
+
   const passed = results.filter((r) => r.ok).length;
   console.log(`\n${passed}/${results.length} recalled correctly across sessions.`);
+  console.log(`cross-channel recall: ${crossOk ? "PASS" : "FAIL"}`);
   console.log(`namespace: ${port.scope.namespace}`);
-  if (passed < results.length) process.exitCode = 1;
+  if (passed < results.length || !crossOk) process.exitCode = 1;
 }
 
 await main();
