@@ -7,11 +7,11 @@ Deadline: **Oct 9, 2026 14:00 UTC**. Today: Sep 22. Real users need about a week
 | Dates | Milestone | Done when |
 |---|---|---|
 | Sep 22 | Docs, repo scaffold, operator account on memory.walrus.xyz, dedicated Sessions wallet, DeepSurge + Discord registration | `pnpm dev` runs an empty bot; operator `remember`/`recall` works on mainnet |
-| Sep 23 | Spikes 1–4 from `ARCHITECTURE.md` §10 | Sponsored `add_delegate_key` from localhost succeeds; revoke gives 401 |
-| Sep 23–24 | Core + web chat + Telegram, guest mode end to end: `remember`/`recall` tools, dedupe, recall policy, `/memory`, `/whoami`, `/memory off` | 3 test users each have 10+ memories written by the bot on mainnet |
-| Sep 25–26 | Owned mode: connect page, token flow, on-chain verification, key encryption, guest → owned migration, `/disconnect` | Revoke demo recorded on video |
+| Sep 23 | Spikes 1–10 from `ARCHITECTURE.md` §10 (time-box the manual decrypt to 2 h) | Sponsored `add_delegate_key` from localhost succeeds; revoke gives 401; zkLogin path decided |
+| Sep 23–24 | Core + CLI + web chat + Telegram, guest mode end to end: `remember`/`recall` tools, `style` adaptation, dedupe, recall policy, `/memory`, `/whoami`, `/memory off`, `turn_log` | 3 test users each have 10+ memories written by the bot on mainnet |
+| Sep 25–26 | Owned mode: connect page (Slush + zkLogin), token flow, on-chain verification, key encryption, dual-read or migration, `/disconnect`, `/me` with SuiNS + expiry + Claude Code steps | Revoke demo recorded on video |
 | Sep 26 | Discord adapter, identity linking across channels, `/proof` | Same fact recalled on Telegram, web and Discord |
-| Sep 27 | Deploy (Railway + Vercel), README with setup, invite users. Slack adapter only if everything else is green. | Bot reachable via web link and Telegram handle |
+| Sep 27 | Deploy (Railway + Walrus Sites, Vercel backup), README + docker-compose, `pnpm demo`, `pnpm evidence`, WalForm survey, invite users. Slack and Sui Stack Messaging only if everything else is green. | Bot reachable via web link and Telegram handle |
 | Sep 27–28 | **Baseline phase**: users chat with `/memory off`. Save logs. | Baseline transcripts for 3+ users |
 | Sep 29–Oct 4 | Memory on. Daily use. File GitHub issues as frictions appear. Claude Code portability demo. | 3+ users × 10+ memories each, screenshots of "the moment it mattered" |
 | Oct 5–6 | Article draft (500–800 words), video, promo posts | Published on Medium + Inkray |
@@ -43,6 +43,9 @@ Each becomes a GitHub issue with repro, expected vs actual, environment (Gemini 
 9. Write rate limit 30/min per delegate key is undocumented in the public relayer page; multi-tenant guest pattern hits it.
 10. Whatever breaks in the connect flow (CORS, Enoki origins, gRPC vs JSON-RPC client differences).
 11. Vietnamese fact extraction / embedding quality if `analyze` mangles diacritics.
+12. zkLogin address split between apps (documented for Console, not for third-party builders); ask for Enoki Connect or a guide.
+13. Blob epochs purchased by the managed relayer, if `expires_at` is short.
+14. Security Delete API off on the managed relayer, if it is.
 
 Aim for 5 high-quality issues, not 11 thin ones.
 
@@ -102,6 +105,12 @@ Do these before writing code. Everything here is free.
 - [ ] Discord: Developer Portal → New Application → Bot → copy token, enable **Message Content Intent**; OAuth2 URL with `bot` + `applications.commands` scopes to invite it to a test server. `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`.
 - [ ] Slack: api.slack.com/apps → From scratch → enable **Socket Mode** (app-level token `SLACK_APP_TOKEN` with `connections:write`) → Bot scopes `chat:write`, `im:history`, `im:read`, `im:write`, `app_mentions:read`, `commands` → Event subscriptions `message.im`, `app_mention` → install to workspace → `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`.
 
+**Sui Stack extras**
+- [ ] Enoki Portal app (free tier): API key, enable zkLogin + Google provider, add web origins (localhost, Walrus Sites URL, Vercel URL). Google Cloud OAuth client ID with the same origins.
+- [ ] `walrus` CLI and `site-builder` CLI installed, mainnet config, a little WAL + SUI in the Sessions wallet for site deploys.
+- [ ] Optional SuiNS name for the site (`hippo.sui` or similar) if budget allows; base36 subdomain works without it.
+- [ ] WalForm survey created for user feedback.
+
 **Infra**
 - [ ] Neon Postgres project → `DATABASE_URL`.
 - [ ] Railway project for `apps/server` (long-running Node, not serverless).
@@ -118,4 +127,5 @@ Do these before writing code. Everything here is free.
 3. `packages/memory` (client factory, `signedRequest`, dedupe, recall policy) with a script that writes and recalls one memory on mainnet using the operator key.
 4. `packages/core` (agent loop with `streamText`, tools) with a CLI runner for quick testing.
 5. `apps/server` (Hono + web channel + Telegram adapter), then Discord, then Slack.
-6. `apps/web` (Vite, Tailwind, shadcn, dapp-kit, chat page, connect page).
+6. `apps/web` (Vite, Tailwind, shadcn, dapp-kit + Enoki, chat page, connect page, `/me`).
+7. `.claude/skills/hippo-memory/SKILL.md`, `pnpm demo`, `pnpm evidence`, Walrus Sites deploy.

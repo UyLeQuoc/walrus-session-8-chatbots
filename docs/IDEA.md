@@ -44,6 +44,7 @@ The judging rubric (see `BRIEF.md` §3) and prior sessions tell us what the pane
 | `gotcha` | "Vercel AI SDK v6 needs `specificationVersion: 'v3'` in middleware" | When the same library, error, or tool appears |
 | `commitment` | "Minh will ship the connect page by Sep 26" | Standups, "what's pending", deadlines |
 | `correction` | "Bot was wrong: relayer default is mainnet, not testnet" | Any related question, to avoid repeating the mistake |
+| `style` | "Replies in Vietnamese, wants short answers, no emoji" | Every turn, applied to the system prompt. This is the "learn and adapt to the individual" requirement made visible. |
 
 The bot writes proactively using the four-part policy from the official prompt templates (recall first, write proactively, what to skip, which namespace), dedupes before writing, and filters recall by distance so it does not inject filler.
 

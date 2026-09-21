@@ -26,6 +26,9 @@ Never edit files inside `memwal/`. Never import from it; depend on the published
 - Delegate private keys never leave the server and never appear in logs, chat messages, or the browser. Users' keys are stored encrypted (AES-256-GCM with `KEY_ENCRYPTION_KEY`).
 - Namespace names are public on-chain. Only `hippo` (owned), `hippo-guest:<personId>` (guest), `hippo-team:<id>` (stretch) are allowed.
 - Do not use `withMemWal` autoSave. Memory writes go through the `remember` tool with dedupe.
+- Memory text is never stored in Postgres. `memory_index` holds blob IDs, types, hashes and dates only. Text comes from Walrus.
+- Strip credentials (API keys, private keys, tokens) from any text before `remember`.
+- No custom MCP server. Portability is demonstrated with the official Walrus Memory MCP plugin on the same account.
 - LLM goes through OpenRouter (`@openrouter/ai-sdk-provider`). Primary model `google/gemini-2.5-flash`. Never route to an OpenAI or Anthropic model; it disqualifies the "Beyond the Big Two" track.
 - Every SDK or relayer friction you hit gets a note in `docs/PLAN.md` under bug bounty candidates, with a repro.
 
@@ -37,7 +40,8 @@ apps/server      Hono API (/api/chat streaming, /api/connect/*, /api/me/*) + cha
   src/channels/  telegram (grammY), discord (discord.js), slack (Bolt socket mode), web
 packages/core    agent loop, prompts, tools (remember / recall), channel-agnostic
 packages/memory  MemWal client factory (guest / owned), text format, dedupe, recall policy
-packages/db      Drizzle schema (people, channel_identities, delegate_keys, connect_tokens, turn_log)
+packages/db      Drizzle schema (people, channel_identities, delegate_keys, connect_tokens, turn_log, memory_index)
+.claude/skills/  hippo-memory skill so external agents understand the memory format
 docs/            see above
 memwal/          reference clone (gitignored)
 ```

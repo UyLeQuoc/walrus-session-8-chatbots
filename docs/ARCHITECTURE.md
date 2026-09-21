@@ -40,7 +40,9 @@ Monorepo (pnpm workspaces + turborepo):
 
 A `person` is the unit of memory. Channel identities (`telegram:123`, `discord:456`, `slack:T1/U1`, `wallet:0xabc`) map to one person. Linking happens through the same `/connect` flow: the link carries the channel identity, the user signs with their wallet, and the server merges that identity into the person owning that wallet. That is how the same memory follows a user from Telegram to web to Discord.
 
-Web sign-in: wallet challenge (`signPersonalMessage` over a server nonce) → session cookie → `person`. No passwords, no OAuth.
+Web identity: an anonymous session cookie creates a guest `person` on first message. Signing in (Slush wallet challenge via `signPersonalMessage`, or Google via Enoki zkLogin) attaches `wallet:<address>` to that person, or merges it into the person that already owns the wallet. No passwords.
+
+**zkLogin caveat** (`memwal/docs/reference/console-identity-link.md`): a zkLogin address depends on the OAuth client ID, so the same Google account yields a different Sui address in hippo than on memory.walrus.xyz. Google users get a real owned account, but they will not see hippo in the Walrus dashboard and cannot share that account with Claude Code. The portability and dashboard demos therefore use a Slush wallet user. Say so in the article; it is also feedback for Walrus (Enoki Connect would fix it).
 
 ## 2. Identity model
 
@@ -141,6 +143,10 @@ Per turn, before generation:
 
 Indexing lag is a few seconds; the tools use `rememberAndWait` for personal facts so a follow-up question in the same minute can find them.
 
+### Local index (what Postgres may hold)
+
+Memory **text lives only on Walrus**. Postgres keeps a `memory_index` row per write: `person_id, namespace, blob_id, type, sha256(text), created_at`. No text. This is enough for `/memory` listing by type and date, for counting evidence, and for the migration bookkeeping below. Reading text back goes through Walrus: either `recall` or the manual path (§7).
+
 ### Provenance
 
 Team memories carry `[by:@user] [#channel]`. Personal memories carry `[by:@user]` only. The reply template for team recall is "According to @minh in #backend on Sep 26: …".
@@ -156,15 +162,18 @@ Team memories carry `[by:@user] [#channel]`. Personal memories carry `[by:@user]
 | `/memory search <q>` | Explicit recall with distances shown. |
 | `/memory forget` | `POST /api/forget` on the namespace (index only, blobs persist). Explain that in the reply. |
 | `/memory off` / `on` | Per-user toggle used for the baseline phase. Logged for the article. |
-| `/proof` | Blob IDs used in the last answer, with Walrus aggregator links. |
+| `/proof` | Blob IDs used in the last answer, with Walrus explorer links; if the manual path works, the decrypted raw blob. |
+| CLI | `pnpm hippo chat` runs the same core in a terminal. Counts as a channel under the rules and is the fastest way to test and record evals. |
+| `/me` (web) | Memory list by type/date, expiry, delegate list from `GET /v1/owners/:owner/agents`, "Use in Claude Code" steps (install plugin, `memwal_login` with the same wallet, `--namespace hippo`), permanent delete when available. |
 
 ## 7. Known limitations and how we present them
 
-- **No "read memory text by ID"** in the relayer or SDK. `GET /v1/owners/:owner/memories` returns metadata only (blob ID, size, timestamps), never text. Listing means recall with broad queries. Migration guest → owned therefore recalls in rounds by type and may miss entries. File as a feature request.
-- **Forget is index-only.** Blobs live until epoch expiry. Permanent delete is the Security Delete API signed by the owner wallet; out of scope, link to it.
+- **No "read memory text by ID"** in the relayer or SDK. `GET /v1/owners/:owner/memories` returns metadata only. Plan: spike the `/manual` path (download the blob from a Walrus aggregator, SEAL-decrypt with the delegate key) for at most 2 hours. If it works, `/proof` shows the raw blob decrypted, which is the "verifiable memory" demo nobody has done. If not, fall back to the local index (§5) plus recall by type, and guest → owned migration becomes dual-read (the bot recalls both the guest namespace and the owned account for 30 days) instead of copying. Never cache text in Postgres. File the missing endpoint as a feature request.
+- **Forget is index-only.** Blobs live until epoch expiry. Permanent per-memory delete is the Security Delete API, owner-signed and sponsored, which owned-mode users *can* do from `/me` if the managed relayer has it enabled (dashboard env defaults `VITE_SECURITY_DELETE_ENABLED=false`, so spike it). Guest users cannot. Another concrete ownership difference.
+- **Blob expiry.** Read API exposes `expires_at`. Show it on `/me`. If the managed relayer buys few epochs, that is a bug-bounty question.
 - **Relayer sees plaintext** during embed and encrypt. Ownership is about access control and portability, not hiding data from Mysten's relayer.
 - **Bot custody of delegate keys.** Encrypted with `KEY_ENCRYPTION_KEY` (32-byte, env), AES-256-GCM. A leaked DB alone does not leak keys. Users can revoke on-chain at any time.
-- **Rate limits.** Write path 30/min per delegate key. Guest mode shares one key. Owned mode isolates users. This is a real argument for the architecture; measure it.
+- **Rate limits and abuse.** Write path 30/min per delegate key. Guest mode shares one key, owned mode isolates users. The web chat is public: throttle per person (10 turns/min, 200/day), cap OpenRouter spend, and require a session cookie before `/api/chat`.
 
 ## 8. Stack and versions
 
@@ -178,6 +187,10 @@ Team memories carry `[by:@user] [#channel]`. Personal memories carry `[by:@user]
 | Telegram | `grammy` (long polling) | No public webhook needed. |
 | Discord | `discord.js` v14 (gateway, MESSAGE_CONTENT intent, slash commands) | |
 | Slack | `@slack/bolt` in Socket Mode | No public URL needed. |
+| Sign-in | Slush wallet via dapp-kit; Google via `@mysten/enoki` zkLogin (own Enoki API key + Google OAuth client, origins allowlisted) | Non-crypto friends can still own their memory. See zkLogin caveat in §1. |
+| Names | `@mysten/suins` reverse lookup | Show `uy.sui` instead of hex on `/whoami` and `/me`. |
+| Web hosting | Walrus Sites via `site-builder` (SPA fallback to `index.html` in `ws-resources.json`), Vercel as backup | The chatbot UI itself lives on Walrus. |
+| Surveys | WalForm (walform.wal.app) | Wallet-signed user feedback and testimonials for the article. |
 | DB | Postgres (Neon) + Drizzle | Persistent across deploys. |
 | Validation / tooling | `zod` env schema, `biome`, `vitest`, `tsx` | |
 | Hosting | Railway (server) + Vercel or Cloudflare Pages (web) | |
@@ -209,7 +222,7 @@ The MCP plugin reads `~/.memwal/credentials.json`:
 }
 ```
 
-Two ways to show the same memory in Claude Code: (a) the user runs the normal `memwal_login` in Claude Code against the same wallet, which adds a second delegate key to the same account, then `memwal_recall --namespace hippo`; (b) export from hippo's web page. Use (a): it is the honest, zero-custom-code path and shows two independent delegates on one account.
+Two ways to show the same memory in Claude Code: (a) the user runs the normal `memwal_login` in Claude Code against the same wallet, which adds a second delegate key to the same account, then `memwal_recall --namespace hippo`; (b) export from hippo's web page. Use (a): it is the honest, zero-custom-code path and shows two independent delegates on one account. Ship `.claude/skills/hippo-memory/SKILL.md` in the repo so agents understand the `[type] [by:@user] [date]` format; memory is then portable in meaning, not only in bytes. Do **not** build a hippo MCP server; the official one is the point.
 
 ## 10. Spikes to run before committing (day 1)
 
@@ -218,3 +231,24 @@ Two ways to show the same memory in Claude Code: (a) the user runs the normal `m
 3. `remove_delegate_key` then confirm the relayer returns 401 for that key.
 4. Recall quality with Gemini-written facts and Vietnamese text.
 5. `useChat` streaming from Hono through Railway (no buffering).
+6. Manual path: download a blob from a Walrus aggregator and SEAL-decrypt it with the delegate key (2 h cap).
+7. Security Delete API availability on the managed mainnet relayer.
+8. Enoki zkLogin in hippo → sponsored `create_account` succeeds for a fresh Google user.
+9. Vite build deployed to Walrus Sites with SPA fallback, calling the Railway API cross-origin.
+10. Suiscan / Walruscan links for a MemWalAccount object and a blob ID (what judges will click).
+
+## 11. Threat model (short)
+
+| Threat | Control |
+|---|---|
+| Forged connect callback | Token is single-use, 10 min, bound to person + public key; server verifies the delegate key on-chain before switching mode. |
+| Login CSRF / cross-site POST | SameSite=Lax session cookie, CORS allowlist to the web origins, origin check on state-changing routes. |
+| DB leak | Delegate keys AES-256-GCM under `KEY_ENCRYPTION_KEY` (env, never in DB). Users can revoke on-chain regardless. |
+| Prompt injection via recalled memory | SDK `formatUntrustedMemories` nonce framing + system instruction; memories never enter the system prompt. |
+| Abuse of public chat | Per-person throttle and daily cap, spend cap on OpenRouter, relayer 30/min awareness. |
+| Secrets in memory text | Strip API keys / private keys / tokens before `remember` (mirror the MCP's credential filter). |
+| Namespace leakage | Only the three fixed namespace patterns; person IDs are UUIDs. |
+
+## 12. Evidence pipeline
+
+`turn_log` stores per turn: person, channel, memory on/off, memories injected (blob IDs + distances), model, tokens. `memory_index` stores writes. `pnpm evidence` prints: users, memories per user, agents (delegate keys) per account, blob counts for the form, and memory hit rate for the article. `pnpm demo` runs a scripted two-session eval that proves recall end to end.
