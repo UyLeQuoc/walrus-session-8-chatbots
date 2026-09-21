@@ -186,6 +186,9 @@ importers:
       '@mysten-incubation/memwal':
         specifier: ^0.1.7
         version: 0.1.7(@mysten/seal@1.4.13(@mysten/sui@2.31.3(typescript@5.9.3)))(@mysten/sui@2.31.3(typescript@5.9.3))(ai@7.0.108(zod@4.6.5))(zod@4.6.5)
+      '@mysten/seal':
+        specifier: ^1.4.13
+        version: 1.4.13(@mysten/sui@2.31.3(typescript@5.9.3))
       '@mysten/sui':
         specifier: ^2.31.3
         version: 2.31.3(typescript@5.9.3)

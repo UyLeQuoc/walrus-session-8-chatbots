@@ -59,7 +59,34 @@ The distances themselves matter more than the comparison. Clearly relevant match
 
 `curl -N` against `POST /api/chat` produced an incremental SSE stream; the Vite page renders it token by token.
 
-## 7 — Manual SEAL decrypt — NOT STARTED (2 h cap)
+## 7 — Manual SEAL decrypt — BLOCKED BY A FINDING, shelved
+
+The mechanics all work. A memory's blob downloads from three independent public
+Walrus aggregators, all returning the same 353 bytes of ciphertext:
+
+```
+200  https://aggregator.walrus-mainnet.walrus.space/v1/blobs/<id>
+200  https://aggregator.mainnet.walrus.mirai.cloud/v1/blobs/<id>
+200  https://walrus.globalstake.io/v1/blobs/<id>
+```
+
+`EncryptedObject.parse` reads it cleanly: sealed under package `0xe7c16fbe…`,
+threshold 1, identity `<owner 32 bytes><counter 8 bytes>` with the counter at 0.
+The SEAL session key builds. Then `fetchKeys` fails:
+
+```
+NoAccessError: User does not have access to one or more of the requested keys
+```
+
+Which is correct behaviour, and it is how we found issue 08: our delegate key is
+not in the account's on-chain `delegate_keys`, so `seal_approve` refuses it. The
+relayer decrypts the very same blob for the very same key without complaint.
+
+**Decision:** shelve client-side decryption until issue 08 has an answer.
+`/proof` links the public ciphertext instead, which still makes the point that a
+memory is a real, publicly addressable Walrus blob that only the account can read.
+Script kept at `packages/memory/scripts/spike-decrypt.ts` so it can be re-run in
+one command once the key is genuinely on chain.
 
 ## 8 — Security Delete API on the managed relayer — PASS
 
@@ -71,9 +98,18 @@ The distances themselves matter more than the comparison. Clearly relevant match
 
 ## 10 — Walrus Sites deploy — BLOCKED (needs WAL in the Sessions wallet)
 
-## 11 — Explorer links — PARTIAL
+## 11 — Explorer links — PASS
 
-`https://suiscan.xyz/mainnet/object/<id>` renders the `MemWalAccount`. Walrus blob link pattern still to confirm.
+| For | URL |
+|---|---|
+| Account, delegate list, owner | `https://suiscan.xyz/mainnet/object/<accountId>` |
+| Transaction | `https://suiscan.xyz/mainnet/tx/<digest>` |
+| Blob, human readable | `https://walruscan.com/mainnet/blob/<blobId>` |
+| Blob, raw ciphertext | `https://aggregator.walrus-mainnet.walrus.space/v1/blobs/<blobId>` |
+
+All four verified against live data. Collected in `packages/memory/src/links.ts`.
+Two further aggregators answer the same bytes if the primary is down:
+`aggregator.mainnet.walrus.mirai.cloud` and `walrus.globalstake.io`.
 
 ## Unplanned findings
 
@@ -144,3 +180,31 @@ Two things worth pointing at in the article:
 
 1. The last answer came back **in Vietnamese** without being asked in that session. A `style` memory written in session one changed how the bot writes in session two. That is memory shaping behaviour, not memory being quoted back.
 2. **The drop bug fired four times during this single run.** Without the retry in `recallRelevant`, three of these four questions would have been answered with no memory at all, and the bot would have looked like it had forgotten everything. The mitigation is what makes the eval pass repeatably.
+
+### G — the relayer honours a delegate key the chain does not
+
+The largest finding of the session, written up in full as
+`docs/issues/08-relayer-honours-a-delegate-the-chain-does-not.md`.
+
+Our delegate key is absent from the account's on-chain `delegate_keys` vector,
+yet the relayer accepts it for every authenticated route including decryption,
+and `GET /v1/owners/:owner/agents` lists it. A randomly generated key is properly
+rejected with `401`, so this is not an open bypass: the relayer specifically
+knows this key. `access_counter_version` is `0`, so it is not a stale entry from
+a past revocation.
+
+This matters to hippo more than to most builders, because "revoke on chain and
+the bot forgets" is the demo the whole submission is built around.
+
+**Decisions taken now, rather than waiting for an answer:**
+
+1. `/disconnect` deletes hippo's encrypted copy of the delegate private key
+   rather than only marking it revoked. Whatever the relayer would do, hippo no
+   longer holds the credential, so the revoke is true on our side.
+2. The revoke demo will be recorded showing both halves: the on-chain removal,
+   and a `pnpm smoke` run with the removed key against the relayer. If the
+   relayer still accepts it for a while, that goes in the article honestly and
+   becomes the sharpest feedback in the submission.
+3. Client-side decryption is shelved (spike 7).
+
+The owner-signed revocation test is now the top item in `docs/BLOCKERS.md`.

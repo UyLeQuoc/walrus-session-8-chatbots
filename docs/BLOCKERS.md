@@ -9,6 +9,8 @@ Format: date — what — why — where it goes. Remove a line once resolved.
 - 2026-09-22 — A little WAL and SUI in the Sessions wallet — optional, for deploying the web app to Walrus Sites in M5 — wallet.
 - 2026-09-22 — Neon `DATABASE_URL`, Railway project, Vercel project — needed for M5 deploy — deploy env.
 
+- 2026-09-22 — **Owner-signed revocation test, using the Sessions wallet.** This is now the highest-risk unknown in the project, not a nice-to-have. We found that the relayer honours a delegate key that is absent from the account's on-chain `delegate_keys` (see `docs/issues/08-…`), so "revoke on chain and the bot forgets" is unproven. Test: on memory.walrus.xyz, remove one delegate key from account `0x4926f26b…`, then immediately run `pnpm smoke` with that key and record whether the relayer still accepts it, and for how long. hippo's revoke demo depends on the answer.
+
 ## Resolved
 
 - 2026-09-22 — Operator `MEMWAL_ACCOUNT_ID` + `MEMWAL_PRIVATE_KEY`. The account ID first supplied was the delegate public key; the real object ID was resolved on-chain (see `docs/SPIKES.md` §0).

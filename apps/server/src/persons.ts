@@ -75,7 +75,7 @@ export async function portFor(person: Person, channel: string): Promise<MemoryPo
       .from(delegateKeys)
       .where(and(eq(delegateKeys.personId, person.id), eq(delegateKeys.status, "active")))
       .limit(1);
-    if (key) {
+    if (key?.privateKeyEnc) {
       const scope = ownedScope({
         key: decryptSecret(key.privateKeyEnc, env.KEY_ENCRYPTION_KEY),
         accountId: person.accountId,

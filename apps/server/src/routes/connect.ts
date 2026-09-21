@@ -128,9 +128,18 @@ export const connectRoutes = new Hono()
       );
     }
     await db.transaction(async (tx) => {
+      // Destroy our copy of the credential, not just the flag on it. We cannot
+      // yet prove the relayer stops honouring a key the instant it leaves the
+      // chain (docs/issues/08), so the revoke is made true on our side by no
+      // longer possessing the key at all.
       await tx
         .update(delegateKeys)
-        .set({ status: "revoked", removeTxDigest: body.digest ?? null, revokedAt: new Date() })
+        .set({
+          status: "revoked",
+          privateKeyEnc: "",
+          removeTxDigest: body.digest ?? null,
+          revokedAt: new Date(),
+        })
         .where(eq(delegateKeys.id, key.id));
       await tx.update(people).set({ mode: "guest" }).where(eq(people.id, row.personId));
       await tx

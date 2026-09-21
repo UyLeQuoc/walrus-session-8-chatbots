@@ -23,3 +23,4 @@ Date:     2026-09-21
 | 5 | A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet | Misconfiguration is invisible until you switch network |
 | 6 | Write rate limit is 60/min, not the documented 30/min, and the weights are unpublished | Cannot budget a multi-tenant app |
 | 7 | `GET /api/whoami` returns 404; `GET /v1/owners/:owner/agents` is flaky and miscounts | Documented endpoints unusable |
+| 8 | The relayer authorizes a delegate key that is not in the on-chain `delegate_keys` | Ownership model does not hold as documented |
