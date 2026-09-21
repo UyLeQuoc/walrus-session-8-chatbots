@@ -1,5 +1,6 @@
 export { createClient, guestScope, type MemoryScope, NAMESPACE, ownedScope } from "./client.ts";
 export { decryptSecret, encryptSecret } from "./crypto.ts";
+export { type GeneratedDelegate, generateDelegate } from "./delegate.ts";
 export { loadEnv, type OperatorEnv, operatorEnvSchema, readOperatorEnv } from "./env.ts";
 export {
   buildMemoryText,
@@ -11,7 +12,9 @@ export {
   parseMemoryText,
 } from "./format.ts";
 export { type LimiterOptions, limiterFor, RateLimiter, runLimited } from "./limiter.ts";
+export { explorer } from "./links.ts";
 export {
+  DEFAULT_MAX_DISTANCE,
   DISTANCE,
   type RecalledMemory,
   type RememberOutcome,

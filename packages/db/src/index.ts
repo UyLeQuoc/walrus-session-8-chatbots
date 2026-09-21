@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema.ts";
 
-export { and, desc, eq, sql } from "drizzle-orm";
+export { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 export * from "./schema.ts";
 
 export type Db = ReturnType<typeof createDb>;

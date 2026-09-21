@@ -48,7 +48,7 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
     for (const m of list) if (!seen.has(m.blob_id)) seen.set(m.blob_id, m);
   };
   const jobs: Promise<RecalledMemory[]>[] = [];
-  if (query) jobs.push(input.port.recall({ query, limit: 6, maxDistance: 0.6 }));
+  if (query) jobs.push(input.port.recall({ query, limit: 6 }));
   if (input.sessionStart) {
     jobs.push(
       input.port.recall({

@@ -1,0 +1,31 @@
+
+WITH [type][by][date] prefix (spike-recall-tagged:s3)
+  rank 1 dist 0.602  which package manager should I use?
+  rank 1 dist 0.580  what language and framework does the user work in?
+  rank 1 dist 0.581  where does the user live?
+  rank 1 dist 0.476  which ORM did we pick?
+  rank 1 dist 0.605  what model are we building with?
+  rank 1 dist 0.449  why does wrapLanguageModel throw?
+  rank 1 dist 0.605  recall returns irrelevant results, why?
+  rank 1 dist 0.556  what port is the database on?
+  rank 1 dist 0.600  how should I reply to this user?
+  rank 1 dist 0.777  what is pending and who owns it?
+  → found 10/10, mean distance of hits 0.583
+
+BARE text (spike-recall-bare:s3)
+  rank 1 dist 0.546  which package manager should I use?
+  rank 1 dist 0.587  what language and framework does the user work in?
+  rank 1 dist 0.600  where does the user live?
+  rank 1 dist 0.489  which ORM did we pick?
+  rank 1 dist 0.601  what model are we building with?
+  rank 1 dist 0.418  why does wrapLanguageModel throw?
+  rank 1 dist 0.543  recall returns irrelevant results, why?
+  rank 1 dist 0.537  what port is the database on?
+  rank 1 dist 0.640  how should I reply to this user?
+  rank 2 dist 0.812  what is pending and who owns it?
+  → found 10/10, mean distance of hits 0.577
+
+verdict:
+  recall@5   tagged 10/10 vs bare 10/10
+  mean dist  tagged 0.583 vs bare 0.577  (delta 0.006)
+  namespaces: spike-recall-tagged:s3 / spike-recall-bare:s3

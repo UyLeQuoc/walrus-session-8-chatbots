@@ -40,11 +40,20 @@ Needs a second Slush wallet. See `docs/BLOCKERS.md`.
 
 ## 4 — Revoke gives 401 — BLOCKED (depends on 3)
 
-## 5 — Recall quality, and does the metadata prefix hurt? — see `docs/evidence/spike-recall-*.txt`
+## 5 — Recall quality, and does the metadata prefix hurt? — PASS
 
-Early signal from spike 1: the query "which package manager does the user prefer?" matched a fact containing "Prefers pnpm" at **distance 0.745**, which the SDK's own bands call "usually unrelated". The stored line carried a `[profile] [by:@smoke] [2026-09-21] Smoke test run at <ISO timestamp>` prefix, so roughly half the embedded tokens were metadata.
+A/B on mainnet: the same 10 facts written twice, once as `[type] [by:@uy] [date] fact` and once as bare text, into two namespaces, then 10 question-shaped queries against each. Full output: `docs/evidence/spike-recall-2026-09-21.txt`.
 
-**Decision (interim):** default `maxDistance` raised from 0.6 to 0.75 in `recallRelevant`. Final prefix decision follows the A/B run.
+| | recall@5 | mean distance of hits |
+|---|---|---|
+| With `[type][by][date]` prefix | 10/10 at rank 1 | 0.583 |
+| Bare text | 10/10 at rank 1 | 0.577 |
+
+**The prefix costs 0.006 of distance and nothing in ranking.** Every hit came back at rank 1 in both namespaces.
+
+The distances themselves matter more than the comparison. Clearly relevant matches ranged **0.449 to 0.777**, so the SDK's own guidance ("0.55–0.7 weak, ≥0.7 usually unrelated") is calibrated for statement-shaped queries, not questions. A `maxDistance` of 0.6, which is what the `withMemWal` default of `minRelevance: 0.3` works out to, would have dropped half of these true positives.
+
+**Decisions:** keep the metadata prefix, it pays for itself in parsing and provenance. `DEFAULT_MAX_DISTANCE` is 0.8, on the reasoning that missing a real memory is worse than injecting one weak line, since the untrusted-data framing already tells the model to ignore what does not fit.
 
 ## 6 — Streaming through Hono — PASS (M0)
 
@@ -91,3 +100,30 @@ Also: the route reports **six** delegate keys while the on-chain object's `deleg
 The relayer returns `{"error":"Rate limit exceeded","layer":"delegate_key","limit":"60 weighted-requests/min","retry_after_seconds":60}`. Public docs say 30/min per delegate key. Either way it is *weighted*, and the weights are not published, so a client cannot predict its own budget.
 
 **Decision:** `packages/memory/src/limiter.ts` paces every call per delegate key (default 50/min, concurrency 4) and `runLimited` honours `retry_after_seconds`. Guest mode shares one key across all users, so this is load-bearing. **Bug bounty:** publish the weights, and document the real limit.
+
+### E — `recall()` returns an empty list while reporting it dropped the matches
+
+Intermittently, and reproducibly under load, the relayer answers a recall with:
+
+```json
+{"results": [], "total": 0, "dropped_count": 5}
+```
+
+for a namespace that definitely holds matching memories, moments after the same query returned them. It found five candidates and discarded all five, with HTTP 200 and no error. During one spike run this hit the last five queries of ten in a row.
+
+The SDK's `RecallResult` type omits `dropped_count`, so a caller sees an ordinary empty result and concludes the user has no memories. For a memory product this is the worst possible silent failure: the bot forgets, confidently, and nothing logs.
+
+**Decision:** `recallRelevant` treats `results.length === 0 && dropped_count > 0` as retryable and tries three times with backoff before believing it. **Bug bounty, highest value of the set:** expose `dropped_count` in the SDK types, and either surface the drop reason or retry server-side.
+
+### F — the two documented `recall()` call forms are not equivalent
+
+`SKILL.md` documents both `recall({ query, limit, namespace })` and `recall(query, limit, namespace)`. Against the same namespace, same query, seconds apart:
+
+| Form | Result |
+|---|---|
+| `recall({ query: q, limit: 3, namespace: ns })` | 3 memories, distances 0.546–0.56 |
+| `recall(q, 3, ns)` | `{"results": [], "total": 0, "dropped_count": 3}` |
+
+The positional form found the same three and dropped every one. **Bug bounty.**
+
+**Decision:** only the object form is used anywhere in this repo.

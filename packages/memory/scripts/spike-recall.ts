@@ -94,6 +94,11 @@ async function measure(namespace: string, label: string) {
     const res = await runLimited(limiterFor(env.MEMWAL_PRIVATE_KEY), () =>
       client.recall({ query: q, namespace, limit: 5 }),
     );
+    const meta = res as unknown as { total?: number; dropped_count?: number };
+    if (!res.results.length) {
+      rows.push(`  EMPTY ${q}  (total ${meta.total ?? "?"}, dropped ${meta.dropped_count ?? "?"})`);
+      continue;
+    }
     const idx = res.results.findIndex((m) => m.text.toLowerCase().includes(expect.toLowerCase()));
     const top = res.results[0];
     if (idx === -1) {

@@ -17,15 +17,52 @@ export interface RecallRelevantOptions {
   limiter?: RateLimiter;
 }
 
+/**
+ * Measured on mainnet 2026-09-21: clearly relevant matches land between 0.45
+ * and 0.78, so the SDK's "0.7 and above is unrelated" guidance is too tight for
+ * question-shaped queries. Missing a real memory is worse than injecting one
+ * weak line, because the untrusted-data framing already tells the model to
+ * ignore what does not fit.
+ */
+export const DEFAULT_MAX_DISTANCE = 0.8;
+
+/** The relayer reports matches it discarded; the SDK's typings omit the field. */
+interface RecallEnvelope {
+  total?: number;
+  dropped_count?: number;
+}
+
 export async function recallRelevant(
   client: MemWal,
-  { query, namespace, limit = 6, maxDistance = 0.75, limiter }: RecallRelevantOptions,
+  {
+    query,
+    namespace,
+    limit = 6,
+    maxDistance = DEFAULT_MAX_DISTANCE,
+    limiter,
+  }: RecallRelevantOptions,
 ): Promise<RecalledMemory[]> {
   const call = () => client.recall({ query, namespace, limit, maxDistance });
-  const res = limiter ? await runLimited(limiter, call) : await call();
-  return res.results
-    .filter((m) => m.distance < maxDistance)
-    .map((m) => ({ ...m, parsed: parseMemoryText(m.text) }));
+
+  // The relayer intermittently returns `{results: [], total: 0, dropped_count: N}`
+  // for a namespace that definitely holds matches: it found N candidates and
+  // discarded every one, with no error. Taking that at face value makes the bot
+  // silently forget, so retry before believing an empty result that had
+  // candidates. Observed 2026-09-21, see docs/SPIKES.md §5.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const res = limiter ? await runLimited(limiter, call) : await call();
+    const dropped = (res as RecallEnvelope).dropped_count ?? 0;
+    if (res.results.length > 0 || dropped === 0) {
+      return res.results
+        .filter((m) => m.distance < maxDistance)
+        .map((m) => ({ ...m, parsed: parseMemoryText(m.text) }));
+    }
+    console.warn(
+      `[memory] recall in ${namespace} dropped all ${dropped} candidates (attempt ${attempt}/3)`,
+    );
+    if (attempt < 3) await new Promise((r) => setTimeout(r, 1_000 * attempt));
+  }
+  return [];
 }
 
 export type RememberOutcome =
