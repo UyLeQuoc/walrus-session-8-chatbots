@@ -1,0 +1,40 @@
+
+> hippo@0.0.1 evidence /Users/uydev/orca/walrus-session-8-chatbots
+> pnpm --filter @hippo/server evidence
+
+
+> @hippo/server@0.0.1 evidence /Users/uydev/orca/walrus-session-8-chatbots/apps/server
+> tsx scripts/evidence.ts
+
+# hippo evidence — 2026-09-21T20:40:18.365Z
+
+Relayer: https://relayer.memory.walrus.xyz (mainnet)
+Operator account: 0x4926f26b7a166e146161c517723c50762988f2772024cc5de7504f7350d9b7a5
+  https://suiscan.xyz/mainnet/object/0x4926f26b7a166e146161c517723c50762988f2772024cc5de7504f7350d9b7a5
+MEMWAL_AGENT_ID (delegate public key): f07169b63a377f86902696bf295997e3b2183043edd6024b4fc86907dfb85fa2
+
+## Requirement check
+People with memories:            1
+People with 10 or more memories: 0  (session rules ask for 3)
+Total memories written:          4
+Distinct accounts written to:    1
+Owned-mode people:               0
+
+## Per person
+  8af7e14d  guest    4 memories  first 2026-09-21 20:33  last 2026-09-21 20:33  acct 0x4926f26b…
+
+## Turns
+  total 3 (memory on 3, off 0)
+  turns that recalled something: 1
+  memories injected in total:    4
+  memories written by the model: 4
+  web       3
+
+## Accounts on the relayer
+  0x4926f26b7a166e146161c517723c50762988f2772024cc5de7504f7350d9b7a5  6 delegate keys
+    - WalrusSession5
+    - MCP Client
+    - MCP Client
+    - Web App
+    - MCP Client
+    - WalrusSession8

@@ -127,3 +127,20 @@ The SDK's `RecallResult` type omits `dropped_count`, so a caller sees an ordinar
 The positional form found the same three and dropped every one. **Bug bounty.**
 
 **Decision:** only the object form is used anywhere in this repo.
+
+## Eval result (M2 exit criterion, met early)
+
+`pnpm demo` teaches hippo five things in one session, throws the conversation away, then asks four questions in a fresh session. Full log: `docs/evidence/demo-2026-09-21.txt`.
+
+```
+PASS  Which package manager should I use here?   → "pnpm."                          (3 memories recalled)
+PASS  Which ORM did we settle on?                → "We settled on Drizzle."          (4 memories recalled)
+PASS  What port is the database on?              → "Our Postgres runs on port 5433." (4 memories recalled)
+PASS  What do you know about me?                 → answered in Vietnamese             (4 memories recalled)
+4/4 recalled correctly across sessions.
+```
+
+Two things worth pointing at in the article:
+
+1. The last answer came back **in Vietnamese** without being asked in that session. A `style` memory written in session one changed how the bot writes in session two. That is memory shaping behaviour, not memory being quoted back.
+2. **The drop bug fired four times during this single run.** Without the retry in `recallRelevant`, three of these four questions would have been answered with no memory at all, and the bot would have looked like it had forgotten everything. The mitigation is what makes the eval pass repeatably.

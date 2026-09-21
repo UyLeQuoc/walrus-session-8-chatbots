@@ -119,10 +119,12 @@ Prefix grammar: `[type]` then any number of `[key:value]` tags, then a date, the
 
 ### Write policy
 
-The model has two tools:
+The model has two tools (`packages/core/src/tools.ts`):
 
-- `remember({ type, text, scope })` — `scope` is `personal` or `team`. The tool converts relative dates, prepends tags, runs the dedupe check, then `rememberAndWait` (personal) or `remember` (team, fire and forget).
-- `recall({ query, scope, limit })` — explicit recall for when the model decides it needs more.
+- `remember({ type, text })` — redacts credentials, builds the tagged line, checks for a near-duplicate, then **accepts** the write and returns immediately. The blob ID lands in `memory_index` from a background promise.
+- `recall({ query, limit })` — explicit recall for when the model needs something not already injected.
+
+**Writes never block the reply.** `rememberAndWait` measured 23.7 s on mainnet, which would make every fact-bearing message feel broken. `rememberWithDedupe` returns after the relayer accepts the job, and `MemoryPort.flush()` lets short-lived callers (the eval, a serverless handler) wait for the background settles.
 
 System prompt follows the official four-part template (`memwal/docs/guides/system-prompt-templates.md`, "Team knowledge base" variant): recall first, write proactively in the same turn, skip one-off chatter, namespace rules. Expected writes: 3 to 8 per session.
 
@@ -130,7 +132,19 @@ System prompt follows the official four-part template (`memwal/docs/guides/syste
 
 ### Dedupe
 
-`remember()` is append-only (no upsert, no idempotency on text). Before every write: `recall({ query: text, limit: 3, maxDistance: 0.25 })`. If a hit exists, skip and tell the model it already knew this. Distance bands from `SKILL.md`: `< 0.25` duplicate, `0.25–0.55` related, `0.55–0.7` weak, `>= 0.7` unrelated.
+`remember()` is append-only (no upsert, no idempotency on text). Before every write: `recall({ query: text, limit: 3, maxDistance: 0.25 })`. If a hit exists, skip and tell the model it already knew this, so it does not claim to have saved something twice.
+
+### Distances, measured not assumed
+
+`SKILL.md` gives bands (`<0.25` duplicate, `0.25–0.55` related, `0.55–0.7` weak, `>=0.7` unrelated) that are calibrated for statement-shaped queries. The A/B in `docs/SPIKES.md` §5 found that question-shaped queries put true positives between **0.449 and 0.777**, so `DEFAULT_MAX_DISTANCE` is **0.8**. A 0.6 cutoff, which is what `withMemWal`'s default `minRelevance: 0.3` works out to, dropped half the real matches.
+
+### Silently dropped recalls
+
+The relayer sometimes answers a recall with `{"results": [], "total": 0, "dropped_count": N}`: it found N matches and discarded all of them, HTTP 200, no error. Taken at face value the bot forgets. `recallRelevant` treats an empty result with a non-zero `dropped_count` as retryable, three attempts with backoff, and logs each one. See `docs/SPIKES.md` §E.
+
+### Rate limiting
+
+The relayer allows 60 weighted requests per minute per delegate key, and guest mode shares one key across every user. `packages/memory/src/limiter.ts` paces all traffic per key (50/min, concurrency 4) and `runLimited` honours `retry_after_seconds`. `apps/server/src/ratelimit.ts` separately caps each person at 10 turns per minute and 200 per day, because the web chat is public and every turn costs model credit.
 
 ### Recall policy
 
@@ -152,6 +166,8 @@ Memory **text lives only on Walrus**. Postgres keeps a `memory_index` row per wr
 Team memories carry `[by:@user] [#channel]`. Personal memories carry `[by:@user]` only. The reply template for team recall is "According to @minh in #backend on Sep 26: …".
 
 ## 6. Slash commands
+
+Defined once in `apps/server/src/commands.ts`; every adapter routes through `handleIncoming` in `apps/server/src/turn.ts`, so the three channels cannot drift.
 
 | Command | Behaviour |
 |---|---|
@@ -195,10 +211,10 @@ Team memories carry `[by:@user] [#channel]`. Personal memories carry `[by:@user]
 | Validation / tooling | `zod` env schema, `biome`, `vitest`, `tsx` | |
 | Hosting | Railway (server) + Vercel or Cloudflare Pages (web) | |
 
-Mainnet IDs (from `memwal/docs/contract/overview.md`):
+Mainnet IDs. **The package ID is read live from the relayer's `GET /config`**, because the published docs are stale: they name the original package `0xcee7a6fd…` while the relayer runs an upgrade at `0xe7c16fbe…`, and the sponsorship allowlist compares against the latter. `MEMWAL_PACKAGE_ID` below is a fallback only.
 
 ```
-MEMWAL_PACKAGE_ID=0xcee7a6fd8de52ce645c38332bde23d4a30fd9426bc4681409733dd50958a24c6
+MEMWAL_PACKAGE_ID=0xe7c16fbea0560e7057e2bf7422feaa4fb313749fc69c9e9092fac7a33b81d7f5
 MEMWAL_REGISTRY_ID=0x0da982cefa26864ae834a8a0504b904233d49e20fcc17c373c8bed99c75a7edd
 MEMWAL_SERVER_URL=https://relayer.memory.walrus.xyz
 ```
@@ -224,7 +240,11 @@ The MCP plugin reads `~/.memwal/credentials.json`:
 
 Two ways to show the same memory in Claude Code: (a) the user runs the normal `memwal_login` in Claude Code against the same wallet, which adds a second delegate key to the same account, then `memwal_recall --namespace hippo`; (b) export from hippo's web page. Use (a): it is the honest, zero-custom-code path and shows two independent delegates on one account. Ship `.claude/skills/hippo-memory/SKILL.md` in the repo so agents understand the `[type] [by:@user] [date]` format; memory is then portable in meaning, not only in bytes. Do **not** build a hippo MCP server; the official one is the point.
 
-## 10. Spikes to run before committing (day 1)
+## 10. Spikes
+
+Run and recorded in `docs/SPIKES.md`. Outcomes that changed the design: sponsored calls work from any origin (no proxy needed), the live package ID differs from the docs, writes take ~24 s (so they are async), recall drops matches silently (so it retries), and the metadata prefix costs nothing in recall quality (so it stays).
+
+Original list:
 
 1. `/sponsor` from a non-Walrus origin (CORS and acceptance).
 2. Full connect flow on mainnet with a fresh Slush wallet: create_account + add_delegate_key, then a `remember` from the bot with the new key.
