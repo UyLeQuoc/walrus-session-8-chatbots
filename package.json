@@ -17,7 +17,9 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "biome check .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "demo": "pnpm --filter @hippo/core demo",
+    "evidence": "pnpm --filter @hippo/server evidence"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

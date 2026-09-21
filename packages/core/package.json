@@ -8,7 +8,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "hippo": "tsx src/cli.ts"
+    "hippo": "tsx src/cli.ts",
+    "demo": "tsx src/demo.ts"
   },
   "dependencies": {
     "@hippo/memory": "workspace:*",
