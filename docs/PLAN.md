@@ -21,7 +21,7 @@ Done when:
 |---|---|---|
 | Sep 22 | Docs, repo scaffold, operator account on memory.walrus.xyz, dedicated Sessions wallet, DeepSurge + Discord registration | `pnpm dev` runs an empty bot; operator `remember`/`recall` works on mainnet |
 | Sep 22 ✅ | Spikes 1, 2, 5, 6, 8 done; 3, 4, 9, 10 blocked on human inputs. Spikes 1–10 from `ARCHITECTURE.md` §10 (time-box the manual decrypt to 2 h) | Sponsored `add_delegate_key` from localhost succeeds; revoke gives 401; zkLogin path decided |
-| Sep 23–24 | Core + CLI + web chat + Telegram, guest mode end to end: `remember`/`recall` tools, `style` adaptation, dedupe, recall policy, `/memory`, `/whoami`, `/memory off`, `turn_log` | 3 test users each have 10+ memories written by the bot on mainnet |
+| Sep 22 ✅ | Core + CLI + web chat, guest mode end to end (Telegram written, unrun). Cross-channel linking, `pnpm demo` 4/4, `pnpm evidence`, seven bug reports drafted. Was: core + CLI + web chat + Telegram, guest mode end to end: `remember`/`recall` tools, `style` adaptation, dedupe, recall policy, `/memory`, `/whoami`, `/memory off`, `turn_log` | 3 test users each have 10+ memories written by the bot on mainnet |
 | Sep 25–26 | Owned mode: connect page (Slush + zkLogin), token flow, on-chain verification, key encryption, dual-read or migration, `/disconnect`, `/me` with SuiNS + expiry + Claude Code steps | Revoke demo recorded on video |
 | Sep 26 | Discord adapter, identity linking across channels, `/proof` | Same fact recalled on Telegram, web and Discord |
 | Sep 27 | Deploy (Railway + Walrus Sites, Vercel backup), README + docker-compose, `pnpm demo`, `pnpm evidence`, WalForm survey, invite users. Slack and Sui Stack Messaging only if everything else is green. | Bot reachable via web link and Telegram handle |

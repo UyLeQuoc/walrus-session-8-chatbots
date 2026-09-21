@@ -2,7 +2,7 @@
 
 Format: date — what — why — where it goes. Remove a line once resolved.
 
-- 2026-09-22 — `TELEGRAM_BOT_TOKEN` — Telegram adapter cannot start, blocks M2 verification on that channel — `.env`. Get it from @BotFather: `/newbot`, or `/mybots` → the bot → API Token.
+- 2026-09-22 — `TELEGRAM_BOT_TOKEN` — the adapter is written and typechecked but has never run. Everything it depends on is verified through the web and CLI channels, so this is the last thing standing between hippo and real users — `.env`. Get it from @BotFather: `/newbot`, or `/mybots` → the bot → API Token.
 - 2026-09-22 — **A second Slush wallet with no MemWalAccount yet** — needed for spikes 3 and 4, the owned-mode flow and the revoke demo in M3 — used interactively in the browser.
   The Sessions wallet `0xf8a4da3a751fba566508deb5166196ec5530602a924b3b0c132963e98188fb04` cannot serve this: it already owns the operator account `0x4926f26b…`, and the contract allows one MemWalAccount per address. Running `/connect` with it would add a delegate key to the account hippo already writes to, so "the user owns their own account" would not be demonstrated. It is still useful for verifying the mechanics (create is skipped, add_delegate_key runs).
 - 2026-09-22 — Enoki API key + Google OAuth client ID — optional, enables Google sign-in for non-crypto users in M3 — `apps/web/.env`.
