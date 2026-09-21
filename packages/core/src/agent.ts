@@ -47,24 +47,28 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
   const add = (list: RecalledMemory[]) => {
     for (const m of list) if (!seen.has(m.blob_id)) seen.set(m.blob_id, m);
   };
-  const jobs: Promise<RecalledMemory[]>[] = [];
-  if (query) jobs.push(input.port.recall({ query, limit: 6 }));
+  // Lazy, so they can be issued one at a time. Concurrent recalls make the
+  // relayer drop matches and answer with an empty result (docs/SPIKES.md §H),
+  // and a session-start turn would otherwise fire four at once. The extra
+  // latency is worth not silently forgetting.
+  const jobs: Array<() => Promise<RecalledMemory[]>> = [];
+  if (query) jobs.push(() => input.port.recall({ query, limit: 6 }));
   if (input.sessionStart) {
-    jobs.push(
+    jobs.push(() =>
       input.port.recall({
         query: "who the user is, their stack, tools and preferences",
         limit: 5,
         maxDistance: 0.7,
       }),
     );
-    jobs.push(
+    jobs.push(() =>
       input.port.recall({
         query: "how the user wants replies: language, length, tone",
         limit: 3,
         maxDistance: 0.6,
       }),
     );
-    jobs.push(
+    jobs.push(() =>
       input.port.recall({
         query: "open commitments, deadlines, things promised",
         limit: 4,
@@ -72,7 +76,13 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
       }),
     );
   }
-  for (const r of await Promise.allSettled(jobs)) if (r.status === "fulfilled") add(r.value);
+  for (const job of jobs) {
+    try {
+      add(await job());
+    } catch (err) {
+      console.warn("[memory] recall failed", err);
+    }
+  }
   const injected = [...seen.values()].sort((a, b) => a.distance - b.distance).slice(0, 10);
   const styleHints = injected
     .filter((m) => m.parsed?.type === "style")

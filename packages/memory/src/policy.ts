@@ -26,6 +26,14 @@ export interface RecallRelevantOptions {
  */
 export const DEFAULT_MAX_DISTANCE = 0.8;
 
+/**
+ * How hard to push back on a dropped recall. Measured across two eval runs: the
+ * drop rate rises with concurrency and three attempts at one and two seconds was
+ * not always enough, so this backs off further and tries once more.
+ */
+const RECALL_ATTEMPTS = 4;
+const RECALL_RETRY_BASE_MS = 1_500;
+
 /** The relayer reports matches it discarded; the SDK's typings omit the field. */
 interface RecallEnvelope {
   total?: number;
@@ -49,7 +57,7 @@ export async function recallRelevant(
   // discarded every one, with no error. Taking that at face value makes the bot
   // silently forget, so retry before believing an empty result that had
   // candidates. Observed 2026-09-21, see docs/SPIKES.md §5.
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= RECALL_ATTEMPTS; attempt++) {
     const res = limiter ? await runLimited(limiter, call) : await call();
     const dropped = (res as RecallEnvelope).dropped_count ?? 0;
     if (res.results.length > 0 || dropped === 0) {
@@ -58,10 +66,15 @@ export async function recallRelevant(
         .map((m) => ({ ...m, parsed: parseMemoryText(m.text) }));
     }
     console.warn(
-      `[memory] recall in ${namespace} dropped all ${dropped} candidates (attempt ${attempt}/3)`,
+      `[memory] recall in ${namespace} dropped all ${dropped} candidates (attempt ${attempt}/${RECALL_ATTEMPTS})`,
     );
-    if (attempt < 3) await new Promise((r) => setTimeout(r, 1_000 * attempt));
+    if (attempt < RECALL_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, RECALL_RETRY_BASE_MS * 2 ** (attempt - 1)));
+    }
   }
+  console.error(
+    `[memory] recall in ${namespace} gave up after ${RECALL_ATTEMPTS} dropped attempts`,
+  );
   return [];
 }
 

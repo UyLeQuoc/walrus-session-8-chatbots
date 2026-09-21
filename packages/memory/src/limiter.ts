@@ -9,7 +9,15 @@ export interface LimiterOptions {
   capacity?: number;
   /** Window in ms. Default 60_000. */
   windowMs?: number;
-  /** Max requests in flight at once. Default 4. */
+  /**
+   * Max requests in flight at once. Default 2.
+   *
+   * Kept low deliberately. The relayer appears to share a SEAL decrypt pool that
+   * is capped at three concurrent decrypts, and under concurrent recalls it
+   * starts answering with an empty result plus a non-zero `dropped_count`
+   * instead of queueing. Fewer requests in flight means fewer dropped recalls,
+   * which matters more than latency here. See docs/SPIKES.md §H.
+   */
   concurrency?: number;
 }
 
@@ -21,7 +29,7 @@ export class RateLimiter {
   private active = 0;
   private queue: Array<() => void> = [];
 
-  constructor({ capacity = 50, windowMs = 60_000, concurrency = 4 }: LimiterOptions = {}) {
+  constructor({ capacity = 50, windowMs = 60_000, concurrency = 2 }: LimiterOptions = {}) {
     this.capacity = capacity;
     this.windowMs = windowMs;
     this.concurrency = concurrency;
