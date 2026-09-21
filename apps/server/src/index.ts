@@ -8,6 +8,7 @@ import { telegramAdapter } from "./channels/telegram.ts";
 import type { ChannelAdapter } from "./channels/types.ts";
 import { env } from "./env.ts";
 import { chatRoutes } from "./routes/chat.ts";
+import { connectRoutes } from "./routes/connect.ts";
 
 const app = new Hono();
 app.use(logger());
@@ -19,6 +20,7 @@ app.get("/api/health", (c) =>
   c.json({ ok: true, model: env.LLM_MODEL, relayer: env.MEMWAL_SERVER_URL }),
 );
 app.route("/", chatRoutes);
+app.route("/", connectRoutes);
 
 const adapters = [telegramAdapter(), discordAdapter(), slackAdapter()].filter(
   (a): a is ChannelAdapter => a !== null,

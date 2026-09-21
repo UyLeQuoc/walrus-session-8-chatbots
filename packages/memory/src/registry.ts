@@ -71,3 +71,68 @@ export function fetchRelayerConfig(serverUrl: string): Promise<RelayerConfig> {
   });
   return configCache;
 }
+
+export interface OnChainDelegate {
+  publicKeyHex: string;
+  suiAddress: string;
+  label: string;
+}
+
+export interface OnChainAccount {
+  accountId: string;
+  owner: string;
+  active: boolean;
+  delegates: OnChainDelegate[];
+}
+
+function normaliseKey(value: unknown): string {
+  if (typeof value === "string") {
+    // gRPC JSON encodes vector<u8> as base64; a hex string passes through.
+    if (/^[0-9a-fA-F]{64}$/.test(value)) return value.toLowerCase();
+    return toHex(fromBase64(value));
+  }
+  if (Array.isArray(value)) return toHex(Uint8Array.from(value as number[]));
+  return "";
+}
+
+/** Read a MemWalAccount straight from chain. The relayer is not the authority here. */
+export async function readAccount(
+  client: SuiGrpcClient,
+  accountId: string,
+): Promise<OnChainAccount | null> {
+  const res = await client.core
+    .getObject({ objectId: accountId, include: { json: true } })
+    .catch(() => null);
+  const json = (res?.object as { json?: Record<string, unknown> } | undefined)?.json;
+  if (!json) return null;
+  const rawDelegates = Array.isArray(json.delegate_keys) ? json.delegate_keys : [];
+  return {
+    accountId,
+    owner: String(json.owner ?? ""),
+    active: json.active !== false,
+    delegates: rawDelegates.map((d) => {
+      const f =
+        (d as { fields?: Record<string, unknown> }).fields ?? (d as Record<string, unknown>);
+      return {
+        publicKeyHex: normaliseKey(f.public_key),
+        suiAddress: String(f.sui_address ?? ""),
+        label: String(f.label ?? ""),
+      };
+    }),
+  };
+}
+
+/**
+ * The only trustworthy answer to "did the user really grant us access?".
+ * The browser's success callback is a claim; this is the proof.
+ */
+export async function isDelegateRegistered(
+  client: SuiGrpcClient,
+  accountId: string,
+  publicKeyHex: string,
+): Promise<boolean> {
+  const account = await readAccount(client, accountId);
+  if (!account?.active) return false;
+  const wanted = publicKeyHex.toLowerCase().replace(/^0x/, "");
+  return account.delegates.some((d) => d.publicKeyHex === wanted);
+}

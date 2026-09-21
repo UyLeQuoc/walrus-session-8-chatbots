@@ -1,14 +1,10 @@
-import { completeTurn } from "@hippo/core";
-import type { ModelMessage } from "ai";
 import { ChannelType, Client, Events, GatewayIntentBits, Partials } from "discord.js";
-import { model } from "../app-context.ts";
 import { env } from "../env.ts";
-import { logTurn, portFor, resolvePerson } from "../persons.ts";
+import { handleIncoming } from "../turn.ts";
 import type { ChannelAdapter } from "./types.ts";
 
 const CHANNEL = "discord";
-const history = new Map<string, { messages: ModelMessage[]; last: number }>();
-const SESSION_GAP_MS = 6 * 60 * 60 * 1000;
+const MAX_LEN = 1900;
 
 export function discordAdapter(): ChannelAdapter | null {
   if (!env.DISCORD_TOKEN) return null;
@@ -29,36 +25,22 @@ export function discordAdapter(): ChannelAdapter | null {
     if (!isDm && !mentioned) return;
     const text = msg.content.replace(/<@!?\d+>/g, "").trim();
     if (!text) return;
-    const person = await resolvePerson(CHANNEL, msg.author.id, msg.author.username);
-    const key = `${msg.channelId}:${msg.author.id}`;
-    const now = Date.now();
-    const h = history.get(key);
-    const sessionStart = !h || now - h.last > SESSION_GAP_MS;
-    const messages = sessionStart ? [] : (h?.messages ?? []);
-    messages.push({ role: "user", content: text });
+
     if ("sendTyping" in msg.channel) await msg.channel.sendTyping().catch(() => {});
-    const port = await portFor(person, CHANNEL);
     try {
-      const {
-        text: reply,
-        ctx,
-        writes,
-      } = await completeTurn({
-        model,
-        port,
-        messages,
+      const reply = await handleIncoming({
         channel: CHANNEL,
-        userHandle: msg.author.username,
-        memoryEnabled: person.memoryEnabled,
-        sessionStart,
+        externalId: msg.author.id,
+        displayName: msg.author.username,
+        text,
+        threadKey: `${msg.channelId}:${msg.author.id}`,
       });
-      messages.push({ role: "assistant", content: reply });
-      history.set(key, { messages: messages.slice(-20), last: now });
-      await msg.reply(reply.slice(0, 1990) || "…");
-      await logTurn(person, CHANNEL, ctx, writes, model.id);
+      for (let i = 0; i < reply.text.length; i += MAX_LEN) {
+        await msg.reply(reply.text.slice(i, i + MAX_LEN));
+      }
     } catch (err) {
       console.error("[discord] turn failed", err);
-      await msg.reply("something went wrong on my side, try again in a moment.");
+      await msg.reply("Something went wrong on my side. Try again in a moment.");
     }
   });
 

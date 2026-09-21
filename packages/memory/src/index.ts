@@ -33,7 +33,11 @@ export {
   createSuiClient,
   fetchRelayerConfig,
   findAccountIdForOwner,
+  isDelegateRegistered,
+  type OnChainAccount,
+  type OnChainDelegate,
   type RelayerConfig,
+  readAccount,
 } from "./registry.ts";
 export { type MemoryMeta, RelayerExtras, type StatsResult } from "./relayer.ts";
 export { formatUntrustedMemories, UNTRUSTED_MEMORY_SYSTEM_INSTRUCTION } from "./untrusted.ts";

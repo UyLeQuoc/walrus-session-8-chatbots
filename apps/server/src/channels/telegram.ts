@@ -1,71 +1,49 @@
-import { completeTurn } from "@hippo/core";
-import type { ModelMessage } from "ai";
 import { Bot } from "grammy";
-import { model } from "../app-context.ts";
 import { env } from "../env.ts";
-import { logTurn, portFor, resolvePerson } from "../persons.ts";
+import { handleIncoming } from "../turn.ts";
 import type { ChannelAdapter } from "./types.ts";
 
 const CHANNEL = "telegram";
-/** Short-lived per-chat history kept in memory; long-term memory is on Walrus. */
-const history = new Map<string, { messages: ModelMessage[]; last: number }>();
-const SESSION_GAP_MS = 6 * 60 * 60 * 1000;
+const MAX_LEN = 3900;
+
+function chunk(text: string): string[] {
+  if (text.length <= MAX_LEN) return [text];
+  const out: string[] = [];
+  let rest = text;
+  while (rest.length > MAX_LEN) {
+    const cut = rest.lastIndexOf("\n", MAX_LEN);
+    const at = cut > MAX_LEN * 0.5 ? cut : MAX_LEN;
+    out.push(rest.slice(0, at));
+    rest = rest.slice(at).trimStart();
+  }
+  if (rest) out.push(rest);
+  return out;
+}
 
 export function telegramAdapter(): ChannelAdapter | null {
   if (!env.TELEGRAM_BOT_TOKEN) return null;
   const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
 
-  bot.command("start", (ctx) =>
-    ctx.reply(
-      "hi, I'm hippo. I remember what you tell me, and the memory is yours. /connect to own it on-chain, /memory to see it.",
-    ),
-  );
-  bot.command("whoami", async (ctx) => {
-    const person = await resolvePerson(
-      CHANNEL,
-      String(ctx.from?.id),
-      ctx.from?.username ?? ctx.from?.first_name,
-    );
-    await ctx.reply(
-      `mode: ${person.mode}\nperson: ${person.id}\naccount: ${person.accountId ?? "operator (guest)"}`,
-    );
-  });
-  bot.command("connect", (ctx) =>
-    ctx.reply("owned mode is coming in Milestone 1 (see docs/ARCHITECTURE.md §3)."),
-  );
-
   bot.on("message:text", async (ctx) => {
     const from = ctx.from;
-    const person = await resolvePerson(CHANNEL, String(from.id), from.username ?? from.first_name);
-    const key = String(ctx.chat.id);
-    const now = Date.now();
-    const h = history.get(key);
-    const sessionStart = !h || now - h.last > SESSION_GAP_MS;
-    const messages = sessionStart ? [] : (h?.messages ?? []);
-    messages.push({ role: "user", content: ctx.message.text });
-    await ctx.replyWithChatAction("typing");
-    const port = await portFor(person, CHANNEL);
+    const typing = setInterval(() => void ctx.replyWithChatAction("typing").catch(() => {}), 5_000);
+    void ctx.replyWithChatAction("typing").catch(() => {});
     try {
-      const {
-        text,
-        ctx: turnCtx,
-        writes,
-      } = await completeTurn({
-        model,
-        port,
-        messages,
+      const reply = await handleIncoming({
         channel: CHANNEL,
-        userHandle: from.username ?? from.first_name,
-        memoryEnabled: person.memoryEnabled,
-        sessionStart,
+        externalId: String(from.id),
+        displayName: from.username ?? from.first_name,
+        text: ctx.message.text,
+        threadKey: `${ctx.chat.id}:${from.id}`,
       });
-      messages.push({ role: "assistant", content: text });
-      history.set(key, { messages: messages.slice(-20), last: now });
-      await ctx.reply(text || "…");
-      await logTurn(person, CHANNEL, turnCtx, writes, model.id);
+      for (const part of chunk(reply.text)) {
+        await ctx.reply(part, { link_preview_options: { is_disabled: true } });
+      }
     } catch (err) {
       console.error("[telegram] turn failed", err);
-      await ctx.reply("something went wrong on my side, try again in a moment.");
+      await ctx.reply("Something went wrong on my side. Try again in a moment.");
+    } finally {
+      clearInterval(typing);
     }
   });
 
@@ -73,6 +51,14 @@ export function telegramAdapter(): ChannelAdapter | null {
     name: CHANNEL,
     async start() {
       bot.catch((e) => console.error("[telegram]", e));
+      await bot.api.setMyCommands([
+        { command: "memory", description: "what I remember about you" },
+        { command: "whoami", description: "your account and where the memory lives" },
+        { command: "proof", description: "the memories behind my last answer" },
+        { command: "connect", description: "own your memory on-chain" },
+        { command: "disconnect", description: "revoke my access" },
+        { command: "help", description: "all commands" },
+      ]);
       void bot.start({ onStart: (me) => console.log(`[telegram] @${me.username} polling`) });
     },
     async stop() {
