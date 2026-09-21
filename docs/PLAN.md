@@ -2,6 +2,19 @@
 
 Deadline: **Oct 9, 2026 14:00 UTC**. Today: Sep 22. Real users need about a week, so the bot must be live by **Sep 27**.
 
+## Milestone 0 — Setup (Sep 22)
+
+Goal: a monorepo anyone can clone and run in five commands, with every layer present as a real, typed, running stub, so that from Sep 23 the work is features and spikes, not plumbing.
+
+Done when:
+- [x] `pnpm install && pnpm typecheck && pnpm build` pass on a clean clone.
+- [x] `docker compose up -d` starts Postgres; `pnpm db:push` creates the schema (people, channel_identities, delegate_keys, connect_tokens, web_sessions, turn_log, memory_index).
+- [ ] (needs real operator credentials) `pnpm smoke` (packages/memory) health-checks the mainnet relayer and, when `.env` has operator credentials, writes one memory and recalls it.
+- [ ] (needs OPENROUTER_API_KEY + operator credentials) `pnpm hippo` (packages/core CLI) holds a conversation through OpenRouter with the `remember` / `recall` tools wired to the guest namespace.
+- [x] `pnpm dev:server` serves `GET /api/health` and a streaming `POST /api/chat`; channel adapters start only when their tokens are present.
+- [x] `pnpm dev:web` serves the Vite + Tailwind v4 + shadcn app with a chat page that streams from the server.
+- [x] `.env.example` lists every variable; `README.md` has the five commands; `.claude/skills/hippo-memory/SKILL.md` exists.
+
 ## Timeline
 
 | Dates | Milestone | Done when |

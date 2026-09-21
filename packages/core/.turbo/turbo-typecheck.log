@@ -1,0 +1,4 @@
+
+> @hippo/core@0.0.1 typecheck /Users/uydev/orca/walrus-session-8-chatbots/packages/core
+> tsc -p tsconfig.json
+

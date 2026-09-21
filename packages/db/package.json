@@ -1,0 +1,25 @@
+{
+  "name": "@hippo/db",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.3",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "dotenv": "^17.0.0",
+    "drizzle-kit": "^0.31.0",
+    "typescript": "^5.9.3"
+  }
+}

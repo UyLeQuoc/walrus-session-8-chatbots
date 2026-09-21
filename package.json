@@ -1,0 +1,27 @@
+{
+  "name": "hippo",
+  "private": true,
+  "version": "0.0.1",
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:server": "pnpm --filter @hippo/server dev",
+    "dev:web": "pnpm --filter @hippo/web dev",
+    "hippo": "pnpm --filter @hippo/core hippo",
+    "smoke": "pnpm --filter @hippo/memory smoke",
+    "db:push": "pnpm --filter @hippo/db push",
+    "db:studio": "pnpm --filter @hippo/db studio",
+    "typecheck": "turbo run typecheck",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "turbo": "^2.11.2",
+    "typescript": "^5.9.3"
+  }
+}
