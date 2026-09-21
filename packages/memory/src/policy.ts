@@ -73,7 +73,13 @@ export interface SettledWrite {
   status: "stored" | "failed";
   blobId: string | null;
   error?: string;
+  /** How many submissions it took. More than one means the relayer dropped a job. */
+  attempts: number;
 }
+
+/** A dropped job is resubmitted this many times before the write is called lost. */
+const WRITE_ATTEMPTS = 3;
+const WRITE_RETRY_BASE_MS = 5_000;
 
 export interface RememberOptions {
   text: string;
@@ -111,18 +117,43 @@ export async function rememberWithDedupe(
   const accepted = limiter ? await runLimited(limiter, accept) : await accept();
 
   const settled: Promise<SettledWrite> = (async () => {
-    try {
-      const wait = () =>
-        client.waitForRememberJob(accepted.job_id, { timeoutMs, pollIntervalMs: 2_000 });
-      const done = limiter ? await runLimited(limiter, wait) : await wait();
-      return { status: "stored", blobId: done.blob_id ?? null };
-    } catch (err) {
-      return {
-        status: "failed",
-        blobId: null,
-        error: err instanceof Error ? err.message : String(err),
-      };
+    let lastError = "";
+    // The relayer's own Sui RPC gets throttled during SEAL encryption and the
+    // job dies with "seal encrypt failed … RpcError: Too Many Requests". The
+    // memory is gone, after the user was already told it was saved, so a failed
+    // job is resubmitted rather than reported as lost. Observed 2026-09-21.
+    for (let attempt = 1; attempt <= WRITE_ATTEMPTS; attempt++) {
+      let jobId: string | null = accepted.job_id;
+      if (attempt > 1) {
+        try {
+          const again = limiter ? await runLimited(limiter, accept) : await accept();
+          jobId = again.job_id;
+        } catch (err) {
+          lastError = err instanceof Error ? err.message : String(err);
+          jobId = null;
+        }
+      }
+      if (!jobId) break;
+
+      try {
+        const id = jobId;
+        const wait = () => client.waitForRememberJob(id, { timeoutMs, pollIntervalMs: 2_000 });
+        // waitForRememberJob resolves with the stored memory and throws when
+        // the job failed or timed out.
+        const done = limiter ? await runLimited(limiter, wait) : await wait();
+        if (done.blob_id) {
+          return { status: "stored" as const, blobId: done.blob_id, attempts: attempt };
+        }
+        lastError = "job completed without a blob id";
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+
+      if (attempt < WRITE_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, WRITE_RETRY_BASE_MS * 2 ** (attempt - 1)));
+      }
     }
+    return { status: "failed" as const, blobId: null, error: lastError, attempts: WRITE_ATTEMPTS };
   })();
   // A rejection is impossible above, but never leave an unobserved promise.
   settled.catch(() => {});
