@@ -60,3 +60,24 @@ The bot writes proactively using the four-part policy from the official prompt t
 - Order: core + web + Telegram first (by Sep 26), Discord second (one day, the adapter is thin), Slack third if time allows. Team/shared scope is stretch.
 - The bot holds users' delegate private keys encrypted at rest. This is the standard delegate model (the MCP plugin does the same on the user's machine). Ownership means the user can revoke, not that the bot never sees a key. Say this plainly in the article.
 - No self-hosted relayer. Managed mainnet relayer only.
+
+## What changed after building it
+
+Two findings sharpened the pitch rather than weakening it.
+
+**Recall can fail silently.** The relayer sometimes returns an empty result while
+reporting that it found and discarded matches. A memory bot that believes that
+answer looks like it has amnesia. Handling it is the difference between an eval
+that passes repeatably and one that passes sometimes, and it is the most
+concrete answer to "is memory doing real work here".
+
+**The ownership model did not hold for our own key.** Our delegate key is not in
+the account's on-chain `delegate_keys`, yet the relayer accepts it. That is
+uncomfortable for a project whose pitch is on-chain ownership, and it is exactly
+why the project is worth submitting: we found it because we tried to decrypt our
+own memory client-side, which nobody does if they only use the SDK's happy path.
+
+The honest response, and the one hippo implements, is to make the revoke true on
+our side: `/disconnect` destroys hippo's copy of the key rather than flagging it.
+The demo then does not depend on the relayer behaving, and the article can report
+what actually happens. See `docs/issues/08`.
