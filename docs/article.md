@@ -97,10 +97,17 @@ matches found, five discarded, HTTP 200, no error. The SDK's types don't include
 no memories. During one run of that four-question eval it fired nine times, three
 of them surviving every retry.
 
-Then I found the trigger. A session-start turn fires four recall queries at once,
-and that concurrency is what causes it. Issuing them one at a time instead of
-with `Promise.all` took it from nine drops to zero, twice in a row. Slightly
-slower, and the bot stopped having amnesia.
+I thought I found the trigger. A session-start turn fires four recall queries at
+once, so I made them sequential, and the drops went from nine to zero. Twice.
+Then I killed a stray background script that had been hitting the same key,
+re-ran the identical eval with nothing else in the way, and got fifteen drops.
+Worse than any run before it.
+
+So concurrency was not the cause, and my clean-looking fix was luck. Four runs of
+the same script gave 4, 9, 0 and 15 drops. The only thing that actually helps is
+retrying, and the only reason every run still passed is that a session start
+fires several overlapping queries, so the redundancy covers a loss. A bot that
+asked once would just have forgotten.
 
 **The ownership model did not hold for my own key.** The delegate key I built
 with does not appear in my account's on-chain `delegate_keys`. I read the object

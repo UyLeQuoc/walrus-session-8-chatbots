@@ -1,0 +1,130 @@
+
+> hippo@0.0.1 demo /Users/uydev/orca/walrus-session-8-chatbots
+> pnpm --filter @hippo/core demo
+
+
+> @hippo/core@0.0.1 demo /Users/uydev/orca/walrus-session-8-chatbots/packages/core
+> tsx src/demo.ts
+
+hippo memory eval · model google/gemini-2.5-flash · namespace hippo-guest:demo-mubum73u
+
+SESSION 1 — teaching
+[memory] recall failed Error: Walrus Memory temporarily cannot verify credentials (upstream unavailable). Retry; this is not a sign-in failure.
+    at MemWal.signedRequest (/Users/uydev/orca/walrus-session-8-chatbots/node_modules/.pnpm/@mysten-incubation+memwal@0.1.7_@mysten+seal@1.4.13_@mysten+sui@2.31.3_typescript@5.9.3_2d603c92dc85818b9306004723fce77d/node_modules/@mysten-incubation/memwal/dist/memwal.js:1129:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async MemWal.recall (/Users/uydev/orca/walrus-session-8-chatbots/node_modules/.pnpm/@mysten-incubation+memwal@0.1.7_@mysten+seal@1.4.13_@mysten+sui@2.31.3_typescript@5.9.3_2d603c92dc85818b9306004723fce77d/node_modules/@mysten-incubation/memwal/dist/memwal.js:489:28)
+    at async RateLimiter.run (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/limiter.ts:41:14)
+    at async runLimited (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/limiter.ts:107:14)
+    at async recallRelevant (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/policy.ts:61:27)
+    at async gatherContext (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/agent.ts:81:11)
+    at async completeTurn (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/agent.ts:121:15)
+    at async main (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/demo.ts:104:18)
+    at async <anonymous> (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/demo.ts:161:1) {
+  status: 503,
+  serverCode: 'AUTH_UPSTREAM_UNAVAILABLE',
+  retryAfterSeconds: 5,
+  cause: 'upstream unavailable'
+}
+[memory] recall failed Error: Walrus Memory temporarily cannot verify credentials (upstream unavailable). Retry; this is not a sign-in failure.
+    at MemWal.signedRequest (/Users/uydev/orca/walrus-session-8-chatbots/node_modules/.pnpm/@mysten-incubation+memwal@0.1.7_@mysten+seal@1.4.13_@mysten+sui@2.31.3_typescript@5.9.3_2d603c92dc85818b9306004723fce77d/node_modules/@mysten-incubation/memwal/dist/memwal.js:1129:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async MemWal.recall (/Users/uydev/orca/walrus-session-8-chatbots/node_modules/.pnpm/@mysten-incubation+memwal@0.1.7_@mysten+seal@1.4.13_@mysten+sui@2.31.3_typescript@5.9.3_2d603c92dc85818b9306004723fce77d/node_modules/@mysten-incubation/memwal/dist/memwal.js:489:28)
+    at async RateLimiter.run (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/limiter.ts:41:14)
+    at async runLimited (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/limiter.ts:107:14)
+    at async recallRelevant (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/policy.ts:61:27)
+    at async gatherContext (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/agent.ts:81:11)
+    at async completeTurn (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/agent.ts:121:15)
+    at async main (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/demo.ts:104:18)
+    at async <anonymous> (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/demo.ts:161:1) {
+  status: 503,
+  serverCode: 'AUTH_UPSTREAM_UNAVAILABLE',
+  retryAfterSeconds: 5,
+  cause: 'upstream unavailable'
+}
+[memory] recall failed Error: Walrus Memory temporarily cannot verify credentials (upstream unavailable). Retry; this is not a sign-in failure.
+    at MemWal.signedRequest (/Users/uydev/orca/walrus-session-8-chatbots/node_modules/.pnpm/@mysten-incubation+memwal@0.1.7_@mysten+seal@1.4.13_@mysten+sui@2.31.3_typescript@5.9.3_2d603c92dc85818b9306004723fce77d/node_modules/@mysten-incubation/memwal/dist/memwal.js:1129:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async MemWal.recall (/Users/uydev/orca/walrus-session-8-chatbots/node_modules/.pnpm/@mysten-incubation+memwal@0.1.7_@mysten+seal@1.4.13_@mysten+sui@2.31.3_typescript@5.9.3_2d603c92dc85818b9306004723fce77d/node_modules/@mysten-incubation/memwal/dist/memwal.js:489:28)
+    at async RateLimiter.run (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/limiter.ts:41:14)
+    at async runLimited (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/limiter.ts:107:14)
+    at async recallRelevant (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/policy.ts:61:27)
+    at async gatherContext (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/agent.ts:81:11)
+    at async completeTurn (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/agent.ts:121:15)
+    at async main (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/demo.ts:104:18)
+    at async <anonymous> (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/demo.ts:161:1) {
+  status: 503,
+  serverCode: 'AUTH_UPSTREAM_UNAVAILABLE',
+  retryAfterSeconds: 5,
+  cause: 'upstream unavailable'
+}
+[memory] recall failed Error: Walrus Memory temporarily cannot verify credentials (upstream unavailable). Retry; this is not a sign-in failure.
+    at MemWal.signedRequest (/Users/uydev/orca/walrus-session-8-chatbots/node_modules/.pnpm/@mysten-incubation+memwal@0.1.7_@mysten+seal@1.4.13_@mysten+sui@2.31.3_typescript@5.9.3_2d603c92dc85818b9306004723fce77d/node_modules/@mysten-incubation/memwal/dist/memwal.js:1129:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async MemWal.recall (/Users/uydev/orca/walrus-session-8-chatbots/node_modules/.pnpm/@mysten-incubation+memwal@0.1.7_@mysten+seal@1.4.13_@mysten+sui@2.31.3_typescript@5.9.3_2d603c92dc85818b9306004723fce77d/node_modules/@mysten-incubation/memwal/dist/memwal.js:489:28)
+    at async RateLimiter.run (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/limiter.ts:41:14)
+    at async runLimited (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/limiter.ts:107:14)
+    at async recallRelevant (/Users/uydev/orca/walrus-session-8-chatbots/packages/memory/src/policy.ts:61:27)
+    at async gatherContext (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/agent.ts:81:11)
+    at async completeTurn (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/agent.ts:121:15)
+    at async main (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/demo.ts:104:18)
+    at async <anonymous> (/Users/uydev/orca/walrus-session-8-chatbots/packages/core/src/demo.ts:161:1) {
+  status: 503,
+  serverCode: 'AUTH_UPSTREAM_UNAVAILABLE',
+  retryAfterSeconds: 5,
+  cause: 'upstream unavailable'
+}
+  › Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.
+  ‹ Hi Mai. I've noted that you work on Sui and Next.js, and use TypeScript in strict mode.  (1 writes)
+  › For package managers I only use pnpm, never npm or yarn.
+  ‹ Okay, you prefer pnpm exclusively.  (1 writes)
+    stored [profile] blob UyqR9mYo2l1I…
+    stored [profile] blob kLlLPxw8zMxm…
+[memory] recall in hippo-guest:demo-mubum73u dropped all 2 candidates (attempt 1/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 2 candidates (attempt 2/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 2 candidates (attempt 3/4)
+  › We decided to use Drizzle instead of Prisma for this project's ORM.
+  ‹ Got it. You're using Drizzle as the ORM for this project.  (1 writes)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 2 candidates (attempt 1/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 2 candidates (attempt 2/4)
+  › One thing to remember: our Postgres runs on port 5433 because 5432 is taken.
+  ‹ Your Postgres runs on port 5433. I've stored that.  (1 writes)
+  › Please keep your answers short, and always answer me in Vietnamese.
+  ‹ Tôi sẽ giữ câu trả lời ngắn gọn và luôn trả lời bạn bằng tiếng Việt.  (1 writes)
+
+  5 memories written. Waiting 90s for indexing…
+    stored [decision] blob 9kG5KliAII4q…
+    stored [style] blob GwW6r17dTIew…
+    stored [gotcha] blob m55WE6Hq0-YH…
+
+SESSION 2 — fresh conversation, no history carried over
+[memory] recall in hippo-guest:demo-mubum73u dropped all 5 candidates (attempt 1/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 4 candidates (attempt 1/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 4 candidates (attempt 2/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 4 candidates (attempt 3/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 4 candidates (attempt 4/4)
+[memory] recall in hippo-guest:demo-mubum73u gave up after 4 dropped attempts
+  PASS  Which package manager should I use here?
+        You use pnpm.
+        recalled 3 memories
+[memory] recall in hippo-guest:demo-mubum73u dropped all 5 candidates (attempt 1/4)
+  PASS  Which ORM did we settle on?
+        We settled on Drizzle.
+        recalled 4 memories
+[memory] recall in hippo-guest:demo-mubum73u dropped all 5 candidates (attempt 1/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 5 candidates (attempt 2/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 4 candidates (attempt 1/4)
+[memory] recall in hippo-guest:demo-mubum73u dropped all 4 candidates (attempt 2/4)
+  PASS  What port is the database on?
+        Your Postgres database is on port 5433.
+        recalled 4 memories
+  PASS  What do you know about me?
+        Tôi là hippo, một trợ lý súc tích dành cho các nhà phát triển. Tôi biết bạn là Mai, làm việc với Sui và Next.js, luôn ở chế độ TypeScript st
+        recalled 3 memories
+
+CROSS-CHANNEL — a second channel, same memory
+  PASS  You use pnpm.
+        recalled 3 memories
+
+4/4 recalled correctly across sessions.
+cross-channel recall: PASS
+namespace: hippo-guest:demo-mubum73u

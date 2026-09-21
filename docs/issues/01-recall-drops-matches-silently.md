@@ -58,25 +58,27 @@ We now treat `results.length === 0 && dropped_count > 0` as retryable, three
 attempts with backoff, before believing an empty result. The eval passes
 repeatably with that in place and fails without it.
 
-## It is load dependent, and concurrency is the trigger
+## How often, and what does not fix it
 
-We measured it across eval runs:
+Four runs of the same four-question eval against the same namespace:
 
-| Recalls issued | Drop events in one run | Retries exhausted |
-|---|---|---|
-| Four in parallel | 4, then 9 on a second run | 0, then 3 |
-| One at a time | **0**, across two consecutive runs | **0** |
+| Run | Recalls issued | Drop events | Retries exhausted | Eval result |
+|---|---|---|---|---|
+| 1 | four in parallel | 4 | 0 | 4/4 |
+| 2 | four in parallel | 9 | 3 | 4/4 |
+| 3 | one at a time | 0 | 0 | 4/4 |
+| 4 | one at a time | 15 | 1 | 4/4 |
 
-Issuing the same queries sequentially instead of with `Promise.all` removed the
-problem entirely. Our guess is that recall shares the SEAL decrypt pool that
-`docs/fundamentals/architecture/how-storage-works.md` describes as capped at
-three concurrent decrypts because it is CPU bound, and that the overflow path
-drops rather than queues. We have not seen the server, so that is a guess; the
-correlation is not.
+We first thought concurrency was the trigger, since recall plausibly shares the
+SEAL decrypt pool your docs describe as capped at three concurrent decrypts.
+Run 3 seemed to confirm it. Run 4, sequential and with nothing else touching the
+relayer, produced the worst numbers of the set. So concurrency is not the
+explanation, and nothing we tried on the client side reduces it.
 
-Note what this means for the recommended architecture: the multi-tenant cookbook
-puts every end user behind one delegate key, so a handful of simultaneous users
-produce exactly the concurrency that triggers this.
+What does work is retrying: every run passed, including the one where a recall
+gave up after four attempts, because a session-start turn issues several
+overlapping queries and the redundancy covered the loss. A single-query client
+would simply have forgotten.
 
 ## Asks
 

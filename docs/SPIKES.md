@@ -209,52 +209,48 @@ the bot forgets" is the demo the whole submission is built around.
 
 The owner-signed revocation test is now the top item in `docs/BLOCKERS.md`.
 
-### H — the drop rate rises with concurrent recalls
+### H — the drop rate is high and erratic, and concurrency does not explain it
 
-Two full eval runs, same script, same namespace size:
+I thought I had found the cause. I had not, and the corrected version is more
+useful than the wrong one.
 
-| Run | Drop events | Exhausted all three retries |
-|---|---|---|
-| First (`demo-2026-09-21.txt`) | 4 | 0 |
-| Second (`demo-2026-09-21-cross-channel.txt`) | 9 | 3 |
+The hypothesis was that recall shares the relayer's SEAL decrypt pool, capped at
+three concurrent decrypts, and that a session-start turn firing four recalls at
+once overflows it. The first measurement supported it: switching to sequential
+recalls took a run from nine drops to zero, twice.
 
-Both runs passed, because a session-start turn fires four recall queries and only
-some of them get dropped, but the trend matters: the failure is not rare and it
-gets worse when several recalls are in flight at once.
+Then I killed a stray polling loop that had been issuing a recall every five
+seconds against the same delegate key, re-ran the same eval with nothing else
+touching the relayer, and got **fifteen drops and one recall that exhausted all
+four retries**. Sequential, clean, worse than ever.
 
-Working hypothesis: recall shares the relayer's SEAL decrypt pool, which
-`docs/fundamentals/architecture/how-storage-works.md` describes as capped at
-three concurrent decrypts because it is CPU bound. Four concurrent recalls, each
-decrypting several results, would exceed it, and the relayer appears to drop
-rather than queue.
+| Run | Recalls | Other load | Drop events | Exhausted retries | Eval |
+|---|---|---|---|---|---|
+| 1 | concurrent | none | 4 | 0 | pass |
+| 2 | concurrent | poller | 9 | 3 | pass |
+| 3 | sequential | poller | 0 | 0 | pass |
+| 4 | sequential | none | 15 | 1 | pass |
 
-**Decision taken:** issue recalls one at a time rather than in parallel, lower
-the client limiter's default concurrency from 4 to 2, and back the retry off
-further (four attempts from 1.5 s).
+There is no relationship here. The drop rate swings by a factor of four between
+runs of an identical script against an identical namespace, and run 3's zero was
+luck, not a fix. I am recording the wrong hypothesis rather than deleting it,
+because the shape of the mistake matters: one encouraging measurement, in the
+direction I expected, and I nearly published it.
 
-**Re-measured, and the hypothesis held:**
+**What is actually true, and what the bug report says:**
 
-| Run | Recalls | Drop events | Exhausted retries |
-|---|---|---|---|
-| Before, first | concurrent | 4 | 0 |
-| Before, second | concurrent | 9 | 3 |
-| After, two consecutive runs | sequential | **0** | **0** |
+- The drop is frequent. Fifteen events in one four-question eval.
+- It is erratic. Identical runs differ wildly.
+- Retrying works. Every run passed 4/4, including the one where a recall gave up
+  entirely, because a session-start turn issues several overlapping queries and
+  the redundancy covers a loss.
+- Nothing a client does seems to prevent it. Only handling it helps.
 
-Two full eval runs back to back with no dropped recall at all, where the
-previous run dropped nine. Both still pass 4/4 plus the cross-channel check.
+**Decisions kept anyway:** sequential recalls and concurrency 2 stay. They did
+not fix the drop, but they lower load on a shared delegate key that the official
+multi-tenant pattern puts every user behind, and that is worth having on its own.
+The retry, four attempts backing off from 1.5 s, is what actually keeps the bot
+from forgetting.
 
-**Caveat, stated because it cuts the right way.** A stray polling loop left over
-from an earlier test was issuing a recall every five seconds against the same
-delegate key during runs two and three, but not run one. So the comparison is
-not perfectly controlled: run one (4 drops) had no background load, run two
-(9 drops, concurrent) and run three (0 drops, sequential) both did. The
-background load was constant across the two runs that differ only in
-concurrency, which is the comparison the conclusion rests on, and it makes the
-sequential result stronger rather than weaker: zero drops while something else
-was hammering the same key. The poller has been killed; re-measure once more
-before the article goes out.
-
-This is worth stating plainly in the bug report: the drop is load-dependent, and
-a client that issues four recalls at once, which is exactly what a session-start
-turn wants to do, triggers it reliably. Evidence in
-`docs/evidence/demo-2026-09-21-sequential.txt`.
+Evidence: `docs/evidence/demo-2026-09-21-cross-channel.txt` (run 2),
+`demo-2026-09-21-sequential.txt` (run 3), `demo-2026-09-22-clean.txt` (run 4).
