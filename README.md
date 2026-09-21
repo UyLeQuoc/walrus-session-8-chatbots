@@ -42,6 +42,11 @@ pnpm hippo                   # the CLI, talking to the same server
 away, and asks four questions in a fresh session. `pnpm evidence` prints the
 numbers the session's submission form asks for.
 
+`pnpm smoke`, `pnpm db:push`, `pnpm typecheck` and `pnpm test` need only the
+Walrus Memory credentials. `pnpm demo`, `pnpm hippo` and the chat itself also
+need `OPENROUTER_API_KEY`. The whole sequence above was run from a fresh clone on
+2026-09-21; the transcript is in `docs/evidence/clean-clone-2026-09-21.md`.
+
 ### Credentials
 
 Create an account and a delegate key at [memory.walrus.xyz](https://memory.walrus.xyz)

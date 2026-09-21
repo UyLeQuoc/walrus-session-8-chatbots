@@ -24,7 +24,7 @@ Done when:
 | Sep 22 ✅ | Core + CLI + web chat, guest mode end to end (Telegram written, unrun). Cross-channel linking, `pnpm demo` 4/4, `pnpm evidence`, seven bug reports drafted. Was: core + CLI + web chat + Telegram, guest mode end to end: `remember`/`recall` tools, `style` adaptation, dedupe, recall policy, `/memory`, `/whoami`, `/memory off`, `turn_log` | 3 test users each have 10+ memories written by the bot on mainnet |
 | Sep 25–26 | Owned mode: connect page (Slush + zkLogin), token flow, on-chain verification, key encryption, dual-read or migration, `/disconnect`, `/me` with SuiNS + expiry + Claude Code steps | Revoke demo recorded on video |
 | Sep 26 | Discord adapter, identity linking across channels, `/proof` | Same fact recalled on Telegram, web and Discord |
-| Sep 27 | Deploy (Railway + Walrus Sites, Vercel backup), README + docker-compose, `pnpm demo`, `pnpm evidence`, WalForm survey, invite users. Slack and Sui Stack Messaging only if everything else is green. | Bot reachable via web link and Telegram handle |
+| Sep 27 | Deploy (Railway + Walrus Sites, Vercel backup). Done early: README + docker-compose + Dockerfile + railway.toml, `pnpm demo`, `pnpm evidence`, clean-clone check. Remaining: WalForm survey, invite users. Slack and Sui Stack Messaging only if everything else is green. | Bot reachable via web link and Telegram handle |
 | Sep 27–28 | **Baseline phase**: users chat with `/memory off`. Save logs. | Baseline transcripts for 3+ users |
 | Sep 29–Oct 4 | Memory on. Daily use. File GitHub issues as frictions appear. Claude Code portability demo. | 3+ users × 10+ memories each, screenshots of "the moment it mattered" |
 | Oct 5–6 | Article draft (500–800 words), video, promo posts | Published on Medium + Inkray |
