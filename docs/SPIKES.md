@@ -228,7 +228,22 @@ three concurrent decrypts because it is CPU bound. Four concurrent recalls, each
 decrypting several results, would exceed it, and the relayer appears to drop
 rather than queue.
 
-**Decision:** lower the client limiter's default concurrency from 4 to 2, and
-give the recall retry a longer backoff. Reliability of recall is judging
-criterion one, so it is worth the small latency cost. Re-measure after the change
-and record both numbers here.
+**Decision taken:** issue recalls one at a time rather than in parallel, lower
+the client limiter's default concurrency from 4 to 2, and back the retry off
+further (four attempts from 1.5 s).
+
+**Re-measured, and the hypothesis held:**
+
+| Run | Recalls | Drop events | Exhausted retries |
+|---|---|---|---|
+| Before, first | concurrent | 4 | 0 |
+| Before, second | concurrent | 9 | 3 |
+| After, two consecutive runs | sequential | **0** | **0** |
+
+Two full eval runs back to back with no dropped recall at all, where the
+previous run dropped nine. Both still pass 4/4 plus the cross-channel check.
+
+This is worth stating plainly in the bug report: the drop is load-dependent, and
+a client that issues four recalls at once, which is exactly what a session-start
+turn wants to do, triggers it reliably. Evidence in
+`docs/evidence/demo-2026-09-21-sequential.txt`.

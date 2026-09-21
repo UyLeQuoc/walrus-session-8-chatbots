@@ -94,9 +94,13 @@ was already told about.
 sometimes answers with `{"results": [], "total": 0, "dropped_count": 5}`. Five
 matches found, five discarded, HTTP 200, no error. The SDK's types don't include
 `dropped_count`, so a caller just sees an empty list and concludes the user has
-no memories. During one run of that four-question eval it fired four times.
-Without a retry, three of those four answers would have been "I don't know", and
-the bot would have looked like it had forgotten everything.
+no memories. During one run of that four-question eval it fired nine times, three
+of them surviving every retry.
+
+Then I found the trigger. A session-start turn fires four recall queries at once,
+and that concurrency is what causes it. Issuing them one at a time instead of
+with `Promise.all` took it from nine drops to zero, twice in a row. Slightly
+slower, and the bot stopped having amnesia.
 
 **The ownership model did not hold for my own key.** The delegate key I built
 with does not appear in my account's on-chain `delegate_keys`. I read the object

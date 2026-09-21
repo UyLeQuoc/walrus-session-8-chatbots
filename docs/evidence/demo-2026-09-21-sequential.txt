@@ -1,0 +1,59 @@
+
+> hippo@0.0.1 demo /Users/uydev/orca/walrus-session-8-chatbots
+> pnpm --filter @hippo/core demo
+
+
+> @hippo/core@0.0.1 demo /Users/uydev/orca/walrus-session-8-chatbots/packages/core
+> tsx src/demo.ts
+
+hippo memory eval · model google/gemini-2.5-flash · namespace hippo-guest:demo-mubt7tc7
+
+SESSION 1 — teaching
+  › Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.
+  ‹ Hi Mai. Got it: Sui, Next.js, and TypeScript strict mode.  (1 writes)
+  › For package managers I only use pnpm, never npm or yarn.
+  ‹ Understood. You use pnpm exclusively.  (1 writes)
+    stored [profile] blob vLNhzG3Nak8E…
+    stored [profile] blob SJS10RBv95gS…
+  › We decided to use Drizzle   › We decided to use Drizzle instead of Prisma for this project's ORM.
+  ‹ O  › One thing to remember: our Postgres runs on port 5433 because 5432 is taken.
+  ‹ Got it. Your Postgres runs on port 5433.  (1 writes)
+    stored [decision] blob YW_l34WWdZZa…
+    stored [gotcha] blob BsXJkJwmhaPq…
+  › Please keep your answers short, and always answer me in Vietnamese.
+  ‹ Được rồi. Tôi sẽ giữ câu trả lời ngắn gọn và luôn trả lời bằng tiếng Việt.  (1 writes)
+
+  5 memories written. Waiting 90s for indexing…
+    stored [style] blob xZ8z6xine-Xk…
+
+SESSION 2 — fresh conversation, no history carried over
+  PASS  Which package manager should I use here?
+        Bạn chỉ sử dụng pnpm.
+        recalled 4 memories
+  PASS  Which ORM did we settle on?
+        Chúng ta đã quyết định dùng Drizzle.
+        recalled 5 memories
+  PASS  What port is the database on?
+        Cổng cơ sở dữ liệu là 5433.
+        recalled 5 memories
+  PASS  What do you know about me?
+        Tôi biết bạn là Mai, làm việc với Sui và Next.js bằng TypeScript strict mode. Bạn chỉ dùng pnpm cho trình quản lý gói. Tôi sẽ trả lời ngắn g
+        recalled 3 memories
+
+CROSS-CHANNEL — a second channel, same memory
+  PASS  Bạn chỉ dùng pnpm.
+        recalled 4 memories
+
+4/4 recalled correctly across sessions.
+cross-channel recall: PASS
+namespace: hippo-guest:demo-mubt7tc7
+��n là Mai, làm việc với Sui và Next.js, luôn ở chế độ nghiêm ngặt TypeScript. Bạn chỉ sử dụng pnpm làm trình quản lý gói.
+        recalled 3 memories
+
+CROSS-CHANNEL — a second channel, same memory
+  PASS  You use pnpm.
+        recalled 3 memories
+
+4/4 recalled correctly across sessions.
+cross-channel recall: PASS
+namespace: hippo-guest:demo-mubt7q2a

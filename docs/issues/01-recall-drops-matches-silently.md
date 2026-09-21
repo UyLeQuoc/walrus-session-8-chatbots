@@ -58,6 +58,26 @@ We now treat `results.length === 0 && dropped_count > 0` as retryable, three
 attempts with backoff, before believing an empty result. The eval passes
 repeatably with that in place and fails without it.
 
+## It is load dependent, and concurrency is the trigger
+
+We measured it across eval runs:
+
+| Recalls issued | Drop events in one run | Retries exhausted |
+|---|---|---|
+| Four in parallel | 4, then 9 on a second run | 0, then 3 |
+| One at a time | **0**, across two consecutive runs | **0** |
+
+Issuing the same queries sequentially instead of with `Promise.all` removed the
+problem entirely. Our guess is that recall shares the SEAL decrypt pool that
+`docs/fundamentals/architecture/how-storage-works.md` describes as capped at
+three concurrent decrypts because it is CPU bound, and that the overflow path
+drops rather than queues. We have not seen the server, so that is a guess; the
+correlation is not.
+
+Note what this means for the recommended architecture: the multi-tenant cookbook
+puts every end user behind one delegate key, so a handful of simultaneous users
+produce exactly the concurrency that triggers this.
+
 ## Asks
 
 1. Expose `dropped_count` (and ideally a reason) in the SDK's `RecallResult`.
