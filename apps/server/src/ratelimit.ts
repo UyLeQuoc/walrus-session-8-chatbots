@@ -31,5 +31,25 @@ export async function checkRate(personId: string): Promise<RateDecision> {
   return { allowed: true, message: "" };
 }
 
+/**
+ * Commands never reach the model, so they write no ordinary turn row, which
+ * would make them invisible to `checkRate` and therefore unlimited. Record a
+ * lightweight row so they count against the same budget.
+ */
+export async function noteCommand(personId: string, channel: string): Promise<void> {
+  await db
+    .insert(turnLog)
+    .values({
+      personId,
+      channel,
+      memoryEnabled: false,
+      mode: "command",
+      model: "none",
+      injected: [],
+      writes: 0,
+    })
+    .catch((e) => console.error("[ratelimit] noteCommand", e));
+}
+
 /** Exported for the evidence script. */
 export const LIMITS = { PER_MINUTE, PER_DAY } as const;

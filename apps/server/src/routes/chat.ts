@@ -9,7 +9,7 @@ import { type CommandContext, handleCommand } from "../commands.ts";
 import { startConnect, startDisconnect } from "../connect.ts";
 import { env } from "../env.ts";
 import { logTurn, type Person, portFor, resolvePerson } from "../persons.ts";
-import { checkRate } from "../ratelimit.ts";
+import { checkRate, noteCommand } from "../ratelimit.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
 const CHANNEL = "web";
@@ -60,14 +60,17 @@ export const chatRoutes = new Hono()
           ? (await startConnect(person, channel, person.displayName ?? channel)).url
           : (await startDisconnect(person)).url,
     };
-    const command = await handleCommand(ctx, text);
-    if (command) {
-      // Commands answer as a plain stream so the client renders them like any reply.
-      return c.json({ command: true, text: command.text });
-    }
-
+    // Commands are rate limited too. They are the cheapest thing to flood and
+    // the most expensive to serve: /connect mints a keypair and two rows,
+    // /memory search spends the shared relayer budget.
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ command: true, text: gate.message });
+
+    const command = await handleCommand(ctx, text);
+    if (command) {
+      await noteCommand(person.id, channel);
+      return c.json({ command: true, text: command.text });
+    }
 
     const port = await portFor(person, channel);
     const messages = await convertToModelMessages(body.messages);

@@ -5,8 +5,8 @@
  * model.
  */
 import { and, desc, eq, memoryIndex, people, sql, turnLog } from "@hippo/db";
-import { explorer, MEMORY_TYPES, RelayerExtras } from "@hippo/memory";
-import { db, operator } from "./app-context.ts";
+import { explorer, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
+import { db } from "./app-context.ts";
 import { env } from "./env.ts";
 import { createLinkCode, redeemLinkCode } from "./link.ts";
 import { type Person, portFor } from "./persons.ts";
@@ -35,13 +35,20 @@ const HELP = `hippo remembers what you tell it, and the memory belongs to you.
 /disconnect        revoke my access on-chain
 /help              this message`;
 
-function extrasFor(person: Person): RelayerExtras {
-  if (person.mode === "owned" && person.accountId) {
-    // Owned mode reads through the person's own account; the delegate key is
-    // resolved by portFor, so metadata routes use the operator only in guest mode.
-    return new RelayerExtras({ ...operator, accountId: person.accountId });
-  }
-  return new RelayerExtras(operator);
+/**
+ * Metadata routes must be signed with the *same* credential the memory port
+ * uses, not the operator key carrying someone else's account id. A mismatched
+ * `x-account-id` is silently repaired to whatever the signing key resolves to
+ * (see docs/issues/05), so signing with the operator key while naming a user's
+ * account sends the call to the operator's account instead. `/memory forget`
+ * would then report success having deleted nothing of the user's.
+ */
+function extrasFor(scope: MemoryScope): RelayerExtras {
+  return new RelayerExtras({
+    key: scope.key,
+    accountId: scope.accountId,
+    serverUrl: scope.serverUrl,
+  });
 }
 
 async function whoami(ctx: CommandContext): Promise<CommandResult> {
@@ -65,7 +72,7 @@ async function whoami(ctx: CommandContext): Promise<CommandResult> {
   lines.push(`Memories written by hippo: ${count}`);
 
   try {
-    const stats = await extrasFor(person).stats(port.scope.namespace);
+    const stats = await extrasFor(port.scope).stats(port.scope.namespace);
     lines.push(
       `Namespace total on the relayer: ${stats.memory_count} (${stats.storage_bytes} bytes)`,
     );
@@ -124,7 +131,7 @@ async function setMemory(ctx: CommandContext, on: boolean): Promise<CommandResul
 async function forget(ctx: CommandContext): Promise<CommandResult> {
   const port = await portFor(ctx.person, ctx.channel);
   try {
-    const res = await extrasFor(ctx.person).forget(port.scope.namespace);
+    const res = await extrasFor(port.scope).forget(port.scope.namespace);
     await db.delete(memoryIndex).where(eq(memoryIndex.personId, ctx.person.id));
     return {
       text: `Removed ${res.deleted} memories from the search index, so I can no longer recall them.\n\nThe encrypted blobs stay on Walrus until they expire. Permanent deletion is signed by your own wallet and is available in owned mode at ${env.WEB_BASE_URL}/me`,
@@ -138,7 +145,7 @@ async function link(ctx: CommandContext, arg: string): Promise<CommandResult> {
   if (!arg.trim()) {
     const { code, expiresInMinutes } = await createLinkCode(ctx.person);
     return {
-      text: `Your link code is ${code}.\n\nOpen hippo on another channel (the web chat, Telegram, Discord, Slack or the CLI) and send:\n/link ${code}\n\nBoth conversations then share one memory. The code works once and expires in ${expiresInMinutes} minutes.`,
+      text: `Your link code is ${code}.\n\nOpen hippo on another channel (the web chat, Telegram, Discord, Slack or the CLI) and send:\n/link ${code}\n\nBoth conversations then share one memory. The code works once and expires in ${expiresInMinutes} minutes.\n\nKeep it to yourself. Anyone who redeems it joins your memory.`,
     };
   }
   const result = await redeemLinkCode(ctx.person, arg);

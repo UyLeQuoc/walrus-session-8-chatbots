@@ -9,7 +9,7 @@ import { model } from "./app-context.ts";
 import { type CommandContext, handleCommand } from "./commands.ts";
 import { startConnect, startDisconnect } from "./connect.ts";
 import { logTurn, portFor, resolvePerson } from "./persons.ts";
-import { checkRate } from "./ratelimit.ts";
+import { checkRate, noteCommand } from "./ratelimit.ts";
 
 const SESSION_GAP_MS = 6 * 60 * 60 * 1000;
 const MAX_HISTORY = 20;
@@ -46,16 +46,20 @@ export async function handleIncoming(msg: IncomingMessage): Promise<TurnReply> {
         : (await startDisconnect(person)).url,
   };
 
+  // Commands are rate limited too; see the note in routes/chat.ts.
+  const gate = await checkRate(person.id);
+  if (!gate.allowed) return { text: gate.message, command: true };
+
   try {
     const command = await handleCommand(ctx, msg.text);
-    if (command) return { text: command.text, command: true };
+    if (command) {
+      await noteCommand(person.id, msg.channel);
+      return { text: command.text, command: true };
+    }
   } catch (err) {
     console.error(`[${msg.channel}] command failed`, err);
     return { text: "That command failed on my side. Try again in a moment.", command: true };
   }
-
-  const gate = await checkRate(person.id);
-  if (!gate.allowed) return { text: gate.message, command: true };
 
   const now = Date.now();
   const prior = history.get(msg.threadKey);

@@ -2,8 +2,8 @@
  * The owned-mode handshake. The browser does the wallet work; this decides
  * whether it really happened by reading the account on chain.
  */
-import { channelIdentities, connectTokens, delegateKeys, eq, people } from "@hippo/db";
-import { createSuiClient, fetchRelayerConfig, isDelegateRegistered } from "@hippo/memory";
+import { and, channelIdentities, connectTokens, delegateKeys, eq, isNull, people } from "@hippo/db";
+import { createSuiClient, fetchRelayerConfig, readAccount } from "@hippo/memory";
 import { Hono } from "hono";
 import { db } from "../app-context.ts";
 import { loadToken } from "../connect.ts";
@@ -49,11 +49,7 @@ export const connectRoutes = new Hono()
   .post("/api/connect/:token/done", async (c) => {
     const row = await loadToken(c.req.param("token"));
     if (!row) return c.json({ error: "This link has expired." }, 404);
-    const body = (await c.req.json()) as {
-      accountId?: string;
-      walletAddress?: string;
-      digest?: string;
-    };
+    const body = (await c.req.json()) as { accountId?: string; digest?: string };
     if (!body.accountId || !/^0x[0-9a-fA-F]{64}$/.test(body.accountId)) {
       return c.json({ error: "accountId missing or malformed." }, 400);
     }
@@ -62,7 +58,22 @@ export const connectRoutes = new Hono()
       : [];
     if (!key) return c.json({ error: "No delegate key on this link." }, 404);
 
-    const registered = await isDelegateRegistered(sui, body.accountId, key.publicKeyHex);
+    /**
+     * Read the account off chain and take BOTH facts from it: whether our
+     * delegate key is registered, and who owns it.
+     *
+     * The wallet address must never come from the request body. A caller who
+     * completes the flow honestly with their own account still controls what
+     * they POST here, and an attacker-supplied `walletAddress` belonging to
+     * someone else would merge that victim's person into the attacker's
+     * session, handing over the victim's delegate key and memories. The
+     * on-chain owner cannot be forged.
+     */
+    const account = await readAccount(sui, body.accountId);
+    const wantedKey = key.publicKeyHex.toLowerCase().replace(/^0x/, "");
+    const registered =
+      account?.active === true && account.delegates.some((d) => d.publicKeyHex === wantedKey);
+    const walletAddress = account?.owner ?? null;
 
     if (row.kind === "connect") {
       if (!registered) {
@@ -78,8 +89,8 @@ export const connectRoutes = new Hono()
       // the same human arriving by a second route: fold the two together so the
       // memory follows them rather than splitting in half.
       let personId = row.personId;
-      if (body.walletAddress) {
-        const existing = await personByWallet(body.walletAddress);
+      if (walletAddress) {
+        const existing = await personByWallet(walletAddress);
         if (existing && existing.id !== personId) {
           await mergePersons(existing.id, personId);
           personId = existing.id;
@@ -91,21 +102,21 @@ export const connectRoutes = new Hono()
           .update(delegateKeys)
           .set({ status: "active", addTxDigest: body.digest ?? null })
           .where(eq(delegateKeys.id, key.id));
+        // `personId` here, never `row.personId`: the merge above may have
+        // folded this person into an existing one and deleted the old row, so
+        // updating by the original id would silently match nothing and leave
+        // the user in guest mode.
         await tx
           .update(people)
-          .set({
-            mode: "owned",
-            accountId: body.accountId,
-            walletAddress: body.walletAddress ?? null,
-          })
-          .where(eq(people.id, row.personId));
-        if (body.walletAddress) {
+          .set({ mode: "owned", accountId: body.accountId, walletAddress })
+          .where(eq(people.id, personId));
+        if (walletAddress) {
           await tx
             .insert(channelIdentities)
             .values({
-              personId: row.personId,
+              personId,
               channel: "wallet",
-              externalId: body.walletAddress.toLowerCase(),
+              externalId: walletAddress.toLowerCase(),
             })
             .onConflictDoNothing();
         }
