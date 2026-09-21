@@ -10,6 +10,7 @@ export {
   type MemoryType,
   parseMemoryText,
 } from "./format.ts";
+export { type LimiterOptions, limiterFor, RateLimiter, runLimited } from "./limiter.ts";
 export {
   DISTANCE,
   type RecalledMemory,
@@ -25,5 +26,11 @@ export {
   type WriteEvent,
 } from "./port.ts";
 export { redactCredentials } from "./redact.ts";
+export {
+  createSuiClient,
+  fetchRelayerConfig,
+  findAccountIdForOwner,
+  type RelayerConfig,
+} from "./registry.ts";
 export { type MemoryMeta, RelayerExtras, type StatsResult } from "./relayer.ts";
 export { formatUntrustedMemories, UNTRUSTED_MEMORY_SYSTEM_INSTRUCTION } from "./untrusted.ts";

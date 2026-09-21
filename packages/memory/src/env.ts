@@ -25,6 +25,7 @@ export const operatorEnvSchema = z.object({
   MEMWAL_ACCOUNT_ID: suiId,
   MEMWAL_PRIVATE_KEY: hex64,
   MEMWAL_SERVER_URL: z.string().url().default("https://relayer.memory.walrus.xyz"),
+  /** Fallback only. Prefer fetchRelayerConfig(); the package is upgradeable. */
   MEMWAL_PACKAGE_ID: suiId,
   MEMWAL_REGISTRY_ID: suiId,
   SUI_NETWORK: z.enum(["mainnet", "testnet"]).default("mainnet"),

@@ -43,7 +43,7 @@ export async function resolvePerson(
 export async function portFor(person: Person, channel: string): Promise<MemoryPort> {
   const by = person.displayName ?? person.id.slice(0, 8);
   const onWrite = async (e: WriteEvent) => {
-    if (e.outcome !== "stored") return;
+    if (e.outcome !== "accepted") return;
     await db.insert(memoryIndex).values({
       personId: person.id,
       accountId: e.scope.accountId,
