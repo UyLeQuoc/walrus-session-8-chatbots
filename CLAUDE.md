@@ -4,6 +4,7 @@ Multi-channel chatbot (web, Telegram, Discord, Slack) where each user owns their
 
 ## Read first
 
+- `docs/GOAL.md` — **the master execution plan.** Milestones M0–M7 with tasks, verification commands, pre-made decisions, cut order, and the list of inputs only the human can provide. If you are asked to "continue" or "do the next thing", start here.
 - `docs/BRIEF.md` — hackathon rules, judging, prizes, submission checklist. Source of truth for what must ship.
 - `docs/IDEA.md` — the pitch and why it wins.
 - `docs/ARCHITECTURE.md` — components, identity model (guest vs owned), onboarding and revoke flows, memory layer, stack, spikes.
@@ -31,6 +32,7 @@ Never edit files inside `memwal/`. Never import from it; depend on the published
 - No custom MCP server. Portability is demonstrated with the official Walrus Memory MCP plugin on the same account.
 - LLM goes through OpenRouter (`@openrouter/ai-sdk-provider`). Primary model `google/gemini-2.5-flash`. Never route to an OpenAI or Anthropic model; it disqualifies the "Beyond the Big Two" track.
 - Every SDK or relayer friction you hit gets a note in `docs/PLAN.md` under bug bounty candidates, with a repro.
+- Blocked on something only the human has (keys, tokens, accounts)? Do all other work, append the exact ask to `docs/BLOCKERS.md`, and continue with the next milestone. Do not stop and do not fabricate.
 
 ## Repo layout (target)
 
