@@ -208,3 +208,27 @@ the bot forgets" is the demo the whole submission is built around.
 3. Client-side decryption is shelved (spike 7).
 
 The owner-signed revocation test is now the top item in `docs/BLOCKERS.md`.
+
+### H — the drop rate rises with concurrent recalls
+
+Two full eval runs, same script, same namespace size:
+
+| Run | Drop events | Exhausted all three retries |
+|---|---|---|
+| First (`demo-2026-09-21.txt`) | 4 | 0 |
+| Second (`demo-2026-09-21-cross-channel.txt`) | 12 | 3 |
+
+Both runs passed, because a session-start turn fires four recall queries and only
+some of them get dropped, but the trend matters: the failure is not rare and it
+gets worse when several recalls are in flight at once.
+
+Working hypothesis: recall shares the relayer's SEAL decrypt pool, which
+`docs/fundamentals/architecture/how-storage-works.md` describes as capped at
+three concurrent decrypts because it is CPU bound. Four concurrent recalls, each
+decrypting several results, would exceed it, and the relayer appears to drop
+rather than queue.
+
+**Decision:** lower the client limiter's default concurrency from 4 to 2, and
+give the recall retry a longer backoff. Reliability of recall is judging
+criterion one, so it is worth the small latency cost. Re-measure after the change
+and record both numbers here.

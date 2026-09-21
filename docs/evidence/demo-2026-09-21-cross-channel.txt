@@ -1,0 +1,59 @@
+
+> hippo@0.0.1 demo /Users/uydev/orca/walrus-session-8-chatbots
+> pnpm --filter @hippo/core demo
+
+
+> @hippo/core@0.0.1 demo /Users/uydev/orca/walrus-session-8-chatbots/packages/core
+> tsx src/demo.ts
+
+hippo memory eval · model google/gemini-2.5-flash · namespace hippo-guest:demo-mubt17ng
+
+SESSION 1 — teaching
+  › Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.
+  ‹ Got it, Mai. You work on Sui and Next.js, using TypeScript strict mode.  (1 writes)
+  › For package managers I only use pnpm, never npm or yarn.
+  ‹ Understood. You use pnpm exclusively for package management.  (1 writes)
+  › We decided to use Drizzle instead of Prisma for this project's ORM.
+  ‹ Okay, you've decided to use Drizzle as your ORM for this project.  (1 writes)
+  › One thing to remember: our Postgres runs on port 5433 because 5432 is taken.
+  ‹ Okay, I'll remember that your Postgres runs on port 5433 because 5432 is taken.  (1 writes)
+    stored [profile] blob aUXhYmjXup7X…
+    stored [gotcha] blob ut0zTxYWb5-V…
+    stored [profile] blob ajEBw3PvqwLO…
+    stored [decision] blob xVeHQafQdCJ7…
+  › Please keep your answers short, and always answer me in Vietnamese.
+  ‹ Đã hiểu. Tôi sẽ giữ câu trả lời ngắn gọn và luôn trả lời bạn bằng tiếng Việt.  (1 writes)
+
+  5 memories written. Waiting 90s for indexing…
+    stored [style] blob _RTVp-RpUZkD…
+
+SESSION 2 — fresh conversation, no history carried over
+  PASS  Which package manager should I use here?
+        You only use pnpm.
+        recalled 3 memories
+  PASS  Which ORM did we settle on?
+        We decided to use Drizzle for this project's ORM.
+        recalled 4 memories
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 5 candidates (attempt 1/3)
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 3 candidates (attempt 1/3)
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 4 candidates (attempt 1/3)
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 5 candidates (attempt 2/3)
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 3 candidates (attempt 2/3)
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 4 candidates (attempt 2/3)
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 5 candidates (attempt 3/3)
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 3 candidates (attempt 3/3)
+[memory] recall in hippo-guest:demo-mubt17ng dropped all 4 candidates (attempt 3/3)
+  PASS  What port is the database on?
+        Our Postgres runs on port 5433.
+        recalled 2 memories
+  PASS  What do you know about me?
+        Bạn tên là Mai, làm việc với Sui và Next.js bằng TypeScript strict mode. Bạn chỉ dùng pnpm.
+        recalled 3 memories
+
+CROSS-CHANNEL — a second channel, same memory
+  PASS  You use pnpm.
+        recalled 3 memories
+
+4/4 recalled correctly across sessions.
+cross-channel recall: PASS
+namespace: hippo-guest:demo-mubt17ng
