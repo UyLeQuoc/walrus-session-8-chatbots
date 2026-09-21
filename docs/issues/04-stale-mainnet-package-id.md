@@ -1,0 +1,43 @@
+# Published mainnet contract IDs are stale, and following them breaks sponsored transactions
+
+## Summary
+
+`docs/contract/overview.md` and `apps/app/.env.example` give the mainnet package as
+
+```
+MEMWAL_PACKAGE_ID=0xcee7a6fd8de52ce645c38332bde23d4a30fd9426bc4681409733dd50958a24c6
+```
+
+The live mainnet relayer reports a different one:
+
+```bash
+curl -s https://relayer.memory.walrus.xyz/config
+{"packageId":"0xe7c16fbea0560e7057e2bf7422feaa4fb313749fc69c9e9092fac7a33b81d7f5","network":"mainnet",…}
+```
+
+Both package objects exist on chain. Existing objects still carry the original
+package in their type (`0xcee7a6fd…::account::MemWalAccount`), which is normal
+after a Move upgrade, so nothing looks wrong until you try to write.
+
+## Why it matters
+
+`services/server/src/routes/sponsor.rs` validates a sponsored transaction against
+the relayer's configured package. A `create_account` or `add_delegate_key` call
+built from the documented package ID is therefore rejected by the sponsorship
+allowlist. Anyone following the published docs to build a wallet onboarding flow
+hits this, and the failure gives no hint that the package is the problem.
+
+## Expected
+
+The published contract IDs match the deployment, or the docs say plainly that the
+package is upgradeable and that `GET /config` is the source of truth.
+
+## Asks
+
+1. Update `docs/contract/overview.md` for mainnet and testnet.
+2. State in the docs that `GET /config` is authoritative for `packageId`.
+3. Consider having the SDK read it, so callers do not each have to.
+
+## Our workaround
+
+We fetch `GET /config` at runtime and treat `MEMWAL_PACKAGE_ID` as a fallback.
