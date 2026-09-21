@@ -243,6 +243,17 @@ further (four attempts from 1.5 s).
 Two full eval runs back to back with no dropped recall at all, where the
 previous run dropped nine. Both still pass 4/4 plus the cross-channel check.
 
+**Caveat, stated because it cuts the right way.** A stray polling loop left over
+from an earlier test was issuing a recall every five seconds against the same
+delegate key during runs two and three, but not run one. So the comparison is
+not perfectly controlled: run one (4 drops) had no background load, run two
+(9 drops, concurrent) and run three (0 drops, sequential) both did. The
+background load was constant across the two runs that differ only in
+concurrency, which is the comparison the conclusion rests on, and it makes the
+sequential result stronger rather than weaker: zero drops while something else
+was hammering the same key. The poller has been killed; re-measure once more
+before the article goes out.
+
 This is worth stating plainly in the bug report: the drop is load-dependent, and
 a client that issues four recalls at once, which is exactly what a session-start
 turn wants to do, triggers it reliably. Evidence in
