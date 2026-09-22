@@ -2,11 +2,3 @@
 > @hippo/server@0.0.1 typecheck /Users/uydev/orca/walrus-session-8-chatbots/apps/server
 > tsc -p tsconfig.json
 
-scripts/probe-header-identity.ts(51,20): error TS1375: 'await' expressions are only allowed at the top level of a file when that file is a module, but this file has no imports or exports. Consider adding an empty 'export {}' to make this file a module.
-scripts/probe-header-identity.ts(54,13): error TS1375: 'await' expressions are only allowed at the top level of a file when that file is a module, but this file has no imports or exports. Consider adding an empty 'export {}' to make this file a module.
-scripts/probe-header-identity.ts(55,34): error TS1375: 'await' expressions are only allowed at the top level of a file when that file is a module, but this file has no imports or exports. Consider adding an empty 'export {}' to make this file a module.
-scripts/probe-header-identity.ts(58,15): error TS1375: 'await' expressions are only allowed at the top level of a file when that file is a module, but this file has no imports or exports. Consider adding an empty 'export {}' to make this file a module.
-scripts/probe-header-identity.ts(59,20): error TS1375: 'await' expressions are only allowed at the top level of a file when that file is a module, but this file has no imports or exports. Consider adding an empty 'export {}' to make this file a module.
-scripts/probe-header-identity.ts(63,13): error TS1375: 'await' expressions are only allowed at the top level of a file when that file is a module, but this file has no imports or exports. Consider adding an empty 'export {}' to make this file a module.
-scripts/probe-header-identity.ts(64,34): error TS1375: 'await' expressions are only allowed at the top level of a file when that file is a module, but this file has no imports or exports. Consider adding an empty 'export {}' to make this file a module.
- ELIFECYCLE  Command failed with exit code 2.

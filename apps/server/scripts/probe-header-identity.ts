@@ -64,3 +64,5 @@ console.log("\n4. a malformed header is ignored, not trusted");
 const bad = await fetch(`${API}/api/me`, { headers: { "x-hippo-guest": "not-a-uuid" } });
 console.log(`   ${JSON.stringify(await bad.json())}`);
 process.exit(0);
+
+export {};
