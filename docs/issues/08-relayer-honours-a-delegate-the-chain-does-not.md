@@ -1,4 +1,39 @@
-# The relayer authorizes a delegate key that is not in the account's on-chain `delegate_keys`
+# RETRACTED — the relayer was right and we were reading the wrong account
+
+> **Retracted 2026-09-22.** This report was wrong. Our delegate key *is*
+> registered on chain. We were reading a `MemWalAccount` belonging to a
+> superseded mainnet deployment, because our registry id came from the
+> documentation while our package id came from `GET /config`, and those are two
+> different deployments rather than one upgraded package.
+>
+> The owner has an account in each:
+>
+> | deployment | account | delegates | our key present |
+> |---|---|---|---|
+> | `0xcee7a6fd…` (documented) | `0x4926f26b…` | 4 | no |
+> | `0xe7c16fbe…` (served by `/config`, used by the relayer) | `0x5a257802…` | 6 | **yes**, labelled `WalrusSession8` |
+>
+> With the registry corrected, the chain and the relayer agree exactly: six
+> delegates, ours among them. Nothing was bypassing on-chain access control.
+>
+> The SEAL decryption failure described under "Second, related symptom" has the
+> same cause: `seal_approve` was evaluated against the wrong account, and it was
+> correct to refuse.
+>
+> The real defect is that `GET /config` publishes a package id but no registry
+> id, which is filed as
+> [11-two-mainnet-deployments-and-a-masked-502.md](11-two-mainnet-deployments-and-a-masked-502.md).
+> Ask 3 below still stands on its own and is now measured in `docs/SPIKES.md`.
+>
+> The original text is kept below, unedited, because the mistake is instructive:
+> every individual observation in it was accurate, and the conclusion was still
+> wrong.
+
+---
+
+## Original report (wrong)
+
+### The relayer authorizes a delegate key that is not in the account's on-chain `delegate_keys`
 
 ## What we observed
 

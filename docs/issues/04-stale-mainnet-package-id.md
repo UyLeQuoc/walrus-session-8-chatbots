@@ -41,3 +41,13 @@ package is upgradeable and that `GET /config` is the source of truth.
 ## Our workaround
 
 We fetch `GET /config` at runtime and treat `MEMWAL_PACKAGE_ID` as a fallback.
+
+## Update, 2026-09-22
+
+This is worse than a stale number. The documented package and the one `/config`
+serves are two **separate deployments**, each with its own registry and its own
+account objects, not one package upgraded in place. Taking the package from
+`/config` and the registry from the docs therefore does not merely use an old
+contract, it mixes two live systems: sponsorship fails with an opaque 502, and
+an owner lookup returns a real, active, wrong account. See
+[11-two-mainnet-deployments-and-a-masked-502.md](11-two-mainnet-deployments-and-a-masked-502.md).

@@ -140,9 +140,11 @@ if (owner) {
     if (mine) {
       ok("your delegate key is registered on chain");
     } else {
-      warn("your delegate key is NOT in the account's on-chain delegate_keys,");
-      warn("  yet the relayer accepts it. Client-side SEAL decryption will be refused,");
-      warn("  and revoking on chain may not end relayer access. See docs/issues/08.");
+      warn("your delegate key is NOT in this account's on-chain delegate_keys.");
+      warn("  Most likely MEMWAL_ACCOUNT_ID and MEMWAL_REGISTRY_ID name a different");
+      warn("  Walrus Memory deployment than the one GET /config reports: two are live");
+      warn("  on mainnet and the documented ids are the superseded pair. Check that the");
+      warn("  registry object's Move type starts with the package below. docs/issues/11.");
     }
     try {
       const reported = (await extras.agents()).agents.length;

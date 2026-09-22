@@ -40,5 +40,14 @@ export {
   readAccount,
 } from "./registry.ts";
 export { type MemoryMeta, RelayerExtras, type StatsResult } from "./relayer.ts";
+export {
+  addDelegateKeyTx,
+  createAccountTx,
+  type ExecutionResult,
+  executeAccountTx,
+  removeDelegateKeyTx,
+  type SponsorContext,
+  sponsorAndExecute,
+} from "./sponsor.ts";
 export { formatUntrustedMemories, UNTRUSTED_MEMORY_SYSTEM_INSTRUCTION } from "./untrusted.ts";
 export { addressFromSignature, signInMessage, signWithThrowawayWallet } from "./wallet.ts";

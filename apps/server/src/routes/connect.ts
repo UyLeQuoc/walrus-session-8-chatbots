@@ -139,10 +139,11 @@ export const connectRoutes = new Hono()
       );
     }
     await db.transaction(async (tx) => {
-      // Destroy our copy of the credential, not just the flag on it. We cannot
-      // yet prove the relayer stops honouring a key the instant it leaves the
-      // chain (docs/issues/08), so the revoke is made true on our side by no
-      // longer possessing the key at all.
+      // Destroy our copy of the credential, not just the flag on it. Removing
+      // the key on chain does end relayer access, but not instantly: measured
+      // at about 32 seconds, still accepted at 15
+      // (docs/evidence/revocation-2026-09-22.md). Not possessing the key closes
+      // that window on our side at once, and costs nothing to keep.
       await tx
         .update(delegateKeys)
         .set({

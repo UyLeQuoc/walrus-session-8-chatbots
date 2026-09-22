@@ -191,8 +191,7 @@ the change is named; where it is simply a limit, hippo says so to the user rathe
 than papering over it.
 
 - **No way to read a memory's text by blob ID.** `GET /v1/owners/:owner/memories`
-  returns metadata only, and client-side SEAL decryption is refused because our
-  delegate key is not on chain (§below, and `docs/issues/08`). So `/memory` lists
+  returns metadata only. So `/memory` lists
   from the local index and reads text back through recall, and `/proof` links the
   public ciphertext rather than showing plaintext. Guest to owned migration is
   dual-read rather than a copy, for the same reason.
@@ -221,12 +220,20 @@ than papering over it.
   throttled, so a failed job is resubmitted up to three times, and the local
   index row is written at accept time so a deploy inside the window cannot lose
   a memory the user was already told about. See `docs/issues/02`.
-- **The relayer honours a delegate key the chain does not list.** Ours is absent
-  from the account's on-chain `delegate_keys` yet works for every route,
-  including decryption, while SEAL's `seal_approve` correctly refuses it. So
-  "revoke on chain and the bot forgets" is unproven. `/disconnect` therefore
-  destroys hippo's own copy of the key, which makes the revoke true regardless.
-  See `docs/issues/08`.
+- **Revocation takes up to about half a minute, not zero.** Removing a delegate
+  key on chain does end the relayer's acceptance of it, which we measured rather
+  than assumed: the key was refused 32 seconds after it left the chain, having
+  still authenticated at 15 seconds. So the demo says "within about a minute".
+  `/disconnect` also destroys hippo's own encrypted copy of the key, which closes
+  that window on our side at once. See `docs/evidence/revocation-2026-09-22.md`.
+- **Two Walrus Memory deployments are live on mainnet**, and the documented
+  package and registry belong to the superseded one. `GET /config` publishes the
+  current package id but no registry id, so a client that follows the docs for
+  one and `/config` for the other silently mixes deployments: sponsorship fails
+  with an opaque 502, and an owner lookup resolves to a real but wrong account.
+  Both bit us. `MEMWAL_REGISTRY_ID` and `MEMWAL_ACCOUNT_ID` must name the
+  deployment `/config` reports, and `pnpm diagnose` now checks that the chain and
+  the relayer agree. See `docs/issues/11`.
 - **Relayer sees plaintext** during embedding and encryption. Ownership here is
   about access control and portability, not about hiding data from the relayer
   operator.

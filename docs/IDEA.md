@@ -56,7 +56,7 @@ The bot writes proactively using the four-part policy from the official prompt t
 2. **Memory on, guest mode.** Same users, same questions. The bot recalls and adapts. Screenshots of "the moment it mattered".
 3. **Owned mode.** The user connects a wallet. The bot now writes to the user's account. Demo: revoke the key, watch the bot forget, re-grant, watch it remember. Then open Claude Code and recall the same memory there.
 
-   One caveat to record honestly when this is filmed: the relayer honours a delegate key that is absent from the account's on-chain list, so the revoke has to be verified rather than assumed. hippo also destroys its own copy of the key, which makes the revoke true on its side regardless. See `docs/issues/08`.
+   One caveat to record honestly when this is filmed: revocation is not instant. We measured the relayer still accepting a removed key 15 seconds after it left the chain, and refusing it by 32 seconds, so the demo should say "within about a minute" and the film should not cut the pause. hippo also destroys its own copy of the key on `/disconnect`, which closes that window on its side at once. See `docs/evidence/revocation-2026-09-22.md`.
 4. **What broke.** The honest list of SDK frictions, each linked to a GitHub issue.
 
 ## Scope guardrails
@@ -77,11 +77,17 @@ concrete answer to "is memory doing real work here".
 
 **The ownership model did not hold for our own key.** Our delegate key is not in
 the account's on-chain `delegate_keys`, yet the relayer accepts it. That is
-uncomfortable for a project whose pitch is on-chain ownership, and it is exactly
-why the project is worth submitting: we found it because we tried to decrypt our
-own memory client-side, which nobody does if they only use the SDK's happy path.
+That is what we believed for most of a week, and it was wrong. The key was on
+chain the whole time, on an account in a second mainnet deployment that the
+documentation does not mention. We were reading the account from the superseded
+one. Chasing it is still the most useful thing the project did, because the
+route there surfaced a real defect: `GET /config` publishes a package id and no
+registry id, so a client that follows the docs for one and the relayer for the
+other silently mixes deployments and gets a real but wrong account back. See
+`docs/issues/11`, and `docs/issues/08` for the retraction.
 
-The honest response, and the one hippo implements, is to make the revoke true on
-our side: `/disconnect` destroys hippo's copy of the key rather than flagging it.
-The demo then does not depend on the relayer behaving, and the article can report
-what actually happens. See `docs/issues/08`.
+Once the account id was right, the test that had been blocked all along ran in a
+minute: remove a delegate key on chain and the relayer refuses it 32 seconds
+later. The central claim holds, with a pause that the demo should show rather
+than hide. hippo also destroys its own copy of the key on `/disconnect`, which
+closes that window immediately.

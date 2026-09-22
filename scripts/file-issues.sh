@@ -33,7 +33,15 @@ if [ ${#PICKS[@]} -gt 0 ]; then
     files+=("$match")
   done
 else
-  while IFS= read -r f; do files+=("$f"); done < <(find "$DIR" -name '[0-9][0-9]-*.md' | sort)
+  # A retracted draft is kept for the write-up, not for filing. Naming it
+  # explicitly still works; sweeping them all up must not post it.
+  while IFS= read -r f; do
+    if head -1 "$f" | grep -q '^# RETRACTED'; then
+      echo "skipping $(basename "$f") (retracted)" >&2
+      continue
+    fi
+    files+=("$f")
+  done < <(find "$DIR" -name '[0-9][0-9]-*.md' | sort)
 fi
 
 if [ "$DRY" -eq 0 ]; then

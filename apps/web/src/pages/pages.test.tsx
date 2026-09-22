@@ -16,6 +16,7 @@ import { MePage } from "./me.tsx";
 vi.mock("@mysten/dapp-kit", () => ({
   ConnectModal: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
   useCurrentAccount: () => null,
+  useSignAndExecuteTransaction: () => ({ mutateAsync: vi.fn() }),
   useSignPersonalMessage: () => ({ mutateAsync: vi.fn() }),
   useSignTransaction: () => ({ mutateAsync: vi.fn() }),
   useSuiClient: () => ({}),
@@ -132,7 +133,7 @@ describe("me page", () => {
 });
 
 describe("connect page", () => {
-  it("explains that gas is sponsored before asking for a wallet", async () => {
+  it("says who pays for gas before asking for a wallet", async () => {
     const { ConnectPage } = await import("./connect.tsx");
     vi.stubGlobal(
       "fetch",
@@ -158,7 +159,10 @@ describe("connect page", () => {
         </Routes>
       </MemoryRouter>,
     );
-    await waitFor(() => expect(container.textContent ?? "").toMatch(/Gas is sponsored/i));
+    // Sponsorship is preferred but not guaranteed, so the page has to promise
+    // the user they will be told before their own wallet is charged.
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/sponsors the gas/i));
+    expect(container.textContent ?? "").toMatch(/your wallet pays instead/i);
     expect(screen.getByRole("button", { name: /connect your sui wallet/i })).toBeDefined();
   });
 });

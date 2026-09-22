@@ -19,7 +19,7 @@ only the account owner can provide; **n/a** superseded by a finding.
 | 4 | `remove_delegate_key` then 401 | **blocked**, needs the owner wallet |
 | 5 | Recall quality A/B | done, `SPIKES.md` §5 |
 | 6 | Streaming through Hono | done, `curl -N` and the web page |
-| 7 | Manual SEAL decrypt | **n/a**, `seal_approve` refuses our key because it is not on chain (`issues/08`) |
+| 7 | Manual SEAL decrypt | **not attempted**. The earlier reason (`issues/08`) was retracted; worth retrying now that the account id is correct |
 | 8 | Security Delete API | **n/a**, it only covers pre-migration blobs (`issues/09`) |
 | 9 | Enoki zkLogin | **blocked**, needs an Enoki key and a Google OAuth client |
 | 10 | Walrus Sites deploy | **blocked**, needs WAL in the Sessions wallet |

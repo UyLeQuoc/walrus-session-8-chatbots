@@ -1,11 +1,19 @@
 /**
- * Gasless account setup. The Walrus Memory relayer sponsors exactly three
- * calls — account::create_account, add_delegate_key and remove_delegate_key —
- * so a user can own their memory without ever holding SUI.
+ * Account setup, sponsored when the relayer will sponsor it and paid by the
+ * user when it will not.
  *
- * Ported from memwal/apps/app/src/hooks/useSponsoredTransaction.ts. Verified on
- * 2026-09-21 that the relayer accepts these calls from a non-Walrus origin, so
- * the browser talks to it directly and no server proxy is needed.
+ * The Walrus Memory relayer sponsors exactly three calls — account::create_account,
+ * add_delegate_key and remove_delegate_key — so a user can own their memory
+ * without ever holding SUI. That is the path we prefer.
+ *
+ * It is not a path we control. On 2026-09-22 `/sponsor` began answering every
+ * one of these calls with 502 sponsor_upstream_error while the same call, from
+ * the same package with the same arguments, kept succeeding on mainnet for
+ * other clients (docs/issues/11-sponsor-upstream-502.md has the measurements).
+ * Owning your memory is the centre of this project, so it cannot rest on an
+ * endpoint that can refuse us with no recourse. When sponsorship fails and the
+ * wallet holds enough SUI, we fall back to an ordinary transaction the user
+ * pays for, which is what memwal's own SetupWizard does.
  */
 
 import type { Transaction } from "@mysten/sui/transactions";
@@ -15,9 +23,20 @@ import { createSponsorAuthorization } from "@mysten-incubation/memwal";
 const MAX_ATTEMPTS = 3;
 const BASE_DELAY_MS = 500;
 
+/**
+ * Enough SUI to be worth attempting. These calls cost far less; the margin is
+ * so a wallet holding dust does not get a confusing on-chain failure instead of
+ * a clear message.
+ */
+const MIN_GAS_MIST = 5_000_000n; // 0.005 SUI
+
 /** 408/429/500/503/504 are worth retrying; 502 means the sponsor rejected the transaction itself. */
 function retryable(status: number): boolean {
   return status === 408 || status === 429 || status === 500 || status === 503 || status === 504;
+}
+
+interface BalanceReader {
+  getBalance?: (input: { owner: string }) => Promise<{ balance?: { balance?: string } }>;
 }
 
 export interface SponsorDeps {
@@ -26,6 +45,18 @@ export interface SponsorDeps {
   suiClient: unknown;
   signTransaction: (input: { transaction: Tx }) => Promise<{ signature: string }>;
   signPersonalMessage: (input: { message: Uint8Array }) => Promise<{ signature: string }>;
+  /**
+   * The fallback. Optional so the sponsored path can be tested on its own, but
+   * the connect page always supplies it.
+   */
+  signAndExecuteTransaction?: (input: { transaction: Tx }) => Promise<{ digest: string }>;
+  /** Told who ended up paying, so the page can say so while it works. */
+  onFallback?: (reason: string) => void;
+}
+
+export interface ExecutionResult {
+  digest: string;
+  paidBy: "sponsor" | "self";
 }
 
 function toBase64(bytes: Uint8Array): string {
@@ -34,10 +65,56 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+/** MIST held by an address, or null when the balance cannot be read. */
+async function suiBalance(client: unknown, owner: string): Promise<bigint | null> {
+  const reader = client as BalanceReader;
+  if (typeof reader.getBalance !== "function") return null;
+  try {
+    const res = await reader.getBalance({ owner });
+    return BigInt(res.balance?.balance ?? "0");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `buildTx` rather than a Transaction, because a Transaction that has already
+ * been built caches its data. The sponsored path builds one and may fail after
+ * doing so, and the fallback needs a clean one to sign.
+ */
 export async function sponsorAndExecute(
-  transaction: Transaction,
+  buildTx: () => Transaction,
   deps: SponsorDeps,
-): Promise<{ digest: string }> {
+): Promise<ExecutionResult> {
+  try {
+    const digest = await viaSponsor(buildTx(), deps);
+    return { digest, paidBy: "sponsor" };
+  } catch (sponsorError) {
+    const message = sponsorError instanceof Error ? sponsorError.message : "Sponsorship failed.";
+    if (!deps.signAndExecuteTransaction) throw sponsorError;
+
+    const balance = await suiBalance(deps.suiClient, deps.sender);
+    if (balance !== null && balance < MIN_GAS_MIST) {
+      throw new Error(
+        `${message} Gas sponsorship is unavailable right now and this wallet holds no SUI to pay for the transaction itself, so it cannot go through. Try again later, or fund the wallet with about 0.01 SUI.`,
+      );
+    }
+
+    deps.onFallback?.(message);
+    const digest = await viaWallet(buildTx(), deps);
+    return { digest, paidBy: "self" };
+  }
+}
+
+async function viaWallet(transaction: Transaction, deps: SponsorDeps): Promise<string> {
+  const execute = deps.signAndExecuteTransaction;
+  if (!execute) throw new Error("No wallet execution available.");
+  transaction.setSender(deps.sender);
+  const { digest } = await execute({ transaction: transaction as Tx });
+  return digest;
+}
+
+async function viaSponsor(transaction: Transaction, deps: SponsorDeps): Promise<string> {
   const kindBytes = await transaction.build({
     // biome-ignore lint/suspicious/noExplicitAny: dapp-kit and @mysten/sui disagree on the client type across majors
     client: deps.suiClient as any,
@@ -83,7 +160,7 @@ export async function sponsorAndExecute(
         }
         throw Object.assign(new Error("retryable"), { retryable: true });
       }
-      return (await execRes.json()) as { digest: string };
+      return ((await execRes.json()) as { digest: string }).digest;
     } catch (err) {
       lastError = err;
       const isRetryable = (err as { retryable?: boolean }).retryable === true;

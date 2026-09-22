@@ -35,4 +35,4 @@ with 4/4.
 Record the revoke leg twice: once for the video, and once with `pnpm smoke` run
 against the removed key immediately afterwards, so the article can report
 truthfully whether the relayer honours a revoked key and for how long. See
-`docs/issues/08`.
+`docs/evidence/revocation-2026-09-22.md`.

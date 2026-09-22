@@ -1,6 +1,7 @@
 import {
   ConnectModal,
   useCurrentAccount,
+  useSignAndExecuteTransaction,
   useSignPersonalMessage,
   useSignTransaction,
   useSuiClient,
@@ -33,6 +34,7 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
   const suiClient = useSuiClient();
   const { mutateAsync: signTransaction } = useSignTransaction();
   const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   const [info, setInfo] = useState<TokenInfo | null>(null);
   const [chain, setChain] = useState<ChainConfig | null>(null);
@@ -40,6 +42,8 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** Set when the relayer refused to sponsor and the user paid instead. */
+  const [selfPaid, setSelfPaid] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,12 +79,20 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
     if (!info || !chain || !account) return;
     setStep("working");
     setError("");
+    setSelfPaid(false);
     const deps = {
       relayerUrl: chain.relayerUrl,
       sender: account.address,
       suiClient,
       signTransaction,
       signPersonalMessage,
+      signAndExecuteTransaction,
+      onFallback: () => {
+        setSelfPaid(true);
+        setStatus(
+          "Gas sponsorship is unavailable, so your wallet will pay for this transaction. Approve it to continue.",
+        );
+      },
     };
     try {
       let accountId = await findAccountId(suiClient, chain.registryId, account.address);
@@ -88,7 +100,7 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
       if (kind === "connect") {
         if (!accountId) {
           setStatus("Creating your Walrus Memory account…");
-          await sponsorAndExecute(createAccountTx(chain), deps);
+          await sponsorAndExecute(() => createAccountTx(chain), deps);
           for (let i = 0; i < 10 && !accountId; i++) {
             await new Promise((r) => setTimeout(r, 1500));
             accountId = await findAccountId(suiClient, chain.registryId, account.address);
@@ -99,15 +111,21 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
             );
         }
         setStatus("Granting hippo access to your account…");
-        const tx = addDelegateKeyTx(chain, accountId, info.publicKey, info.label);
-        const { digest } = await sponsorAndExecute(tx, deps);
+        const id = accountId;
+        const { digest } = await sponsorAndExecute(
+          () => addDelegateKeyTx(chain, id, info.publicKey, info.label),
+          deps,
+        );
         setStatus("Confirming on chain…");
         await finish(accountId, account.address, digest);
       } else {
         if (!accountId) throw new Error("This wallet does not own a Walrus Memory account.");
         setStatus("Revoking hippo's access…");
-        const tx = removeDelegateKeyTx(chain, accountId, info.publicKey);
-        const { digest } = await sponsorAndExecute(tx, deps);
+        const id = accountId;
+        const { digest } = await sponsorAndExecute(
+          () => removeDelegateKeyTx(chain, id, info.publicKey),
+          deps,
+        );
         setStatus("Confirming on chain…");
         await finish(accountId, account.address, digest);
       }
@@ -135,7 +153,17 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
       }
       throw new Error("The transaction landed but confirmation kept failing. Try the link again.");
     }
-  }, [account, chain, info, kind, signPersonalMessage, signTransaction, suiClient, token]);
+  }, [
+    account,
+    chain,
+    info,
+    kind,
+    signAndExecuteTransaction,
+    signPersonalMessage,
+    signTransaction,
+    suiClient,
+    token,
+  ]);
 
   if (step === "loading") return <p className="text-sm text-muted-foreground">Loading…</p>;
 
@@ -150,6 +178,11 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
             ? "hippo now writes into your own Walrus Memory account. You can revoke it at any time with /disconnect, and the same memory is readable from Claude Code or any other Walrus Memory client you sign in."
             : "hippo can no longer read or write your memory. Nothing was deleted; run /connect to grant access again."}
         </p>
+        {selfPaid && (
+          <p className="text-xs text-muted-foreground">
+            Gas sponsorship was unavailable, so your wallet paid for this transaction.
+          </p>
+        )}
         <p className="text-sm">You can close this tab and go back to the chat.</p>
       </div>
     );
@@ -164,13 +197,16 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
         {kind === "connect" ? (
           <>
             Right now hippo keeps your memory under its own account. Sign one transaction and it
-            moves to a Walrus Memory account that <strong>you</strong> own on Sui. Gas is sponsored,
-            so this costs you nothing, and you can take the access away again whenever you want.
+            moves to a Walrus Memory account that <strong>you</strong> own on Sui. Walrus Memory
+            normally sponsors the gas, so it costs you nothing. If sponsorship is unavailable your
+            wallet pays instead, which needs a small amount of SUI, and you will be told before you
+            sign. You can take the access away again whenever you want.
           </>
         ) : (
           <>
             This removes hippo's key from your account on chain. After it lands, hippo cannot read
-            or write your memories at all.
+            or write your memories at all. Gas is normally sponsored; if it is not, your wallet pays
+            and you will be told before you sign.
           </>
         )}
       </p>

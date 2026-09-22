@@ -78,15 +78,19 @@ The SEAL session key builds. Then `fetchKeys` fails:
 NoAccessError: User does not have access to one or more of the requested keys
 ```
 
-Which is correct behaviour, and it is how we found issue 08: our delegate key is
-not in the account's on-chain `delegate_keys`, so `seal_approve` refuses it. The
-relayer decrypts the very same blob for the very same key without complaint.
+We read this as proof that our delegate key was not on chain, and it was the
+thread that led to issue 08. **That reading was wrong.** `seal_approve` was being
+evaluated against an account in a superseded mainnet deployment, because our
+registry id came from the documentation and our package id from `GET /config`.
+Against the correct account the key is registered and the chain and the relayer
+agree exactly. See `docs/issues/11`.
 
-**Decision:** shelve client-side decryption until issue 08 has an answer.
+**Decision:** client-side decryption stays shelved, but for a much weaker reason
+than before. It is optional work, not blocked work, and it is now worth retrying.
 `/proof` links the public ciphertext instead, which still makes the point that a
 memory is a real, publicly addressable Walrus blob that only the account can read.
 Script kept at `packages/memory/scripts/spike-decrypt.ts` so it can be re-run in
-one command once the key is genuinely on chain.
+one command.
 
 ## 8 — Security Delete API — CORRECTED, it does not do what I assumed
 
@@ -212,7 +216,14 @@ Two things worth pointing at in the article:
 1. The last answer came back **in Vietnamese** without being asked in that session. A `style` memory written in session one changed how the bot writes in session two. That is memory shaping behaviour, not memory being quoted back.
 2. **The drop bug fired four times during this single run.** Without the retry in `recallRelevant`, three of these four questions would have been answered with no memory at all, and the bot would have looked like it had forgotten everything. The mitigation is what makes the eval pass repeatably.
 
-### G — the relayer honours a delegate key the chain does not
+### G — the relayer honours a delegate key the chain does not — RETRACTED
+
+> **Retracted 2026-09-22.** The key was on chain. We were reading the account
+> from a superseded mainnet deployment. The real defect is that `GET /config`
+> gives a package id but no registry id, filed as `docs/issues/11`, and issue 08
+> carries the full retraction. The original text stays below because every
+> observation in it was accurate and the conclusion was still wrong — the same
+> lesson as §H, arrived at from the opposite direction.
 
 The largest finding of the session, written up in full as
 `docs/issues/08-relayer-honours-a-delegate-the-chain-does-not.md`.
@@ -348,3 +359,71 @@ implying "forever".
 **It makes `docs/issues/10` much sharper.** The read API enumerates 125 live
 memories for this owner while `restore()` reports seeing zero on chain for the
 same owner. Those two relayer endpoints cannot both be describing this account.
+
+### I — two mainnet deployments, one masked 502, and the account we had was wrong
+
+`POST /sponsor` answered `502 {"code":"sponsor_upstream_error"}` to every
+account-setup call for a working session, which blocked owned mode and the
+revoke test entirely. Four probes narrowed it down, all from the same sender:
+
+| request | response |
+|---|---|
+| `create_account`, documented registry | `502 sponsor_upstream_error` |
+| a call not on the sponsorship allowlist | `400 not permitted` |
+| allowlisted call, deliberately bad authorization | `401 Invalid sponsor authorization` |
+| `create_account`, registry read off a successful mainnet transaction | **`200`** |
+
+So the request was authenticated and permitted, and exactly one object argument
+was wrong. Executing the transaction ourselves rather than asking the relayer to
+sponsor it printed what the 502 had swallowed:
+
+```
+CommandArgumentError { arg_idx: 0, kind: TypeMismatch } in command 0
+```
+
+Argument 0 is the registry. There are **two Walrus Memory deployments live on
+mainnet**, `0xcee7a6fd…` (documented) and `0xe7c16fbe…` (served by `/config`),
+and they are separate packages rather than an upgrade, since the newer
+registry's Move type carries the newer package's address. `/config` publishes a
+package id and no registry id, so following the docs for one and the relayer for
+the other mixes them.
+
+**The expensive part was not the 502.** The same mismatch resolves an owner to a
+real, active, delegate-bearing account in the wrong deployment. That is what
+produced §G and `docs/issues/08`, a report claiming the relayer authorizes keys
+the chain does not list. It does not. Corrected, `pnpm diagnose` says "relayer
+and chain agree on 6 delegates".
+
+Three habits would have caught it a week earlier: read the Move **type** of
+every configured object id, not just its existence; treat "the vendor's access
+control is broken" as a conclusion needing much more evidence than "the vendor's
+endpoint is down"; and when a service masks an error, reproduce the operation
+without the service in the path.
+
+Filed as `docs/issues/11`.
+
+### J — revoking a delegate key on chain does end relayer access, in about 32 seconds
+
+The measurement the whole submission rests on, blocked since the first day and
+unblocked by §I. Full log in `docs/evidence/revocation-2026-09-22.md`.
+
+On a throwaway account, with every transaction sponsored and no SUI spent:
+
+| step | result |
+|---|---|
+| add delegate key | on chain after 3s |
+| write and recall with it | blob written, recall returned 1 |
+| remove delegate key | gone from chain after 3s |
+| recall at +0s | accepted |
+| recall at +15s | accepted |
+| recall at +32s | **refused, 401 `AUTH_REJECTED`** |
+
+**Revocation works and is not instant.** Say "within about a minute" in the demo
+and the article, and do not cut the pause out of the film. hippo keeps
+destroying its own encrypted copy of the key on `/disconnect`, which closes the
+window on our side at once and costs nothing.
+
+One loose end, recorded rather than resolved: both recalls inside the window
+returned zero results while still authenticating. That could be the eviction
+reaching the search index before the auth check, or the unrelated drop behaviour
+in §E. We did not establish which, and the spike does not need it.

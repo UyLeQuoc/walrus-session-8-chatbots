@@ -193,9 +193,16 @@ turned up real gaps each time.
 
 ## Current blockers, in order of risk
 
-1. **An owner-signed revocation test** on the Sessions wallet. The relayer honours a delegate key the chain does not list (`docs/issues/08`), so the central claim, revoke on chain and the bot forgets, is unproven. Remove one delegate key on the dashboard and immediately run `pnpm smoke` with it.
-2. **One message to @walrussession8_bot**, then the invites from `docs/RUNBOOK.md`. The adapter has never received a message; that cannot be tested without a Telegram account.
-3. **A second Slush wallet** with no MemWalAccount, for the owned-mode and revoke demos.
+1. **One message to @walrussession8_bot**, then the invites from `docs/RUNBOOK.md`. The adapter has never received a message; that cannot be tested without a Telegram account. This is now the only thing blocking a judging criterion.
+2. **A second Slush wallet** with no MemWalAccount, to *film* `/connect` and `/disconnect` through a real wallet popup. The mechanics no longer need it.
+3. **A SuiNS name pointed at the Walrus Site**, so `wal.app` serves it.
+
+Resolved 2026-09-22, and it was number one on this list since the first day: the
+**revocation test**. A local keystore wallet with no account plus sponsored
+transactions meant it needed no human at all. Removing a delegate key on chain
+made the relayer refuse it within about 32 seconds. Getting there also refuted
+`docs/issues/08`: our account id had been pointing at a second, superseded
+mainnet deployment. See `docs/SPIKES.md` §I and §J.
 
 Also needed later: Neon, Railway and Vercel for M5's actual deploy; Medium, Inkray, X and the Airtable form for M7; optionally an Enoki key and some WAL.
 
