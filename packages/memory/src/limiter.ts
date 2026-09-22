@@ -86,7 +86,7 @@ interface RateLimitedError {
 
 function retryAfterMs(err: unknown): number | null {
   const e = err as RateLimitedError | null;
-  if (!e || e.status !== 429) return null;
+  if (e?.status !== 429) return null;
   const secs = typeof e.retryAfterSeconds === "number" ? e.retryAfterSeconds : 60;
   return Math.max(1_000, secs * 1_000 + 500);
 }

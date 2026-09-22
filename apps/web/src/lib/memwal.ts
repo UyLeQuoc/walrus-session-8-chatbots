@@ -76,6 +76,6 @@ export async function findAccountId(
     .catch(() => null);
   const bcs = field?.dynamicField?.value?.bcs;
   const bytes = typeof bcs === "string" ? fromBase64(bcs) : (bcs as Uint8Array | undefined);
-  if (!bytes || bytes.length !== 32) return null;
+  if (bytes?.length !== 32) return null;
   return `0x${toHex(bytes)}`;
 }

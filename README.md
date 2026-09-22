@@ -74,7 +74,9 @@ what the submission form calls `MEMWAL_AGENT_ID`.
 ### Channels
 
 Each adapter starts only when its token is present, so you can run with none of
-them. See `docs/PLAN.md` for how to get each token.
+them. `docs/PLAN.md` has the setup for each one; Slack is a single paste of
+`docs/slack-manifest.yaml`, and Discord's slash commands are one command
+(`pnpm --filter @hippo/server discord:commands <guildId>`).
 
 ## Layout
 

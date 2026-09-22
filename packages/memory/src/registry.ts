@@ -40,7 +40,7 @@ export async function findAccountIdForOwner(
   const bcs = (field as { dynamicField?: { value?: { bcs?: unknown } } } | null)?.dynamicField
     ?.value?.bcs;
   const bytes = typeof bcs === "string" ? fromBase64(bcs) : (bcs as Uint8Array | undefined);
-  if (!bytes || bytes.length !== 32) return null;
+  if (bytes?.length !== 32) return null;
   return `0x${toHex(bytes)}`;
 }
 

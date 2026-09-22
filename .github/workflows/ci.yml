@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nothing here touches the network or mainnet. The tests that read the real
+# Walrus Memory account skip themselves when credentials are absent, which is
+# deliberate: a fork should get a green run without secrets.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint and format
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build the web app
+        run: pnpm build
+
+      - name: Secrets must not be committed
+        run: |
+          if git ls-files | grep -qx '.env'; then
+            echo "::error::.env is tracked"; exit 1
+          fi
+          if git ls-files | grep -q '^memwal/'; then
+            echo "::error::the memwal reference clone is tracked"; exit 1
+          fi
+          if git ls-files | grep -q '^\.turbo/'; then
+            echo "::error::turbo cache is tracked"; exit 1
+          fi
+          echo "clean"

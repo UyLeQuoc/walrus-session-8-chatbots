@@ -119,7 +119,7 @@ Do these before writing code. Everything here is free.
 **Channels**
 - [ ] Telegram: `@BotFather` → `/newbot` → `TELEGRAM_BOT_TOKEN`. Enable inline privacy off if group use is wanted.
 - [ ] Discord: Developer Portal → New Application → Bot → copy token, enable **Message Content Intent**; OAuth2 URL with `bot` + `applications.commands` scopes to invite it to a test server. `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`. Then `pnpm --filter @hippo/server discord:commands <guildId>` to publish the slash commands instantly in that server.
-- [ ] Slack: api.slack.com/apps → From scratch → enable **Socket Mode** (app-level token `SLACK_APP_TOKEN` with `connections:write`) → Bot scopes `chat:write`, `im:history`, `im:read`, `im:write`, `app_mentions:read`, `commands` → Event subscriptions `message.im`, `app_mention` → install to workspace → `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`.
+- [ ] Slack: api.slack.com/apps → Create New App → **From an app manifest**, and paste `docs/slack-manifest.yaml`. It sets Socket Mode, every scope, both events and all six slash commands, so there is nothing to click through. Then collect `SLACK_BOT_TOKEN` (Install to Workspace), `SLACK_APP_TOKEN` (App-Level Tokens, `connections:write`) and `SLACK_SIGNING_SECRET`.
 
 **Sui Stack extras**
 - [ ] Enoki Portal app (free tier): API key, enable zkLogin + Google provider, add web origins (localhost, Walrus Sites URL, Vercel URL). Google Cloud OAuth client ID with the same origins.

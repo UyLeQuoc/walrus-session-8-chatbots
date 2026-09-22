@@ -64,6 +64,14 @@ docs/            see above
 memwal/          reference clone (gitignored)
 ```
 
+## Checks
+
+`pnpm lint` fails on warnings, not just errors, so unused imports and other drift
+do not accumulate. `.github/workflows/ci.yml` runs lint, typecheck, test and the
+web build on every push, plus a guard that `.env`, `memwal/` and `.turbo/` are
+never tracked. Tests that read the real mainnet account skip themselves when
+credentials are absent, so a fork gets a green run without secrets.
+
 ## Conventions
 
 - TypeScript strict, pnpm workspaces, Node 20.

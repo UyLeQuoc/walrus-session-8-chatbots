@@ -8,12 +8,7 @@ import { bytesToHex } from "@noble/hashes/utils.js";
 import { createClient, type MemoryScope } from "./client.ts";
 import { buildMemoryText, type MemoryType } from "./format.ts";
 import { limiterFor } from "./limiter.ts";
-import {
-  type RecalledMemory,
-  type RememberOutcome,
-  recallRelevant,
-  rememberWithDedupe,
-} from "./policy.ts";
+import { type RecalledMemory, recallRelevant, rememberWithDedupe } from "./policy.ts";
 import { redactCredentials } from "./redact.ts";
 
 export interface RememberInput {

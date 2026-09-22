@@ -7,7 +7,6 @@
 import { and, desc, eq, memoryIndex, people, sql, turnLog } from "@hippo/db";
 import { explorer, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
 import { db } from "./app-context.ts";
-import { env } from "./env.ts";
 import { createLinkCode, redeemLinkCode } from "./link.ts";
 import { type Person, portFor } from "./persons.ts";
 

@@ -16,7 +16,7 @@
     "typecheck": "turbo run typecheck",
     "build": "turbo run build",
     "test": "turbo run test",
-    "lint": "biome check .",
+    "lint": "biome check --error-on-warnings .",
     "format": "biome format --write .",
     "demo": "pnpm --filter @hippo/core demo",
     "evidence": "pnpm --filter @hippo/server evidence",

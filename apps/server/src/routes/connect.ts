@@ -2,7 +2,7 @@
  * The owned-mode handshake. The browser does the wallet work; this decides
  * whether it really happened by reading the account on chain.
  */
-import { and, channelIdentities, connectTokens, delegateKeys, eq, isNull, people } from "@hippo/db";
+import { channelIdentities, connectTokens, delegateKeys, eq, people } from "@hippo/db";
 import { createSuiClient, fetchRelayerConfig, readAccount } from "@hippo/memory";
 import { Hono } from "hono";
 import { db } from "../app-context.ts";
