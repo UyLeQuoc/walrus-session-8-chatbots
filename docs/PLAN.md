@@ -55,7 +55,9 @@ Seven reports drafted with repros in `docs/issues/`, all hit while building on t
 | 6 | Write rate limit is 60/min, not the documented 30/min, weights unpublished |
 | 7 | `GET /api/whoami` 404s; `GET /v1/owners/:owner/agents` is flaky and miscounts |
 
-Still to confirm before filing: Vietnamese fact extraction quality, blob epoch length, whether `restore()` pagination bites us, and anything the wallet connect flow throws once a second wallet is available.
+Checked and found fine, so not filed: Vietnamese fact extraction and embedding quality. Six Vietnamese facts came back byte-identical and eight questions recalled 8/8, including across languages in both directions (`docs/SPIKES.md` §12).
+
+Still to confirm before filing: blob epoch length, whether `restore()` pagination bites us, and anything the wallet connect flow throws once a second wallet is available.
 
 ## Article outline (Medium + Inkray)
 

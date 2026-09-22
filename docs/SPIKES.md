@@ -254,3 +254,38 @@ from forgetting.
 
 Evidence: `docs/evidence/demo-2026-09-21-cross-channel.txt` (run 2),
 `demo-2026-09-21-sequential.txt` (run 3), `demo-2026-09-22-clean.txt` (run 4).
+
+## 12 — Vietnamese, and cross-language recall — PASS
+
+hippo's first real users are Vietnamese, and it already answers in Vietnamese
+when a `style` memory says so, so this was not a curiosity. If embeddings or
+storage mangled the language the whole real-use week would be built on sand.
+
+Six facts written in Vietnamese plus one in English, then eight questions across
+both languages. Full output in `docs/evidence/spike-vietnamese-2026-09-22.txt`.
+
+**Byte fidelity: 6/6 returned exactly as written.** Every diacritic survived the
+round trip through SEAL encryption, Walrus and back. No normalisation, no
+mojibake.
+
+**Recall: 8/8 found, mean distance 0.581.**
+
+| Direction | Result |
+|---|---|
+| Vietnamese question → Vietnamese fact | 5/5, four of them at rank 1 |
+| Vietnamese question → English fact | 1/1 at rank 1, distance 0.567 |
+| English question → Vietnamese fact | 2/2, distances 0.638 and 0.728 |
+
+Cross-language recall working in both directions is a real bonus: a user can ask
+in Vietnamese about something they said in English and still be understood.
+
+**This also re-confirms the distance decision, and this time in the language the
+users actually speak.** The two hardest queries landed at **0.714 and 0.728**,
+both asking about a package manager. A `maxDistance` of 0.7, which is where the
+SDK's own guidance puts the "usually unrelated" line, would have thrown both
+away. `DEFAULT_MAX_DISTANCE` at 0.8 keeps them.
+
+**It removes a bug-bounty candidate rather than adding one.** Vietnamese fact
+extraction and embedding quality was on the list to check; there is nothing to
+report. Worth saying plainly, because a list of complaints is more credible when
+the things that work are also named.

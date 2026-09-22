@@ -32,7 +32,10 @@ const limiter = limiterFor(env.MEMWAL_PRIVATE_KEY, { capacity: 20, concurrency: 
 const FACTS = [
   { type: "profile" as const, text: "Uy thích dùng pnpm, không bao giờ dùng npm hay yarn." },
   { type: "profile" as const, text: "Uy sống ở Thành phố Hồ Chí Minh và làm việc múi giờ UTC+7." },
-  { type: "gotcha" as const, text: "Cổng 5432 đã bị chiếm nên dự án này chạy Postgres ở cổng 5433." },
+  {
+    type: "gotcha" as const,
+    text: "Cổng 5432 đã bị chiếm nên dự án này chạy Postgres ở cổng 5433.",
+  },
   { type: "decision" as const, text: "Nhóm quyết định dùng Drizzle thay cho Prisma làm ORM." },
   { type: "style" as const, text: "Trả lời ngắn gọn bằng tiếng Việt, không dùng emoji." },
   // One English fact, to test cross-language recall in both directions.
@@ -53,7 +56,12 @@ const QUERIES: Array<{ q: string; expect: string; kind: string }> = [
 if (!process.argv.includes("--measure-only")) {
   console.log(`seeding ${FACTS.length} facts into ${NS}…`);
   for (const f of FACTS) {
-    const line = buildMemoryText({ type: f.type, by: "uy", date: new Date("2026-09-22"), text: f.text });
+    const line = buildMemoryText({
+      type: f.type,
+      by: "uy",
+      date: new Date("2026-09-22"),
+      text: f.text,
+    });
     await runLimited(limiter, () => client.remember(line, NS));
   }
   console.log("accepted; waiting 100s for indexing…");
@@ -61,7 +69,9 @@ if (!process.argv.includes("--measure-only")) {
 }
 
 console.log("\n1. Byte fidelity — is the text returned exactly as written?");
-const all = await runLimited(limiter, () => client.recall({ query: "Uy", namespace: NS, limit: 20 }));
+const all = await runLimited(limiter, () =>
+  client.recall({ query: "Uy", namespace: NS, limit: 20 }),
+);
 let intact = 0;
 for (const f of FACTS) {
   const hit = all.results.find((m) => m.text.includes(f.text));
@@ -83,7 +93,9 @@ for (const { q, expect, kind } of QUERIES) {
   const idx = res.results.findIndex((m) => m.text.includes(expect));
   if (idx === -1) {
     const meta = res as unknown as { dropped_count?: number };
-    console.log(`  MISS  [${kind}] ${q}  (${res.results.length} results, dropped ${meta.dropped_count ?? 0})`);
+    console.log(
+      `  MISS  [${kind}] ${q}  (${res.results.length} results, dropped ${meta.dropped_count ?? 0})`,
+    );
     continue;
   }
   const hit = res.results[idx];
@@ -92,5 +104,7 @@ for (const { q, expect, kind } of QUERIES) {
   sum += hit.distance;
   console.log(`  rank ${idx + 1} dist ${hit.distance.toFixed(3)}  [${kind}] ${q}`);
 }
-console.log(`\n${found}/${QUERIES.length} found, mean distance ${found ? (sum / found).toFixed(3) : "n/a"}`);
+console.log(
+  `\n${found}/${QUERIES.length} found, mean distance ${found ? (sum / found).toFixed(3) : "n/a"}`,
+);
 console.log(`namespace: ${NS}`);

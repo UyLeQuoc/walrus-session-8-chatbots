@@ -1,0 +1,18 @@
+seeding 6 facts into spike-vi:vi1…
+accepted; waiting 100s for indexing…
+
+1. Byte fidelity — is the text returned exactly as written?
+  6/6 returned byte-identical
+
+2 & 3. Recall, within and across languages
+  rank 3 dist 0.714  [vi → vi] tôi dùng trình quản lý gói nào?
+  rank 1 dist 0.527  [vi → vi] tôi sống ở đâu?
+  rank 1 dist 0.499  [vi → vi] cơ sở dữ liệu chạy ở cổng nào?
+  rank 1 dist 0.430  [vi → vi] nhóm chọn ORM nào?
+  rank 1 dist 0.544  [vi → vi] tôi muốn được trả lời như thế nào?
+  rank 1 dist 0.567  [vi → en] tôi dùng editor gì?
+  rank 2 dist 0.728  [en → vi] which package manager do I use?
+  rank 1 dist 0.638  [en → vi] where does the user live?
+
+8/8 found, mean distance 0.581
+namespace: spike-vi:vi1

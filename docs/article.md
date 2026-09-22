@@ -52,6 +52,12 @@ bare, then the same ten questions against both:
 
 Six thousandths of a point. Keep the prefix.
 
+I ran the same thing in Vietnamese, since that is what my users speak. Six facts
+came back byte-identical, diacritics and all, and eight questions recalled 8/8 at
+a mean distance of 0.581. Asking in Vietnamese about something stored in English
+worked, and so did the reverse. Nothing to report there, which is worth saying
+out loud in an article that spends its second half complaining.
+
 That table taught me something more useful, though. Real matches landed between
 **0.449 and 0.777**. The SDK's guidance calls anything above 0.7 "usually
 unrelated", and `withMemWal`'s default relevance threshold works out to a 0.6
