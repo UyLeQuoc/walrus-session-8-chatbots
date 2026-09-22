@@ -185,6 +185,12 @@ Verification: every checklist item in `docs/PLAN.md` "Submission checklist" is t
 | Bug bounty | `docs/issues/` + GitHub links |
 | Promo | `docs/promo.md` + live link |
 
+## Task-by-task status
+
+`docs/AUDIT.md` checks every numbered task below against the codebase. Consult it
+before concluding that unblocked work is exhausted; auditing it three times
+turned up real gaps each time.
+
 ## Current blockers, in order of risk
 
 1. **An owner-signed revocation test** on the Sessions wallet. The relayer honours a delegate key the chain does not list (`docs/issues/08`), so the central claim, revoke on chain and the bot forgets, is unproven. Remove one delegate key on the dashboard and immediately run `pnpm smoke` with it.

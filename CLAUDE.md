@@ -15,6 +15,7 @@ Multi-channel chatbot (web, Telegram, Discord, Slack) where each user owns their
 - `docs/DECISIONS.md` — the running decision log.
 - `docs/RUNBOOK.md` — how to run the real-use week: invite text, consent rules, daily checklist.
 - `docs/issues/` — ten bug reports drafted against Walrus Memory, filed with `scripts/file-issues.sh`.
+- `docs/AUDIT.md` — every task in GOAL.md checked against the codebase, with what is blocked and why. Read this before concluding there is nothing left to do.
 
 ## Commands worth knowing
 
