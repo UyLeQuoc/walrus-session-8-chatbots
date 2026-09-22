@@ -40,7 +40,9 @@ Monorepo (pnpm workspaces + turborepo):
 
 A `person` is the unit of memory. Channel identities (`telegram:123`, `discord:456`, `slack:T1/U1`, `wallet:0xabc`) map to one person. Linking happens through the same `/connect` flow: the link carries the channel identity, the user signs with their wallet, and the server merges that identity into the person owning that wallet. That is how the same memory follows a user from Telegram to web to Discord.
 
-Web identity: an anonymous session cookie creates a guest `person` on first message. Signing in (Slush wallet challenge via `signPersonalMessage`, or Google via Enoki zkLogin) attaches `wallet:<address>` to that person, or merges it into the person that already owns the wallet. No passwords.
+Web identity: an anonymous session cookie creates a guest `person` on first message. Signing in with a wallet attaches `wallet:<address>` to that person, or resolves to the person that already owns the wallet. No passwords.
+
+The sign-in is deliberately narrow. The server issues a nonce, the wallet signs a readable message containing it, and **the address is recovered from the signature** rather than taken from the request. The nonce is single-use and burned before anything else happens, so a replay loses the race. If the browser's anonymous person has no memories it is folded into the wallet's person, so an anonymous conversation is not lost; if it has memories, nothing is merged, because taking them would repeat the mistake `/link` refuses. `packages/memory/src/wallet.ts` and `apps/server/src/auth.ts`, with the flow exercised end to end by `pnpm --filter @hippo/server probe:signin` using a throwaway keypair.
 
 **zkLogin caveat** (`memwal/docs/reference/console-identity-link.md`): a zkLogin address depends on the OAuth client ID, so the same Google account yields a different Sui address in hippo than on memory.walrus.xyz. Google users get a real owned account, but they will not see hippo in the Walrus dashboard and cannot share that account with Claude Code. The portability and dashboard demos therefore use a Slush wallet user. Say so in the article; it is also feedback for Walrus (Enoki Connect would fix it).
 
@@ -180,7 +182,7 @@ Defined once in `apps/server/src/commands.ts`; every adapter routes through `han
 | `/memory off` / `on` | Per-user toggle used for the baseline phase. Logged for the article. |
 | `/proof` | Blob IDs used in the last answer, with Walrus explorer links; if the manual path works, the decrypted raw blob. |
 | CLI | `pnpm hippo chat` runs the same core in a terminal. Counts as a channel under the rules and is the fastest way to test and record evals. |
-| `/me` (web) | Memory list by type/date, expiry, delegate list from `GET /v1/owners/:owner/agents`, "Use in Claude Code" steps (install plugin, `memwal_login` with the same wallet, `--namespace hippo`), permanent delete when available. |
+| `/me` (web) | Memory list by type and date with storage expiry and blob links, wallet sign-in so a Telegram user can see the same memory here, "Use in Claude Code" steps, and a plain statement that a memory can be made unrecallable but not deleted. |
 
 ## 7. Known limitations and how we present them
 

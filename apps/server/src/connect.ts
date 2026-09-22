@@ -4,7 +4,7 @@
  * add_delegate_key (or remove_delegate_key) against their own MemWalAccount.
  */
 import { randomBytes } from "node:crypto";
-import { and, connectTokens, delegateKeys, eq, gt, isNull } from "@hippo/db";
+import { and, connectTokens, delegateKeys, eq, gt, isNotNull, isNull } from "@hippo/db";
 import { encryptSecret, generateDelegate } from "@hippo/memory";
 import { db } from "./app-context.ts";
 import { env } from "./env.ts";
@@ -85,6 +85,11 @@ export async function startDisconnect(person: Person): Promise<StartedConnect> {
   };
 }
 
+/**
+ * A connect or disconnect token, which always carries a person. Sign-in
+ * challenges share the table but have no person, so they are filtered out here:
+ * a challenge nonce must never be usable as a connect token.
+ */
 export async function loadToken(token: string) {
   const [row] = await db
     .select()
@@ -94,8 +99,10 @@ export async function loadToken(token: string) {
         eq(connectTokens.token, token),
         isNull(connectTokens.usedAt),
         gt(connectTokens.expiresAt, new Date()),
+        isNotNull(connectTokens.personId),
       ),
     )
     .limit(1);
-  return row ?? null;
+  if (!row?.personId) return null;
+  return { ...row, personId: row.personId };
 }

@@ -41,3 +41,4 @@ export {
 } from "./registry.ts";
 export { type MemoryMeta, RelayerExtras, type StatsResult } from "./relayer.ts";
 export { formatUntrustedMemories, UNTRUSTED_MEMORY_SYSTEM_INSTRUCTION } from "./untrusted.ts";
+export { addressFromSignature, signInMessage, signWithThrowawayWallet } from "./wallet.ts";

@@ -96,7 +96,7 @@ Verification: `pnpm demo` passes; `/memory` on Telegram lists the entries from `
 
 ### M3 — Owned mode — WRITTEN AND SECURITY-REVIEWED, never run against a wallet
 
-All nine tasks are implemented: connect and disconnect tokens, the wallet page with sponsored `create_account` and `add_delegate_key`, on-chain verification of the grant before switching mode, dual-read instead of migration, `/me` with blob links and storage expiry, `/whoami`, and the Claude Code instructions. Two corrections since: permanent deletion is impossible (`docs/issues/09`) so `/me` does not offer it, and the security review found an unauthenticated takeover in the connect callback which is fixed.
+All nine tasks are implemented: connect and disconnect tokens, the wallet page with sponsored `create_account` and `add_delegate_key`, on-chain verification of the grant before switching mode, dual-read instead of migration, `/me` with blob links, storage expiry and wallet sign-in, `/whoami`, and the Claude Code instructions. The sign-in half is verified end to end with a throwaway keypair (`pnpm --filter @hippo/server probe:signin`): a valid signature opens a session, a replayed nonce is refused, a signature over another challenge is refused, and signing out closes it. Two corrections since: permanent deletion is impossible (`docs/issues/09`) so `/me` does not offer it, and the security review found an unauthenticated takeover in the connect callback which is fixed.
 
 What is missing is proof, not code. Tasks 8 and 9, the recorded revoke demo and the Claude Code recall, need a wallet.
 

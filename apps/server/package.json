@@ -10,7 +10,8 @@
     "evidence": "tsx scripts/evidence.ts",
     "restore": "tsx scripts/restore.ts",
     "test": "vitest run",
-    "discord:commands": "tsx scripts/register-discord-commands.ts"
+    "discord:commands": "tsx scripts/register-discord-commands.ts",
+    "probe:signin": "tsx scripts/probe-signin.ts"
   },
   "dependencies": {
     "@hippo/core": "workspace:*",

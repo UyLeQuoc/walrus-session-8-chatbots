@@ -86,6 +86,19 @@ rather than a mock, because the point of the check is that the chain is the
 authority. They skip themselves when credentials are absent, so a fresh clone
 still passes.
 
+## Built after the review, with its findings in mind
+
+**Wallet sign-in** (`apps/server/src/auth.ts`) was written the opposite way round
+from the connect callback the review faulted. The server issues the nonce, the
+address is recovered from the signature, and no request field names an identity.
+The nonce is burned in a guarded update before any other work, so two concurrent
+requests cannot both succeed. Verified end to end with a throwaway keypair:
+`pnpm --filter @hippo/server probe:signin` checks that a valid signature opens a
+session, a replayed nonce is refused, a signature over a different challenge is
+refused, and signing out really closes the session. Five unit tests cover the
+signature helper, including that a signature over one nonce does not verify
+against another.
+
 ## Accepted for now
 
 **A link code is a one-message takeover if a user is tricked into redeeming

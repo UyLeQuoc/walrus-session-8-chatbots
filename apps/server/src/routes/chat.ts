@@ -2,9 +2,10 @@ import { gatherContext, runTurn } from "@hippo/core";
 import { desc, eq, memoryIndex } from "@hippo/db";
 import { explorer, RelayerExtras } from "@hippo/memory";
 import { convertToModelMessages, type UIMessage } from "ai";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { db, model } from "../app-context.ts";
+import { personFromSession } from "../auth.ts";
 import { type CommandContext, handleCommand } from "../commands.ts";
 import { startConnect, startDisconnect } from "../connect.ts";
 import { env } from "../env.ts";
@@ -14,14 +15,24 @@ import { checkRate, noteCommand } from "../ratelimit.ts";
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
 const CHANNEL = "web";
 const COOKIE = "hippo_guest";
+const SESSION_COOKIE = "hippo_session";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
 
-/** Anonymous cookie identity. Wallet sign-in attaches this person to an account in M3. */
+/**
+ * Who is talking. A wallet session wins over the anonymous cookie, so someone
+ * who signed in sees their own memory rather than a fresh stranger's.
+ */
 async function webPerson(
+  c: Context,
   channel: string,
   cookie: string | undefined,
   setId: (id: string) => void,
 ): Promise<Person> {
+  const sessionId = getCookie(c, SESSION_COOKIE);
+  if (sessionId) {
+    const signedIn = await personFromSession(sessionId);
+    if (signedIn) return signedIn;
+  }
   const id = cookie ?? crypto.randomUUID();
   if (!cookie) setId(id);
   return resolvePerson(channel, id, channel);
@@ -41,7 +52,7 @@ export const chatRoutes = new Hono()
   .post("/api/chat", async (c) => {
     const body = (await c.req.json()) as { messages: UIMessage[]; sessionStart?: boolean };
     const channel = c.req.header("x-hippo-channel") === "cli" ? "cli" : CHANNEL;
-    const person = await webPerson(channel, getCookie(c, COOKIE), (id) =>
+    const person = await webPerson(c, channel, getCookie(c, COOKIE), (id) =>
       setCookie(c, COOKIE, id, {
         httpOnly: true,
         sameSite: "Lax",
@@ -98,8 +109,8 @@ export const chatRoutes = new Hono()
   /** The memories hippo wrote for this person, newest first, with links and expiry. */
   .get("/api/me/memories", async (c) => {
     const cookie = getCookie(c, COOKIE);
-    if (!cookie) return c.json({ memories: [] });
-    const person = await webPerson(CHANNEL, cookie, () => {});
+    if (!cookie && !getCookie(c, SESSION_COOKIE)) return c.json({ memories: [] });
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
     const rows = await db
       .select()
       .from(memoryIndex)
@@ -145,11 +156,18 @@ export const chatRoutes = new Hono()
   /** Everything the /me page shows. */
   .get("/api/me", async (c) => {
     const cookie = getCookie(c, COOKIE);
-    if (!cookie) return c.json({ mode: "anonymous" as const });
-    const person = await webPerson(CHANNEL, cookie, () => {});
+    const sessionId = getCookie(c, SESSION_COOKIE);
+    // `signedIn` has to mean the session resolved, not that a cookie was sent.
+    // A signed-out or expired session leaves the cookie in the browser, and
+    // reporting that as signed in would show the wrong thing on /me.
+    const sessionPerson = sessionId ? await personFromSession(sessionId) : null;
+    if (!cookie && !sessionPerson) return c.json({ mode: "anonymous" as const });
+    const person = sessionPerson ?? (await webPerson(c, CHANNEL, cookie, () => {}));
+    const signedIn = Boolean(sessionPerson);
     const port = await portFor(person, CHANNEL);
     return c.json({
       mode: person.mode,
+      signedIn,
       personId: person.id,
       memoryEnabled: person.memoryEnabled,
       accountId: person.accountId,

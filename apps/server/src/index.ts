@@ -7,6 +7,7 @@ import { slackAdapter } from "./channels/slack.ts";
 import { telegramAdapter } from "./channels/telegram.ts";
 import type { ChannelAdapter } from "./channels/types.ts";
 import { env } from "./env.ts";
+import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chat.ts";
 import { connectRoutes } from "./routes/connect.ts";
 
@@ -21,6 +22,7 @@ app.get("/api/health", (c) =>
 );
 app.route("/", chatRoutes);
 app.route("/", connectRoutes);
+app.route("/", authRoutes);
 
 const adapters = [telegramAdapter(), discordAdapter(), slackAdapter()].filter(
   (a): a is ChannelAdapter => a !== null,

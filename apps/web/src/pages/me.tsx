@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
+import { WalletSignIn } from "@/components/wallet-signin";
 import { API_URL } from "@/lib/api";
 
 interface Me {
   mode: "anonymous" | "guest" | "owned";
+  signedIn?: boolean;
   personId?: string;
   memoryEnabled?: boolean;
   accountId?: string | null;
@@ -38,7 +41,7 @@ export function MePage() {
   const [me, setMe] = useState<Me | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     void fetch(`${API_URL}/api/me`, { credentials: "include" })
       .then((r) => r.json() as Promise<Me>)
       .then(setMe)
@@ -49,19 +52,29 @@ export function MePage() {
       .catch(() => setMemories([]));
   }, []);
 
+  useEffect(load, [load]);
+
+  const signOut = useCallback(async () => {
+    await fetch(`${API_URL}/api/auth/signout`, { method: "POST", credentials: "include" });
+    load();
+  }, [load]);
+
   if (!me) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   if (me.mode === "anonymous") {
     return (
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold">My memory</h1>
-        <p className="text-sm text-muted-foreground">
-          Say something in the{" "}
-          <Link to="/" className="underline">
-            chat
-          </Link>{" "}
-          first and hippo will start remembering you.
-        </p>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-xl font-semibold">My memory</h1>
+          <p className="text-sm text-muted-foreground">
+            Say something in the{" "}
+            <Link to="/" className="underline">
+              chat
+            </Link>{" "}
+            first and hippo will start remembering you.
+          </p>
+        </div>
+        <WalletSignIn onSignedIn={load} />
       </div>
     );
   }
@@ -82,6 +95,21 @@ export function MePage() {
 
       <dl className="rounded-lg border divide-y text-sm">
         <Row label="Mode" value={owned ? "owned by you" : "guest"} />
+        <Row
+          label="This page"
+          value={
+            me.signedIn ? (
+              <span className="flex items-center gap-3">
+                signed in with your wallet
+                <Button variant="ghost" size="sm" onClick={() => void signOut()}>
+                  sign out
+                </Button>
+              </span>
+            ) : (
+              "this browser only"
+            )
+          }
+        />
         <Row label="Memory" value={me.memoryEnabled ? "on" : "paused"} />
         <Row label="Stored on Walrus" value={`${stored} of ${memories.length}`} />
         <Row label="Namespace" value={me.namespace ?? "—"} mono />
@@ -170,6 +198,8 @@ export function MePage() {
           ))}
         </ol>
       </section>
+
+      {!me.signedIn && <WalletSignIn onSignedIn={load} />}
 
       <section className="space-y-1 text-sm text-muted-foreground">
         <h2 className="font-medium text-foreground">Commands</h2>

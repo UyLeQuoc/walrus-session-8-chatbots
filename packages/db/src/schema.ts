@@ -63,12 +63,16 @@ export const delegateKeys = pgTable(
   (t) => [index("delegate_keys_person_idx").on(t.personId)],
 );
 
-/** Single-use tokens that carry a person from a chat channel to the web connect page. */
+/**
+ * Single-use, short-lived tokens. Three shapes share this table because they
+ * share the same semantics: `connect` and `disconnect` carry a person from a
+ * chat channel to the web wallet page, and a wallet sign-in challenge is a
+ * nonce that belongs to nobody until somebody signs it, which is why
+ * `personId` is nullable.
+ */
 export const connectTokens = pgTable("connect_tokens", {
   token: text("token").primaryKey(),
-  personId: uuid("person_id")
-    .notNull()
-    .references(() => people.id, { onDelete: "cascade" }),
+  personId: uuid("person_id").references(() => people.id, { onDelete: "cascade" }),
   kind: text("kind", { enum: ["connect", "disconnect"] }).notNull(),
   delegateKeyId: uuid("delegate_key_id").references(() => delegateKeys.id),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),

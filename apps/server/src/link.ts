@@ -61,7 +61,7 @@ export async function redeemLinkCode(current: Person, rawCode: string): Promise<
       ),
     )
     .limit(1);
-  if (!row) return { ok: false, reason: "expired" };
+  if (!row?.personId) return { ok: false, reason: "expired" };
   if (row.personId === current.id) return { ok: false, reason: "self" };
 
   /**
