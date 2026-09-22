@@ -61,15 +61,17 @@ export function ChatPage() {
                       {p.text}
                     </span>
                   );
-                if (p.type === "tool-remember")
+                if (p.type === "tool-remember") {
+                  const input = p.input as { type?: string; text?: string } | undefined;
+                  const output = p.output as { saved?: boolean; note?: string } | undefined;
+                  const done = p.state === "output-available";
                   return (
                     <div key={i} className="mt-1 text-xs text-muted-foreground">
-                      ⟶ remembered{" "}
-                      {p.state === "output-available"
-                        ? String((p.output as { outcome?: string })?.outcome ?? "")
-                        : "…"}
+                      {done && output?.saved === false ? "already knew" : "remembering"}
+                      {input?.type ? ` [${input.type}]` : ""} {input?.text ?? ""}
                     </div>
                   );
+                }
                 if (p.type === "tool-recall")
                   return (
                     <div key={i} className="mt-1 text-xs text-muted-foreground">

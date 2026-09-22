@@ -82,13 +82,31 @@ export function limiterFor(delegateKey: string, options?: LimiterOptions): RateL
 interface RateLimitedError {
   status?: number;
   retryAfterSeconds?: number;
+  message?: string;
 }
 
+/**
+ * Errors worth waiting out. A 429 is the relayer's own budget. The others are
+ * the relayer failing to reach something it depends on: seen in production as
+ * "temporarily cannot verify credentials (upstream unavailable)", which is its
+ * Sui RPC being unreachable while it checks our delegate key. None of these
+ * mean the request was wrong, so none of them should surface to a user.
+ */
 function retryAfterMs(err: unknown): number | null {
   const e = err as RateLimitedError | null;
-  if (e?.status !== 429) return null;
-  const secs = typeof e.retryAfterSeconds === "number" ? e.retryAfterSeconds : 60;
-  return Math.max(1_000, secs * 1_000 + 500);
+  if (!e) return null;
+  if (e.status === 429) {
+    const secs = typeof e.retryAfterSeconds === "number" ? e.retryAfterSeconds : 60;
+    return Math.max(1_000, secs * 1_000 + 500);
+  }
+  if (e.status === 502 || e.status === 503 || e.status === 504) return 2_000;
+  if (
+    typeof e.message === "string" &&
+    /upstream unavailable|temporarily cannot verify/i.test(e.message)
+  ) {
+    return 2_000;
+  }
+  return null;
 }
 
 /**

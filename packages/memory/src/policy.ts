@@ -114,14 +114,29 @@ export async function rememberWithDedupe(
   client: MemWal,
   { text, namespace, limiter, timeoutMs = 120_000 }: RememberOptions,
 ): Promise<RememberOutcome> {
-  const near = await recallRelevant(client, {
-    query: text,
-    namespace,
-    limit: 3,
-    maxDistance: DISTANCE.duplicate,
-    limiter,
-  });
-  const dup = near[0];
+  /**
+   * Dedupe is an optimisation, not a precondition. In production the relayer
+   * answered this recall with "temporarily cannot verify credentials (upstream
+   * unavailable)", the error propagated, and the bot told the user it could not
+   * remember anything: a duplicate check took the whole feature down. If the
+   * check cannot run, write anyway. A duplicate memory is a far smaller problem
+   * than a lost one.
+   */
+  let dup: RecalledMemory | undefined;
+  try {
+    const near = await recallRelevant(client, {
+      query: text,
+      namespace,
+      limit: 3,
+      maxDistance: DISTANCE.duplicate,
+      limiter,
+    });
+    dup = near[0];
+  } catch (err) {
+    console.warn(
+      `[memory] dedupe check failed in ${namespace}, writing anyway: ${err instanceof Error ? err.message : err}`,
+    );
+  }
   if (dup) {
     return { status: "duplicate", blobId: dup.blob_id, distance: dup.distance, existing: dup.text };
   }
