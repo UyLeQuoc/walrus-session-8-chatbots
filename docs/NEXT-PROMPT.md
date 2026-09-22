@@ -12,7 +12,7 @@ Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline
 
 Read CLAUDE.md and docs/GOAL.md first. GOAL.md is the master plan: milestones M0-M7, each with tasks and the command that verifies them. docs/SPIKES.md is what we measured on mainnet and what it changed. docs/BLOCKERS.md is what only I can provide. docs/DECISIONS.md is the decision log. docs/NEXT-PROMPT.md holds the long version of this brief.
 
-State (2026-09-22): M0, M1, M2, M5 done. M3 written and security-reviewed, never run against a real wallet. M4 waits on channel tokens, M6 on real users, M7 is drafted and waits on M6's numbers. `pnpm demo` passes 4/4 plus a cross-channel check on mainnet; a clean clone runs from the README alone.
+State (2026-09-22): M0, M1, M2, M5 done. M3 written and security-reviewed, never run against a real wallet. M4 waits on channel tokens, M6 on real users, M7 is drafted and waits on M6's numbers. `pnpm demo` passes 4/4 plus a cross-channel check on mainnet; a clean clone runs from the README alone; `pnpm evidence` counts only memories that actually landed and says whether the session requirement is met. Vietnamese recall verified 8/8 including across languages.
 
 Blocked on me, in order of risk. Read docs/BLOCKERS.md; it is current.
 1. An owner-signed revocation test on the Sessions wallet. Highest-risk unknown in the project.
@@ -50,6 +50,7 @@ Working and verified on mainnet:
 - A clean clone runs from the README alone: install, db:push, typecheck, test, build, smoke. Transcript in `docs/evidence/clean-clone-2026-09-21.md`.
 - Owned mode code exists end to end (connect page, sponsored transactions, on-chain verification, revoke) but has never been run against a real wallet.
 - M7 is drafted and needs editing rather than writing: `docs/article.md`, `docs/promo.md`, `docs/video.md`, `docs/submission.md` (every form field, with `[M6]` and `[HUMAN]` marking what is still missing).
+- `/proof` links the Walrus blobs behind the last answer; `pnpm evidence` separates slash commands from conversation turns so the before/after is honest. Vietnamese and cross-language recall verified (`docs/SPIKES.md` §12), which removed a bug-bounty candidate rather than adding one.
 
 A security review of the repo has been run and its three real findings are fixed, including an unauthenticated takeover in the connect callback. Results in `docs/evidence/security-review-2026-09-21.md`.
 
