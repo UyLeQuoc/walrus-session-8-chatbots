@@ -1,5 +1,10 @@
 # Deploy
 
+**Live as of 2026-09-22.** Web https://hippo-web-ten-nu.vercel.app, API
+https://hippo-server-production.up.railway.app, database on Neon, Telegram
+polling from production. What was verified rather than assumed is in
+`docs/evidence/deploy-2026-09-22.md`.
+
 The server is a long-running process, not serverless: the chat adapters hold
 gateway connections and memory writes finish in the background, both of which a
 function that freezes between requests would break. The web app is a static
@@ -18,8 +23,16 @@ in `railway.toml`.
 ## 2. Server on Railway
 
 New Project → Deploy from GitHub repo → this repository. `railway.toml` is
-picked up automatically: it builds `Dockerfile`, runs `pnpm db:push` then
-`pnpm --filter @hippo/server start`, and health-checks `/api/health`.
+picked up automatically: it builds `Dockerfile`, starts the server, health-checks
+`/api/health`, and pins one replica.
+
+**Schema changes are not automatic.** `drizzle-kit push` can drop a column to
+reach the target schema, and this database holds real users' encrypted delegate
+keys. Push deliberately, having looked at the diff:
+
+```bash
+DATABASE_URL=<prod> pnpm --filter @hippo/db exec drizzle-kit push
+```
 
 Paste these variables. Everything except the last two comes straight from your
 local `.env`.
@@ -47,8 +60,8 @@ placeholders, then come back and set them. Everything else works meanwhile.
 Railway gives the service a public domain under Settings → Networking. That URL
 is `VITE_API_URL` in the next step.
 
-**Run the bot in one replica only.** Telegram long polling from two processes
-fights over the same updates. Railway defaults to one.
+**One replica** is pinned in `railway.toml`. Telegram long polling from two
+processes fights over the same updates.
 
 ## 3. Web on Vercel
 
@@ -94,5 +107,4 @@ Walrus too, but Vercel is the one to get working first.
   `WEB_BASE_URL` starts with `https`, so an http Vercel preview will not hold a
   session.
 - **One replica**, as above.
-- **`pnpm db:push` runs on every deploy.** It is additive, but review a schema
-  change before shipping it to a database that has real users in it.
+- **Schema changes are manual on purpose.** See above.

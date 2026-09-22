@@ -130,7 +130,7 @@ Original task list:
 
 Verification: `pnpm demo --cross-channel` passes; a screenshot of the same fact on two channels in `docs/evidence/`.
 
-### M5 — Deploy and reproducibility — DONE except the deploy itself
+### M5 — Deploy and reproducibility — DONE
 
 `Dockerfile`, `railway.toml`, `vercel.json` and `ws-resources.json` are in place, the README runs from a clean clone (`docs/evidence/clean-clone-2026-09-21.md`), and the evidence folder and scripts exist. Pushing to Railway and Walrus Sites needs accounts.
 

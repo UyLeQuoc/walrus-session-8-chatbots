@@ -3,8 +3,16 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "pnpm --filter @hippo/db push && pnpm --filter @hippo/server start"
+# Just start the server. Schema changes are pushed deliberately, with a human
+# looking at the diff, not automatically on every deploy: `drizzle-kit push`
+# can drop a column to reach the target schema, and this database will hold
+# real users' delegate keys and memory index.
+#   DATABASE_URL=<prod> pnpm --filter @hippo/db exec drizzle-kit push
+startCommand = "pnpm --filter @hippo/server start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
+
+# Telegram long polling must not run twice; two processes fight over updates.
+numReplicas = 1
