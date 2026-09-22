@@ -1,6 +1,6 @@
 import { gatherContext, runTurn } from "@hippo/core";
-import { desc, eq, memoryIndex } from "@hippo/db";
-import { explorer, RelayerExtras } from "@hippo/memory";
+import { and, delegateKeys, desc, eq, memoryIndex } from "@hippo/db";
+import { createSuiClient, explorer, RelayerExtras, readAccount } from "@hippo/memory";
 import { convertToModelMessages, type UIMessage } from "ai";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
@@ -14,6 +14,9 @@ import { checkRate, noteCommand } from "../ratelimit.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
 const CHANNEL = "web";
+
+/** Reads only. The chain, not the relayer, is the authority on who may read a memory. */
+const sui = createSuiClient(env.SUI_NETWORK);
 const COOKIE = "hippo_guest";
 const SESSION_COOKIE = "hippo_session";
 
@@ -203,6 +206,89 @@ export const chatRoutes = new Hono()
         explorerUrl: r.blobId ? explorer.blobExplorer(r.blobId) : null,
       })),
     });
+  })
+
+  /**
+   * The account holding this person's memory, read from chain rather than from
+   * our own database.
+   *
+   * The whole claim of this project is that access is a fact on Sui and not a
+   * promise from hippo. A page that showed our `delegate_keys` table would be
+   * showing hippo's word for it. This reads the object, so the delegate list a
+   * user is about to revoke is the one that actually governs access, and a
+   * disagreement between the two is visible rather than hidden.
+   */
+  .get("/api/me/account", async (c) => {
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ account: null });
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const owned = person.mode === "owned";
+    // In guest mode the memory sits in hippo's own account, which is a real
+    // object with real delegates. Saying so is more honest than showing nothing
+    // until someone connects a wallet.
+    const accountId = owned ? person.accountId : env.MEMWAL_ACCOUNT_ID;
+    if (!accountId) return c.json({ account: null });
+
+    const account = await readAccount(sui, accountId).catch(() => null);
+    if (!account) {
+      return c.json({
+        account: { accountId, explorerUrl: explorer.object(accountId), unreadable: true },
+      });
+    }
+
+    // Which entry is the key hippo holds for this person. Only meaningful in
+    // owned mode; in guest mode every key on the account belongs to hippo.
+    const [ours] = owned
+      ? await db
+          .select({ publicKeyHex: delegateKeys.publicKeyHex })
+          .from(delegateKeys)
+          .where(and(eq(delegateKeys.personId, person.id), eq(delegateKeys.status, "active")))
+          .limit(1)
+      : [];
+    const mine = ours?.publicKeyHex?.toLowerCase().replace(/^0x/, "");
+
+    return c.json({
+      account: {
+        accountId,
+        explorerUrl: explorer.object(accountId),
+        owner: account.owner,
+        ownerUrl: account.owner ? explorer.address(account.owner) : null,
+        active: account.active,
+        yours: owned,
+        delegates: account.delegates.map((d) => ({
+          label: d.label,
+          publicKeyHex: d.publicKeyHex,
+          suiAddress: d.suiAddress,
+          isHippo: mine !== undefined && d.publicKeyHex === mine,
+        })),
+      },
+    });
+  })
+
+  /**
+   * Start connect or disconnect from the page rather than the chat.
+   *
+   * Both mint rows and `connect` mints a keypair, so they cost the same as the
+   * slash commands and go through the same rate limit.
+   */
+  .post("/api/me/:kind{connect|disconnect}", async (c) => {
+    const kind = c.req.param("kind") as "connect" | "disconnect";
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
+
+    if (kind === "disconnect" && person.mode !== "owned") {
+      return c.json({ error: "hippo does not hold a key for you to revoke." }, 409);
+    }
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, CHANNEL);
+
+    const started =
+      kind === "connect"
+        ? await startConnect(person, CHANNEL, person.displayName ?? CHANNEL)
+        : await startDisconnect(person);
+    return c.json({ url: started.url });
   })
 
   /** Everything the /me page shows. */

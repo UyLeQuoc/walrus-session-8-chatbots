@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
+import { ChainPanel } from "@/components/chain-panel";
 import { Button } from "@/components/ui/button";
 import { WalletSignIn } from "@/components/wallet-signin";
 import { API_URL, forgetSession, identityHeaders } from "@/lib/api";
@@ -41,6 +42,7 @@ const CLAUDE_CODE_STEPS = [
 export function MePage() {
   const [me, setMe] = useState<Me | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [error, setError] = useState("");
 
   const load = useCallback(() => {
     void fetch(`${API_URL}/api/me`, { credentials: "include", headers: identityHeaders() })
@@ -121,25 +123,14 @@ export function MePage() {
         <Row label="Memory" value={me.memoryEnabled ? "on" : "paused"} />
         <Row label="Stored on Walrus" value={`${stored} of ${memories.length}`} />
         <Row label="Namespace" value={me.namespace ?? "—"} mono />
-        {me.accountId && (
-          <Row
-            label="Account"
-            value={
-              <a
-                className="font-mono underline"
-                href={`https://suiscan.xyz/mainnet/object/${me.accountId}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {me.accountId.slice(0, 14)}…
-              </a>
-            }
-          />
-        )}
         {me.walletAddress && (
           <Row label="Wallet" value={`${me.walletAddress.slice(0, 14)}…`} mono />
         )}
       </dl>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <ChainPanel owned={owned} onError={setError} />
 
       <section className="space-y-3">
         <div>

@@ -182,6 +182,94 @@ describe("me page", () => {
   });
 });
 
+describe("me page, on chain", () => {
+  const account = `0x${"cd".repeat(32)}`;
+  const hippoKey = "f0".repeat(32);
+
+  const routes = (mode: "guest" | "owned") => ({
+    "/api/me": { mode, signedIn: false, memoryEnabled: true, namespace: "hippo" },
+    "/api/me/memories": { memories: [] },
+    "/api/me/account": {
+      account: {
+        accountId: account,
+        explorerUrl: `https://suiscan.xyz/mainnet/object/${account}`,
+        owner: `0x${"11".repeat(32)}`,
+        ownerUrl: `https://suiscan.xyz/mainnet/account/0x${"11".repeat(32)}`,
+        active: true,
+        yours: mode === "owned",
+        delegates: [
+          { label: "hippo (web:uy)", publicKeyHex: hippoKey, suiAddress: "0x1", isHippo: true },
+          { label: "MCP Client", publicKeyHex: "ab".repeat(32), suiAddress: "0x2", isHippo: false },
+        ],
+      },
+    },
+  });
+
+  it("shows the delegate list the contract enforces, and marks hippo's key", async () => {
+    vi.stubGlobal("fetch", stubFetch(routes("owned")));
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/Keys that can read/i));
+    const seen = container.textContent ?? "";
+    expect(seen).toMatch(/hippo \(web:uy\)/);
+    expect(seen).toMatch(/MCP Client/);
+    // The object must be reachable, or the claim is unverifiable.
+    const link = screen.getByRole("link", { name: new RegExp(account.slice(0, 12), "i") });
+    expect(link.getAttribute("href")).toContain(account);
+  });
+
+  it("offers revoke when the account is yours", async () => {
+    vi.stubGlobal("fetch", stubFetch(routes("owned")));
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /revoke/i })).toBeDefined());
+  });
+
+  it("offers ownership instead when the memory is still hippo's", async () => {
+    vi.stubGlobal("fetch", stubFetch(routes("guest")));
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /own this memory/i })).toBeDefined(),
+    );
+    expect(container.textContent ?? "").toMatch(/hippo's own account/i);
+  });
+
+  it("keeps the explorer link when the object cannot be read", async () => {
+    // A node hiccup must not make the page claim there is no account.
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "owned", signedIn: false, memoryEnabled: true, namespace: "hippo" },
+        "/api/me/memories": { memories: [] },
+        "/api/me/account": {
+          account: {
+            accountId: account,
+            explorerUrl: `https://suiscan.xyz/mainnet/object/${account}`,
+            unreadable: true,
+          },
+        },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/could not be read/i));
+    expect(screen.getByRole("link", { name: new RegExp(account.slice(0, 12), "i") })).toBeDefined();
+  });
+});
+
 describe("connect page", () => {
   it("says who pays for gas before asking for a wallet", async () => {
     const { ConnectPage } = await import("./connect.tsx");
