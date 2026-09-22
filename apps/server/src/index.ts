@@ -10,6 +10,7 @@ import { env } from "./env.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chat.ts";
 import { connectRoutes } from "./routes/connect.ts";
+import { healthRoutes } from "./routes/health.ts";
 
 const app = new Hono();
 app.use(logger());
@@ -17,9 +18,7 @@ app.use(
   "/api/*",
   cors({ origin: env.CORS_ORIGIN.split(",").map((o: string) => o.trim()), credentials: true }),
 );
-app.get("/api/health", (c) =>
-  c.json({ ok: true, model: env.LLM_MODEL, relayer: env.MEMWAL_SERVER_URL }),
-);
+app.route("/", healthRoutes);
 app.route("/", chatRoutes);
 app.route("/", connectRoutes);
 app.route("/", authRoutes);

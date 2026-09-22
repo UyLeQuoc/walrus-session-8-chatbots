@@ -21,7 +21,8 @@
     "demo": "pnpm --filter @hippo/core demo",
     "evidence": "pnpm --filter @hippo/server evidence",
     "restore": "pnpm --filter @hippo/server restore",
-    "diagnose": "pnpm --filter @hippo/memory diagnose"
+    "diagnose": "pnpm --filter @hippo/memory diagnose",
+    "prune:people": "pnpm --filter @hippo/server prune:people"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
