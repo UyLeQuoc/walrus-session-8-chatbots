@@ -70,3 +70,19 @@ This spike was blocked for a working session by `POST /sponsor` answering 502
 were passing a superseded deployment's registry object to the current package.
 See `docs/issues/11-two-mainnet-deployments-and-a-masked-502.md`, which also
 explains why `docs/issues/08` has been retracted.
+
+## Production re-verified after the configuration change
+
+`MEMWAL_ACCOUNT_ID` and `MEMWAL_REGISTRY_ID` changed in Railway, and both
+services were redeployed. Checked in a real browser against
+https://hippo-web-ten-nu.vercel.app afterwards:
+
+1. Said "I deploy with Railway and I always want answers in Vietnamese." The bot
+   wrote two memories, one `profile` and one `style`, and replied in Vietnamese.
+2. Reloaded the page, so nothing was left in the conversation.
+3. Asked "What do you know about how I deploy?" It recalled four memories and
+   answered **"Tôi biết bạn triển khai bằng Railway."**
+
+Both the fact and the style survived the reload, so cross-session recall works
+against the corrected account. `GET /api/config` serves registry
+`0x8bf82c9e…`, and `GET /api/health/deep` reports database and relayer healthy.
