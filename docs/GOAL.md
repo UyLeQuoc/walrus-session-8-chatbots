@@ -146,7 +146,7 @@ Verification: a clean clone on another machine (or a fresh directory) follows RE
 
 ### M6 — Real use and evidence — BLOCKED on a Telegram token and real people
 
-Nothing here can start without a channel real users will actually open. Everything it depends on is ready: `pnpm evidence` counts only memories that landed and prints whether the three-people-ten-memories requirement is met, `docs/evidence/` exists, and ten bug reports are drafted and ready to file.
+Nothing here can start without a channel real users will actually open. `docs/RUNBOOK.md` has the invite text, consent rules and daily checklist ready to run. Everything else it depends on is ready: `pnpm evidence` counts only memories that landed and prints whether the three-people-ten-memories requirement is met, `docs/evidence/` exists, and ten bug reports are drafted and ready to file.
 
 Original task list:
 

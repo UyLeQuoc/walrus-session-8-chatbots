@@ -30,6 +30,14 @@ const ASK: Array<{ q: string; expect: RegExp; why: string }> = [
   { q: "What do you know about me?", expect: /sui|next|typescript/i, why: "recalls a profile" },
 ];
 
+/**
+ * The style check is the sharpest evidence that memory changes behaviour rather
+ * than just being quoted back. Nothing in session two asks for Vietnamese; a
+ * `style` memory written in session one is the only reason it would appear.
+ * Vietnamese-only diacritics, so an English answer cannot pass by accident.
+ */
+const VIETNAMESE = /[ăâđêôơưĂÂĐÊÔƠƯàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/;
+
 const INDEX_WAIT_MS = Number(process.env.DEMO_INDEX_WAIT_MS ?? 90_000);
 
 /**
@@ -145,6 +153,13 @@ async function main() {
     console.log(`        recalled ${turn.ctx.injected.length} memories`);
   }
 
+  const styleAnswer = results.find((r) => r.q === "What do you know about me?")?.answer ?? "";
+  const styleOk = VIETNAMESE.test(styleAnswer);
+  console.log(`\nSTYLE — did a [style] memory change how it writes?`);
+  console.log(
+    `  ${styleOk ? "PASS" : "FAIL"}  the answer came back ${styleOk ? "in Vietnamese" : "in English"}, unprompted in this session`,
+  );
+
   const crossOk = await crossChannelCheck(model, port.scope.namespace, {
     key: env.MEMWAL_PRIVATE_KEY,
     accountId: env.MEMWAL_ACCOUNT_ID,
@@ -153,9 +168,10 @@ async function main() {
 
   const passed = results.filter((r) => r.ok).length;
   console.log(`\n${passed}/${results.length} recalled correctly across sessions.`);
+  console.log(`style adaptation:     ${styleOk ? "PASS" : "FAIL"}`);
   console.log(`cross-channel recall: ${crossOk ? "PASS" : "FAIL"}`);
   console.log(`namespace: ${port.scope.namespace}`);
-  if (passed < results.length || !crossOk) process.exitCode = 1;
+  if (passed < results.length || !crossOk || !styleOk) process.exitCode = 1;
 }
 
 await main();

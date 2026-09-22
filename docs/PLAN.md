@@ -33,6 +33,8 @@ Done when:
 
 ## Real users
 
+Execution detail lives in `docs/RUNBOOK.md`: the invite text, the consent rules, the daily ten minutes, and what has to exist by the end. Written in advance so the baseline day is not improvised.
+
 Target 5, minimum 3, developers preferred so the Claude Code portability demo lands:
 
 - 2–3 developer friends on Telegram (daily use).
