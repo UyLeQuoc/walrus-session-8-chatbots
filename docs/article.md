@@ -65,6 +65,11 @@ cutoff. That default would have thrown away half of my true positives. If you ar
 asking questions rather than matching statements, measure your own distances
 before trusting a threshold.
 
+Every reply in the web chat carries the memories it was built from, shown under
+the answer with a link to each encrypted blob on Walrus. That line exists because
+memory working and the model guessing read exactly the same in plain text. If a
+bot claims to remember you, you should be able to check.
+
 ### Before and after
 
 `pnpm demo` in the repo is the honest version of a demo. It teaches hippo five

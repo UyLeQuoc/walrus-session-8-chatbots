@@ -180,7 +180,7 @@ Defined once in `apps/server/src/commands.ts`; every adapter routes through `han
 | `/memory search <q>` | Explicit recall with distances shown. |
 | `/memory forget` | `POST /api/forget` on the namespace (index only, blobs persist). Explain that in the reply. |
 | `/memory off` / `on` | Per-user toggle used for the baseline phase. Logged for the article. |
-| `/proof` | Blob IDs used in the last answer, with Walrus explorer links; if the manual path works, the decrypted raw blob. |
+| `/proof` | Blob IDs used in the last answer, with Walrus explorer links. On the web this is also inline: every reply carries its recalled memories as stream metadata and the page shows them under the answer. |
 | CLI | `pnpm hippo chat` runs the same core in a terminal. Counts as a channel under the rules and is the fastest way to test and record evals. |
 | `/me` (web) | Memory list by type and date with storage expiry and blob links, wallet sign-in so a Telegram user can see the same memory here, "Use in Claude Code" steps, and a plain statement that a memory can be made unrecallable but not deleted. |
 

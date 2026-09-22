@@ -5,8 +5,11 @@ export function Layout() {
     <div className="min-h-dvh flex flex-col">
       <header className="border-b">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <Link to="/" className="font-semibold tracking-tight">
-            hippo
+          <Link to="/" className="flex items-baseline gap-2">
+            <span className="font-semibold tracking-tight">hippo</span>
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              a chatbot that remembers you, and the memory is yours
+            </span>
           </Link>
           <nav className="flex gap-4 text-sm text-muted-foreground">
             <Link to="/" className="hover:text-foreground">

@@ -1,6 +1,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useMemo, useState } from "react";
+import { Recalled, type RecalledMemory } from "@/components/recalled";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { API_URL } from "@/lib/api";
@@ -56,6 +57,11 @@ export function ChatPage() {
                   );
                 return null;
               })}
+              {m.role === "assistant" && (
+                <Recalled
+                  memories={(m.metadata as { recalled?: RecalledMemory[] })?.recalled ?? []}
+                />
+              )}
             </div>
           </div>
         ))}

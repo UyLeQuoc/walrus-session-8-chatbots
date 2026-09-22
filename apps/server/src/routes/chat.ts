@@ -97,6 +97,24 @@ export const chatRoutes = new Hono()
     const turnCtx = await gatherContext(input);
     const result = runTurn(input, turnCtx);
     return result.toUIMessageStreamResponse({
+      /**
+       * Tell the page what this answer was built from. Judging criterion one is
+       * whether memory is doing real work, and a user cannot see that from the
+       * text alone: the bot just sounds like it knows them. Sending the recalled
+       * memories with the reply makes it visible in the moment rather than only
+       * through `/proof` afterwards.
+       */
+      messageMetadata: ({ part }) =>
+        part.type === "start"
+          ? {
+              recalled: turnCtx.injected.map((m) => ({
+                type: m.parsed?.type ?? "memory",
+                text: m.parsed?.text ?? m.text,
+                relevance: Number((1 - m.distance).toFixed(2)),
+                blobId: m.blob_id,
+              })),
+            }
+          : undefined,
       onFinish: async ({ messages: out }) => {
         const writes = out.flatMap((m) => m.parts).filter((p) => p.type === "tool-remember").length;
         await logTurn(person, channel, turnCtx, writes, model.id).catch((e) =>
