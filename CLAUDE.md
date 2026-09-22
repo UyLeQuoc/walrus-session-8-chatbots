@@ -10,6 +10,22 @@ Multi-channel chatbot (web, Telegram, Discord, Slack) where each user owns their
 - `docs/ARCHITECTURE.md` — components, identity model (guest vs owned), onboarding and revoke flows, memory layer, stack, spikes.
 - `docs/PLAN.md` — timeline, real-user plan, bug bounty list, article outline.
 - `docs/MEMWAL-NOTES.md` — SDK, relayer API, on-chain model, sponsorship, MCP notes.
+- `docs/SPIKES.md` — everything measured on mainnet and what it changed, including one hypothesis that had to be retracted.
+- `docs/BLOCKERS.md` — what only the user can provide. Read it before assuming something is blocked.
+- `docs/DECISIONS.md` — the running decision log.
+- `docs/RUNBOOK.md` — how to run the real-use week: invite text, consent rules, daily checklist.
+- `docs/issues/` — ten bug reports drafted against Walrus Memory, filed with `scripts/file-issues.sh`.
+
+## Commands worth knowing
+
+| | |
+|---|---|
+| `pnpm diagnose` | What is configured, what works, and where the chain and the relayer disagree. Run this first when anything looks wrong. |
+| `pnpm demo` | The memory eval: teaches five facts, drops the conversation, then asserts cross-session recall, style adaptation and cross-channel recall. |
+| `pnpm evidence` | The numbers the submission form asks for, counting only memories that landed on Walrus. |
+| `pnpm smoke` | Health, identity and (with `--write`) one round trip on mainnet. |
+| `pnpm restore` | Compares the relayer's index against what we wrote, and warns when restore sees nothing. |
+| `pnpm hippo` | The CLI channel, talking to a running server. |
 
 ## Reference clone: `memwal/`
 

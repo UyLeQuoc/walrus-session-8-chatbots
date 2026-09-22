@@ -8,7 +8,8 @@ the before/after that cannot be recreated later.
 
 - [ ] `pnpm evidence` prints `NOT YET MET`, so the starting point is on record.
 - [ ] `pnpm demo` passes, so the bot is known good on the day.
-- [ ] Deployed, not local. A friend will not keep a laptop tunnel open for a week.
+- [ ] `pnpm diagnose` is clean. It catches a wrong account id, a stale package id, and a delegate the chain does not list.
+- [ ] Deployed, not local. Telegram polls from wherever the process runs, so a laptop works for a day and not for a week.
 - [ ] `mkdir -p docs/evidence/baseline`.
 - [ ] Decide who: 3 minimum, 5 target, developers preferred so the Claude Code
       demo has an audience who cares.

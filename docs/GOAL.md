@@ -36,7 +36,7 @@ All of these are true and verifiable by a stranger:
 |---|---|---|
 | Operator MemWalAccount ID + delegate private key (mainnet, from memory.walrus.xyz, Sessions wallet) | `.env` `MEMWAL_ACCOUNT_ID`, `MEMWAL_PRIVATE_KEY` | M1 |
 | OpenRouter API key with credit | `.env` `OPENROUTER_API_KEY` | M1 |
-| Telegram bot token (BotFather) | `.env` `TELEGRAM_BOT_TOKEN` | M2 |
+| ~~Telegram bot token~~ **provided 2026-09-22**, `@walrussession8_bot` | `.env` `TELEGRAM_BOT_TOKEN` | M2 |
 | Discord app token + client ID, bot invited to a test server | `.env` | M4 |
 | Slack app tokens (socket mode) | `.env` | M4 |
 | Neon `DATABASE_URL`, Railway project, Vercel project | deploy env | M5 |
@@ -77,7 +77,7 @@ Exit: `docs/SPIKES.md` has 11 entries; every "decision" is reflected in `docs/AR
 
 ### M2 — Guest mode complete — DONE
 
-`pnpm demo` passes 4/4 plus a cross-channel check, four runs. Commands, throttle, style adaptation, `pnpm evidence` and `pnpm restore` all exist and are verified. Telegram polish is written but has never run.
+`pnpm demo` asserts three things and passes: 4/4 cross-session recall, style adaptation, and cross-channel recall. Commands, throttle, `pnpm evidence`, `pnpm restore` and `pnpm diagnose` all exist and are verified. Telegram is live and polling as `@walrussession8_bot` with seven commands registered; it has simply never received a message, which needs a Telegram account.
 
 Original task list:
 
