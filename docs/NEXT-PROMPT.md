@@ -46,26 +46,32 @@ You are continuing work on hippo, my entry for Walrus Session 8 "Chatbots That R
 
 Read `CLAUDE.md` and `docs/GOAL.md` first. `docs/GOAL.md` is the master plan: milestones M0 to M7, each with tasks and the command that verifies them. `docs/SPIKES.md` records what we measured on mainnet and what it changed. `docs/BLOCKERS.md` lists what only I can provide. `docs/DECISIONS.md` is the running decision log.
 
-**State (2026-09-22): M0, M1, M2 and M5 are done. M3 is written and security-reviewed but has never run against a real wallet. M4 waits on channel tokens. M6 waits on real users. M7 is drafted end to end and waits on M6's numbers plus my accounts.**
+**State (2026-09-22): M0, M1, M2 and M5 are done. M3 is written, security-reviewed and tested against mainnet reads, but its wallet flow has never run. M4 is partly done. M6 is ready to start. M7 is drafted.**
 
 Working and verified on mainnet:
 - `pnpm demo` teaches five facts, drops the conversation, and asserts three things in a fresh session: 4/4 cross-session recall, that a `style` memory changed the reply language unprompted, and that a second channel recalls the same facts. Five runs, all passing.
+- `pnpm diagnose` reports what is configured, what works, and where the chain and the relayer disagree. It catches a wrong account id, a stale package id, and a delegate the chain does not list. Exits non-zero when something is broken.
 - Cross-channel linking without a wallet: a fact taught on the web chat is recalled from the CLI after `/link <code>`. Wallet sign-in performs the same merge through a stronger proof.
-- Guest mode, slash commands, per-person throttle, `/me` with real blob links, evidence reporting.
+- Telegram is live as `@walrussession8_bot`, polling with seven commands registered. It has never received a message; that needs a Telegram account.
+- Guest mode, slash commands, per-person throttle covering commands, `/me` with blob links and storage expiry, `/proof`, evidence and restore reporting.
 - A clean clone runs from the README alone: install, db:push, typecheck, test, build, smoke. Transcript in `docs/evidence/clean-clone-2026-09-21.md`.
+- 15 tests, five of them reading the real account on mainnet to cover the verification path that gates owned mode.
 - Owned mode code exists end to end (connect page, sponsored transactions, on-chain verification, revoke) but has never been run against a real wallet.
-- M7 is drafted and needs editing rather than writing: `docs/article.md`, `docs/promo.md`, `docs/video.md`, `docs/submission.md` (every form field, with `[M6]` and `[HUMAN]` marking what is still missing).
-- `/proof` links the Walrus blobs behind the last answer; `pnpm evidence` separates slash commands from conversation turns so the before/after is honest; `pnpm restore` exists and warns that the relayer's restore path does not actually work on this account. Vietnamese and cross-language recall verified (`docs/SPIKES.md` §12), which removed a bug-bounty candidate rather than adding one.
+- M7 is drafted and needs editing rather than writing: `docs/article.md`, `docs/promo.md`, `docs/video.md`, `docs/submission.md`, with `[M6]` and `[HUMAN]` marking what is missing. `docs/RUNBOOK.md` has the invite text and consent rules for the real-use week.
 
-A security review of the repo has been run and its three real findings are fixed, including an unauthenticated takeover in the connect callback. Results in `docs/evidence/security-review-2026-09-21.md`.
+A security review of the repo found three real issues, including an unauthenticated takeover in the connect callback. All are fixed, and the verification path now has mainnet tests. Results in `docs/evidence/security-review-2026-09-21.md`.
 
-Ten findings against Walrus Memory are written up with repros in `docs/issues/`; all ten are ready to file. The two that changed the design:
-- `recall()` can return an empty list while reporting it found and discarded matches, so hippo retries before believing an empty result. **Do not try to prevent this on the client.** Four runs gave 4, 9, 0 and 15 drops with no pattern; I wrongly concluded concurrency was the cause and had to retract it. `docs/SPIKES.md` §H keeps the wrong hypothesis on purpose so it is not repeated. Only retrying helps.
-- The relayer honours a delegate key that is absent from the account's on-chain `delegate_keys`, so "revoke on chain and the bot forgets" is unproven. hippo therefore deletes its own copy of the key on revoke, which makes the revoke true regardless.
+Ten findings against Walrus Memory are written up with repros in `docs/issues/`, filed with `scripts/file-issues.sh` (dry run first). The four that shaped the design:
+- `recall()` can return an empty list while reporting it found and discarded matches, so hippo retries before believing an empty result. **Do not try to prevent this on the client.** Four runs gave 4, 9, 0 and 15 drops with no pattern; I wrongly concluded concurrency was the cause and had to retract it. `docs/SPIKES.md` §H keeps the wrong hypothesis on purpose. Only retrying helps.
+- The relayer honours a delegate key that is absent from the account's on-chain `delegate_keys`, so "revoke on chain and the bot forgets" is unproven. `/disconnect` therefore destroys hippo's own copy of the key.
+- There is no way to permanently delete a memory you own. `forget` makes it unrecallable and the blob lives out its epochs.
+- `restore()` reports seeing zero blobs for namespaces that have memories, while the read API lists 125 for the same owner. Treat the search index as the fragile part and Walrus as the durable one.
 
-**Blocked on me.** Read `docs/BLOCKERS.md` first; it is current. The three that matter, in order:
-1. An owner-signed revocation test on the Sessions wallet. This is the highest-risk unknown in the project, not a nice-to-have.
-2. One message to @walrussession8_bot from a real Telegram account, then the invites in docs/RUNBOOK.md. The adapter is live and polling; it has just never received a message, and that cannot be tested without a Telegram account.
+Two things checked and found fine, worth knowing so they are not re-investigated: Vietnamese and cross-language recall (8/8, byte-identical round trip) and storage lifetime (about 210 days, nothing expires before judging).
+
+**Blocked on me.** Read `docs/BLOCKERS.md` first; it is current. In order of risk:
+1. An owner-signed revocation test on the Sessions wallet. The highest-risk unknown in the project, not a nice-to-have.
+2. One message to `@walrussession8_bot`, then the invites in `docs/RUNBOOK.md`.
 3. A second Slush wallet with no MemWalAccount, for the owned-mode and revoke demos.
 
 **How to work.**
