@@ -78,8 +78,12 @@ looks like a stranger on each request.
 ## 4. Check it
 
 ```bash
-curl https://<railway-url>/api/health
+curl https://<railway-url>/api/health          # cheap, what the platform checks
+curl https://<railway-url>/api/health/deep     # database and relayer, named
 ```
+
+`/api/health/deep` returns 200 even when a dependency is down, so the platform
+does not restart a container that is working; `status` carries the real answer.
 
 Then open the Vercel URL, say something, reload, and ask what it knows. If the
 reply forgets you, `CORS_ORIGIN` is wrong: the cookie is not surviving.

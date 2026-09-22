@@ -75,6 +75,19 @@ week can produce:
 - The Claude Code recall screenshot, which needs a Slush-wallet user rather than
   a Google one (see the zkLogin caveat in `docs/ARCHITECTURE.md` §1).
 
+## When something looks broken
+
+One URL answers "is it us or them?":
+
+```
+https://hippo-server-production.up.railway.app/api/health/deep
+```
+
+`status: "ok"` with both checks passing means hippo, the database and the Walrus
+Memory relayer are all reachable, and the problem is elsewhere. `status:
+"degraded"` names which dependency is failing and why, and `startedAt` tells you
+whether a deploy actually took.
+
 ## If a user hits trouble
 
 | Symptom | Cause and answer |
@@ -82,4 +95,5 @@ week can produce:
 | "It forgot something I told it" | Most likely the dropped-recall bug (`docs/issues/01`). Ask them to ask again; the retry usually wins. Log it, this is article material. |
 | "It said it saved but /memory doesn't show it" | The write takes about 25 s and lands in the background. If it never appears, look for a failed job in `memory_index`. |
 | "/connect didn't work" | Check `docs/BLOCKERS.md` first: the flow has never run against a real wallet. Expect to debug it live the first time. |
-| Bot silent | Railway logs. The adapters share one process, so one crash takes every channel down. |
+| Bot silent | Check `/api/health/deep` first, then Railway logs. The adapters share one process, so one crash takes every channel down. |
+| "It answers but forgets everything" | This was a real production bug: a `SameSite=Lax` cookie is not sent cross-site, so every message arrived as a new person. Fixed by proxying the API same-origin. If it returns, check that the page is calling `/api/*` on its own origin rather than the Railway domain. |
