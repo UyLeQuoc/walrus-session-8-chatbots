@@ -52,7 +52,11 @@ All of these are true and verifiable by a stranger:
 
 See `docs/PLAN.md` "Milestone 0". Verified: typecheck, lint, tests, web build, db push, server health, web page.
 
-### M1 — Spikes and mainnet smoke (Sep 23)
+### M1 — Spikes and mainnet smoke — DONE except what needs a wallet
+
+Results are in `docs/SPIKES.md`, thirteen entries. Outcomes that changed the design: sponsored calls work from any origin so no proxy is needed; the live package ID differs from the published docs; writes take about 24 s so they are asynchronous; recall silently drops matches so it retries; the metadata prefix costs nothing in recall quality; Security Delete does not apply to current memories; `restore()` does not see this account at all; Vietnamese and cross-language recall work; memories live about 210 days. Spikes 3, 4 and 9 wait on a wallet or an Enoki key.
+
+Original task list:
 
 Goal: remove every technical unknown before building features. Record each result in `docs/SPIKES.md` as `#n — result — evidence — decision`.
 
@@ -71,7 +75,11 @@ Tasks and verification:
 
 Exit: `docs/SPIKES.md` has 11 entries; every "decision" is reflected in `docs/ARCHITECTURE.md`.
 
-### M2 — Guest mode complete (Sep 23–24)
+### M2 — Guest mode complete — DONE
+
+`pnpm demo` passes 4/4 plus a cross-channel check, four runs. Commands, throttle, style adaptation, `pnpm evidence` and `pnpm restore` all exist and are verified. Telegram polish is written but has never run.
+
+Original task list:
 
 Goal: a stranger can talk to hippo on web, CLI and Telegram and it visibly remembers.
 
@@ -86,7 +94,13 @@ Tasks:
 
 Verification: `pnpm demo` passes; `/memory` on Telegram lists the entries from `pnpm demo`; `pnpm evidence` prints non-zero counts.
 
-### M3 — Owned mode (Sep 25–26)
+### M3 — Owned mode — WRITTEN AND SECURITY-REVIEWED, never run against a wallet
+
+All nine tasks are implemented: connect and disconnect tokens, the wallet page with sponsored `create_account` and `add_delegate_key`, on-chain verification of the grant before switching mode, dual-read instead of migration, `/me` with blob links and storage expiry, `/whoami`, and the Claude Code instructions. Two corrections since: permanent deletion is impossible (`docs/issues/09`) so `/me` does not offer it, and the security review found an unauthenticated takeover in the connect callback which is fixed.
+
+What is missing is proof, not code. Tasks 8 and 9, the recorded revoke demo and the Claude Code recall, need a wallet.
+
+Original task list:
 
 Goal: the wow. A user owns their memory, can revoke it, and sees the same memory in Claude Code.
 
@@ -103,7 +117,11 @@ Tasks:
 
 Verification: a fresh wallet goes guest → owned → revoked → owned again with only the UI; `pnpm evidence` shows 2 agents on that account; Claude Code recalls a hippo memory.
 
-### M4 — More channels and identity linking (Sep 26)
+### M4 — More channels and identity linking — PARTLY DONE
+
+Cross-channel identity linking is done and verified without a wallet, using a six-character code, and it is asserted in `pnpm demo`. Evidence in `docs/evidence/cross-channel-2026-09-21.md`. The CLI is a real channel over HTTP and is documented. Discord and Slack adapters are written and typechecked but need tokens.
+
+Original task list:
 
 1. Discord adapter live in a test server (DM + mention). Slash commands registered via REST for `/whoami`, `/memory`, `/connect`.
 2. Slack adapter live in a test workspace (DM + mention, slash commands).
@@ -112,7 +130,11 @@ Verification: a fresh wallet goes guest → owned → revoked → owned again wi
 
 Verification: `pnpm demo --cross-channel` passes; a screenshot of the same fact on two channels in `docs/evidence/`.
 
-### M5 — Deploy and reproducibility (Sep 27)
+### M5 — Deploy and reproducibility — DONE except the deploy itself
+
+`Dockerfile`, `railway.toml`, `vercel.json` and `ws-resources.json` are in place, the README runs from a clean clone (`docs/evidence/clean-clone-2026-09-21.md`), and the evidence folder and scripts exist. Pushing to Railway and Walrus Sites needs accounts.
+
+Original task list:
 
 1. Railway: `apps/server` with `pnpm start`, all env, health check on `/api/health`, Neon `DATABASE_URL`, `pnpm db:push` in a release step.
 2. Web: Walrus Sites deploy (spike #10) with Vercel as backup; `VITE_API_URL` and `CORS_ORIGIN` set to the real origins; cookies `secure`.
@@ -122,7 +144,11 @@ Verification: `pnpm demo --cross-channel` passes; a screenshot of the same fact 
 
 Verification: a clean clone on another machine (or a fresh directory) follows README and chats; live URLs answer; `curl <api>/api/health` from outside.
 
-### M6 — Real use and evidence (Sep 27 – Oct 4)
+### M6 — Real use and evidence — BLOCKED on a Telegram token and real people
+
+Nothing here can start without a channel real users will actually open. Everything it depends on is ready: `pnpm evidence` counts only memories that landed and prints whether the three-people-ten-memories requirement is met, `docs/evidence/` exists, and ten bug reports are drafted and ready to file.
+
+Original task list:
 
 1. Sep 27–28 baseline: onboard 3–5 users with `/memory off`; save transcripts to `docs/evidence/baseline/` (with consent, names redacted).
 2. Sep 29: memory on. Daily: run `pnpm evidence`, collect "the moment it mattered" screenshots, watch logs for frictions.
@@ -132,7 +158,11 @@ Verification: a clean clone on another machine (or a fresh directory) follows RE
 
 Verification: `docs/evidence/final.md` shows ≥3 users × ≥10 memories, ≥1 owned account, ≥5 issue links.
 
-### M7 — Article, promo, submission (Oct 5–8)
+### M7 — Article, promo, submission — DRAFTED, needs M6's numbers
+
+`docs/article.md`, `docs/promo.md`, `docs/video.md` and `docs/submission.md` are written, with `[M6]` and `[HUMAN]` marking what is still missing. The article's "what broke" section is the strongest part and is already sourced from measurements.
+
+Original task list:
 
 1. Draft the article from the outline in `docs/PLAN.md` using real transcripts and numbers from `docs/evidence/`; 500–800 words; honest "what broke" section with issue links; model and runtime stated (Gemini 2.5 Flash via OpenRouter, Vercel AI SDK, Node 20). Save as `docs/article.md`.
 2. 2-minute video: memory off vs on, connect, revoke, re-grant, Claude Code recall. Script in `docs/video.md`.
@@ -154,6 +184,14 @@ Verification: every checklist item in `docs/PLAN.md` "Submission checklist" is t
 | Beyond the Big Two | `LLM_MODEL=google/gemini-2.5-flash`, friction notes in article |
 | Bug bounty | `docs/issues/` + GitHub links |
 | Promo | `docs/promo.md` + live link |
+
+## Current blockers, in order of risk
+
+1. **An owner-signed revocation test** on the Sessions wallet. The relayer honours a delegate key the chain does not list (`docs/issues/08`), so the central claim, revoke on chain and the bot forgets, is unproven. Remove one delegate key on the dashboard and immediately run `pnpm smoke` with it.
+2. **A Telegram bot token.** Nothing in M6 can start without a channel real people will open.
+3. **A second Slush wallet** with no MemWalAccount, for the owned-mode and revoke demos.
+
+Also needed later: Neon, Railway and Vercel for M5's actual deploy; Medium, Inkray, X and the Airtable form for M7; optionally an Enoki key and some WAL.
 
 ## Files this plan creates over time
 

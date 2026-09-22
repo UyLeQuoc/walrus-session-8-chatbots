@@ -6,13 +6,18 @@ import type { ChannelAdapter } from "./types.ts";
 const CHANNEL = "telegram";
 const MAX_LEN = 3900;
 
-function chunk(text: string): string[] {
-  if (text.length <= MAX_LEN) return [text];
+/**
+ * Telegram rejects a message over 4096 characters, and `/memory` listings run
+ * long. Split on a newline where there is one in the back half of the window so
+ * a list is not cut mid-entry. Exported for tests.
+ */
+export function chunk(text: string, maxLen = MAX_LEN): string[] {
+  if (text.length <= maxLen) return [text];
   const out: string[] = [];
   let rest = text;
-  while (rest.length > MAX_LEN) {
-    const cut = rest.lastIndexOf("\n", MAX_LEN);
-    const at = cut > MAX_LEN * 0.5 ? cut : MAX_LEN;
+  while (rest.length > maxLen) {
+    const cut = rest.lastIndexOf("\n", maxLen);
+    const at = cut > maxLen * 0.5 ? cut : maxLen;
     out.push(rest.slice(0, at));
     rest = rest.slice(at).trimStart();
   }
