@@ -16,7 +16,12 @@ const byPerson = rows(
       mode: people.mode,
       accountId: memoryIndex.accountId,
       channel: sql<string>`min(${memoryIndex.channel})`,
-      memories: sql<number>`count(*)::int`,
+      // Only a `stored` row is a blob that exists on Walrus. A `pending` row is
+      // a write still in flight and a `failed` one never landed, so counting
+      // them would overstate the numbers the submission form asks for.
+      stored: sql<number>`count(*) filter (where ${memoryIndex.status} = 'stored')::int`,
+      pending: sql<number>`count(*) filter (where ${memoryIndex.status} = 'pending')::int`,
+      failed: sql<number>`count(*) filter (where ${memoryIndex.status} = 'failed')::int`,
       first: sql<string>`min(${memoryIndex.createdAt})::text`,
       last: sql<string>`max(${memoryIndex.createdAt})::text`,
     })
@@ -45,7 +50,10 @@ const byChannel = rows(
     .orderBy(desc(sql`count(*)`)),
 );
 
-const qualifying = byPerson.filter((p) => p.memories >= 10);
+const qualifying = byPerson.filter((p) => p.stored >= 10);
+const totalStored = byPerson.reduce((n, p) => n + p.stored, 0);
+const totalFailed = byPerson.reduce((n, p) => n + p.failed, 0);
+const totalPending = byPerson.reduce((n, p) => n + p.pending, 0);
 const client = createClient(guestScope(operator, "evidence"));
 const agentId = await client.getPublicKeyHex();
 
@@ -57,17 +65,26 @@ console.log(`MEMWAL_AGENT_ID (delegate public key): ${agentId}`);
 
 console.log(`\n## Requirement check`);
 console.log(`People with memories:            ${byPerson.length}`);
-console.log(`People with 10 or more memories: ${qualifying.length}  (session rules ask for 3)`);
-console.log(`Total memories written:          ${byPerson.reduce((n, p) => n + p.memories, 0)}`);
+console.log(`People with 10+ stored memories: ${qualifying.length}  (session rules ask for 3)`);
+console.log(`Memories stored on Walrus:       ${totalStored}`);
+console.log(`  still writing:                 ${totalPending}`);
+console.log(`  failed to land:                ${totalFailed}`);
 console.log(`Distinct accounts written to:    ${new Set(byPerson.map((p) => p.accountId)).size}`);
 console.log(
   `Owned-mode people:               ${byPerson.filter((p) => p.mode === "owned").length}`,
 );
 
+const requirementsMet = qualifying.length >= 3 && totalStored >= 10;
+console.log(
+  `\nSession requirement (3 people x 10 memories on mainnet): ${requirementsMet ? "MET" : "NOT YET MET"}`,
+);
+
 console.log(`\n## Per person`);
 for (const p of byPerson) {
+  const trouble =
+    p.failed > 0 || p.pending > 0 ? `  (${p.pending} writing, ${p.failed} failed)` : "";
   console.log(
-    `  ${p.personId.slice(0, 8)}  ${p.mode.padEnd(5)}  ${String(p.memories).padStart(3)} memories  first ${p.first.slice(0, 16)}  last ${p.last.slice(0, 16)}  acct ${p.accountId.slice(0, 10)}…`,
+    `  ${p.personId.slice(0, 8)}  ${p.mode.padEnd(5)}  ${String(p.stored).padStart(3)} stored  first ${p.first.slice(0, 16)}  last ${p.last.slice(0, 16)}  acct ${p.accountId.slice(0, 10)}…${trouble}`,
   );
 }
 
