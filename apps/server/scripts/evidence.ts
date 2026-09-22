@@ -31,14 +31,23 @@ const byPerson = rows(
     .orderBy(desc(sql`count(*)`)),
 );
 
+/**
+ * Command rows exist only so slash commands count against the rate limit; they
+ * are written with mode "command" and never reach the model. Counting them as
+ * conversation turns would inflate the memory-off side of the before/after the
+ * article rests on, so they are separated here.
+ */
+const isConversation = sql`${turnLog.mode} <> 'command'`;
+
 const [turns] = await db
   .select({
-    total: sql<number>`count(*)::int`,
-    withMemory: sql<number>`count(*) filter (where ${turnLog.memoryEnabled})::int`,
-    withoutMemory: sql<number>`count(*) filter (where not ${turnLog.memoryEnabled})::int`,
-    recalls: sql<number>`coalesce(sum(jsonb_array_length(${turnLog.injected})), 0)::int`,
-    turnsWithRecall: sql<number>`count(*) filter (where jsonb_array_length(${turnLog.injected}) > 0)::int`,
-    writes: sql<number>`coalesce(sum(${turnLog.writes}), 0)::int`,
+    total: sql<number>`count(*) filter (where ${isConversation})::int`,
+    commands: sql<number>`count(*) filter (where not ${isConversation})::int`,
+    withMemory: sql<number>`count(*) filter (where ${isConversation} and ${turnLog.memoryEnabled})::int`,
+    withoutMemory: sql<number>`count(*) filter (where ${isConversation} and not ${turnLog.memoryEnabled})::int`,
+    recalls: sql<number>`coalesce(sum(jsonb_array_length(${turnLog.injected})) filter (where ${isConversation}), 0)::int`,
+    turnsWithRecall: sql<number>`count(*) filter (where ${isConversation} and jsonb_array_length(${turnLog.injected}) > 0)::int`,
+    writes: sql<number>`coalesce(sum(${turnLog.writes}) filter (where ${isConversation}), 0)::int`,
   })
   .from(turnLog);
 
@@ -46,6 +55,7 @@ const byChannel = rows(
   await db
     .select({ channel: turnLog.channel, turns: sql<number>`count(*)::int` })
     .from(turnLog)
+    .where(isConversation)
     .groupBy(turnLog.channel)
     .orderBy(desc(sql`count(*)`)),
 );
@@ -90,9 +100,15 @@ for (const p of byPerson) {
 
 console.log(`\n## Turns`);
 console.log(
-  `  total ${turns?.total ?? 0} (memory on ${turns?.withMemory ?? 0}, off ${turns?.withoutMemory ?? 0})`,
+  `  conversation turns ${turns?.total ?? 0} (memory on ${turns?.withMemory ?? 0}, off ${turns?.withoutMemory ?? 0})`,
 );
-console.log(`  turns that recalled something: ${turns?.turnsWithRecall ?? 0}`);
+console.log(`  slash commands     ${turns?.commands ?? 0} (excluded from the counts above)`);
+const recallRate = turns?.withMemory
+  ? Math.round((100 * (turns.turnsWithRecall ?? 0)) / turns.withMemory)
+  : 0;
+console.log(
+  `  turns that recalled something: ${turns?.turnsWithRecall ?? 0} (${recallRate}% of memory-on turns)`,
+);
 console.log(`  memories injected in total:    ${turns?.recalls ?? 0}`);
 console.log(`  memories written by the model: ${turns?.writes ?? 0}`);
 for (const c of byChannel) console.log(`  ${c.channel.padEnd(9)} ${c.turns}`);
