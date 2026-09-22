@@ -15,14 +15,14 @@ only the account owner can provide; **n/a** superseded by a finding.
 |---|---|---|
 | 1 | Write and recall on mainnet | done, `pnpm smoke --write`, blob in `SPIKES.md` §1 |
 | 2 | `/sponsor` from a non-Walrus origin | done, CORS preflight 200, no proxy needed |
-| 3 | Full connect with a fresh wallet | **blocked**, needs a second Slush wallet |
-| 4 | `remove_delegate_key` then 401 | **blocked**, needs the owner wallet |
+| 3 | Full connect with a fresh wallet | **done 2026-09-22** by script, not by browser. A local keystore wallet owned no account, so `scripts/spike-revoke.ts` created one (`0xa5c9d961…`) and registered a delegate key, both sponsored |
+| 4 | `remove_delegate_key` then 401 | **done 2026-09-22**. Refused after about 32s, still accepted at 15s. `docs/evidence/revocation-2026-09-22.md` |
 | 5 | Recall quality A/B | done, `SPIKES.md` §5 |
 | 6 | Streaming through Hono | done, `curl -N` and the web page |
 | 7 | Manual SEAL decrypt | **not attempted**. The earlier reason (`issues/08`) was retracted; worth retrying now that the account id is correct |
 | 8 | Security Delete API | **n/a**, it only covers pre-migration blobs (`issues/09`) |
 | 9 | Enoki zkLogin | **blocked**, needs an Enoki key and a Google OAuth client |
-| 10 | Walrus Sites deploy | **blocked**, needs WAL in the Sessions wallet |
+| 10 | Walrus Sites deploy | done, site object on chain; **blocked** only on pointing a SuiNS name at it so `wal.app` serves it |
 | 11 | Explorer links | done, four patterns in `packages/memory/src/links.ts` |
 
 ## M2 — Guest mode
@@ -48,7 +48,7 @@ only the account owner can provide; **n/a** superseded by a finding.
 | 5 | `/disconnect` | done, and it destroys hippo's copy of the key |
 | 6 | `/me` page | done: memory list, storage expiry, blob and ciphertext links, wallet sign-in, Claude Code steps, survey link when configured. No permanent delete, because none exists (`issues/09`) |
 | 7 | `/whoami` | done |
-| 8 | Recorded revoke demo | **blocked**, needs a wallet |
+| 8 | Recorded revoke demo | measured and written up; the **screen recording** still needs a wallet and a spare address |
 | 9 | Claude Code recall screenshot | **blocked**, needs a wallet |
 
 ## M4 — Channels and linking
@@ -64,8 +64,8 @@ only the account owner can provide; **n/a** superseded by a finding.
 
 | # | Task | Status |
 |---|---|---|
-| 1 | Railway config | done, `Dockerfile` and `railway.toml`; **blocked** on the account |
-| 2 | Web deploy config | done, `vercel.json` and `ws-resources.json`; **blocked** on accounts |
+| 1 | Railway config | done and **live**: https://hippo-server-production.up.railway.app |
+| 2 | Web deploy config | done and **live**: https://hippo-web-ten-nu.vercel.app, plus a Walrus Site awaiting a SuiNS name |
 | 3 | README with troubleshooting | done, including the 401 causes, staging versus mainnet, and namespaces |
 | 4 | Evidence folder and cadence | done, `docs/evidence/` plus the daily step in `RUNBOOK.md` |
 | 5 | Survey link on `/start` and `/me` | done, shown when `SURVEY_URL` is set; **blocked** on creating the WalForm |
