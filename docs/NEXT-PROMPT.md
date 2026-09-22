@@ -5,6 +5,43 @@ Two forms of the same brief. Update the State line in both as milestones land.
 - **Short form** below fits the `/goal` command, which caps at 4000 characters.
 - **Long form** further down is for pasting into a fresh session, where there is no limit.
 
+## This session's goal, for `/goal` — the web UI
+
+```
+Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
+
+Read CLAUDE.md, docs/GOAL.md and docs/AUDIT.md first. AUDIT.md checks every task against the codebase and was refreshed 2026-09-22; read it before concluding unblocked work is exhausted, because auditing has turned up real gaps every time. docs/SPIKES.md is what we measured on mainnet and §I and §J are the newest and most important. docs/BLOCKERS.md is what only I can provide.
+
+State (2026-09-22): live in production. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, Neon database, Telegram @walrussession8_bot polling. M0, M1, M2 and M5 done. M3 is proven on mainnet: an account was created, a delegate key added, used and revoked, all sponsored, and the relayer refused the removed key after about 32 seconds. M4 partly done. M6 waits on real people. M7 drafted. 29 tests, CI green, clean tree.
+
+This session is the web UI, the weakest part of the submission. It has three pages and exactly two shadcn components, button and input. Do all six tasks, in this order, one commit each.
+
+1. A landing section above the chat. A judge opening the URL today sees a chat box and three lines of instructions. Explain the idea, the guest-to-owned path and the revoke, with the operator account linked on chain. Keep the chat input above the fold on a laptop.
+
+2. Make /me show the chain. The account object with an explorer link, every delegate key with its label, and a revoke button that starts /disconnect. Right now the central claim of the project is a few text links with no picture.
+
+3. A memory-type filter and a search box on /me. `/memory search` already exists as a command; the page should do it too.
+
+4. Client-side SEAL decrypt. Re-run packages/memory/scripts/spike-decrypt.ts now that MEMWAL_ACCOUNT_ID names the deployment GET /config reports. The old reason it failed was retracted along with docs/issues/08, so this is worth retrying. If it decrypts, wire /proof so the browser decrypts a memory with the user own key and shows the plaintext beside the ciphertext link. That is the strongest evidence possible for "your memory is yours". If it still fails, write the finding into docs/issues/ with a repro and move on.
+
+5. Dark mode is dead code. index.css defines .dark tokens and nothing ever applies the class. Either add a toggle that persists, or delete the tokens. Do not leave it half-built.
+
+6. Errors render as red text. Route them through a toast instead.
+
+Add shadcn components only as you actually need them: card, badge, skeleton, sonner.
+
+Rules.
+- Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
+- Do not touch the Walrus Site or site-builder.
+- Every new page state gets a jsdom render assertion in apps/web/src/pages/pages.test.tsx. Typecheck and build both pass happily on a component that throws on first paint, and that has bitten us.
+- Keep pnpm lint, typecheck and test green on every commit. Redeploy the web with `vercel deploy --prod --yes` from apps/web, the server with `railway up --service hippo-server --ci`.
+- Never store memory text in Postgres, never log a private key, never route to an OpenAI or Anthropic model, never edit memwal/, never commit .env.
+- Verify in a real browser against production before calling a UI task done.
+- If time runs short cut in this order: toast, dark mode, search UI. Never cut the landing section or the chain view on /me.
+
+Start by reading the docs above, then task 1.
+```
+
 ## Short form, for `/goal`
 
 ```
