@@ -25,3 +25,4 @@ Date:     2026-09-21
 | 7 | `GET /api/whoami` returns 404; `GET /v1/owners/:owner/agents` is flaky and miscounts | Documented endpoints unusable |
 | 8 | The relayer authorizes a delegate key that is not in the on-chain `delegate_keys` | Ownership model does not hold as documented |
 | 9 | No way to permanently delete a memory, even as the owner | Ownership model promises control it does not provide |
+| 10 | `restore()` reports `total: 0` and `truncated: false` for a namespace that has memories | The documented recovery path does not work, silently |

@@ -184,12 +184,62 @@ Defined once in `apps/server/src/commands.ts`; every adapter routes through `han
 
 ## 7. Known limitations and how we present them
 
-- **No "read memory text by ID"** in the relayer or SDK. `GET /v1/owners/:owner/memories` returns metadata only. Plan: spike the `/manual` path (download the blob from a Walrus aggregator, SEAL-decrypt with the delegate key) for at most 2 hours. If it works, `/proof` shows the raw blob decrypted, which is the "verifiable memory" demo nobody has done. If not, fall back to the local index (§5) plus recall by type, and guest → owned migration becomes dual-read (the bot recalls both the guest namespace and the owned account for 30 days) instead of copying. Never cache text in Postgres. File the missing endpoint as a feature request.
-- **Forget is index-only.** Blobs live until epoch expiry. Permanent per-memory delete is the Security Delete API, owner-signed and sponsored, which owned-mode users *can* do from `/me` if the managed relayer has it enabled (dashboard env defaults `VITE_SECURITY_DELETE_ENABLED=false`, so spike it). Guest users cannot. Another concrete ownership difference.
-- **Blob expiry.** Read API exposes `expires_at`. Show it on `/me`. If the managed relayer buys few epochs, that is a bug-bounty question.
-- **Relayer sees plaintext** during embed and encrypt. Ownership is about access control and portability, not hiding data from Mysten's relayer.
-- **Bot custody of delegate keys.** Encrypted with `KEY_ENCRYPTION_KEY` (32-byte, env), AES-256-GCM. A leaked DB alone does not leak keys. Users can revoke on-chain at any time.
-- **Rate limits and abuse.** Write path 30/min per delegate key. Guest mode shares one key, owned mode isolates users. The web chat is public: throttle per person (10 turns/min, 200/day), cap OpenRouter spend, and require a session cookie before `/api/chat`.
+Everything here was measured, not assumed. Where a limitation changed the design
+the change is named; where it is simply a limit, hippo says so to the user rather
+than papering over it.
+
+- **No way to read a memory's text by blob ID.** `GET /v1/owners/:owner/memories`
+  returns metadata only, and client-side SEAL decryption is refused because our
+  delegate key is not on chain (§below, and `docs/issues/08`). So `/memory` lists
+  from the local index and reads text back through recall, and `/proof` links the
+  public ciphertext rather than showing plaintext. Guest to owned migration is
+  dual-read rather than a copy, for the same reason.
+- **Memory text is never in Postgres.** `memory_index` holds blob IDs, types,
+  hashes, channels and dates. Text lives only on Walrus.
+- **`forget` is index-only, and there is no way to delete a memory at all.**
+  `POST /api/forget` removes vector index rows so nothing can be recalled; the
+  encrypted blob stays on Walrus until its epochs run out. The Security Delete
+  API is migration cleanup for pre-July-2026 blobs and explicitly never accepts a
+  caller-supplied one, so it cannot help. `/memory forget` tells the user exactly
+  this. See `docs/issues/09`.
+- **`restore()` does not work on this account.** It reports `total: 0` and
+  `truncated: false` for namespaces whose memories recall returns, apparently
+  because the owner-wide candidate fetch is capped below the 197 Walrus blobs
+  this account owns. So the honest answer to "what if the relayer loses its
+  index" is: the blobs are safe on Walrus and there is no working tool to
+  re-index them. `pnpm restore` ships anyway, prints what we wrote beside what
+  the relayer claims, and warns on a mismatch. See `docs/issues/10`.
+- **Recall can silently return nothing.** The relayer sometimes answers with an
+  empty result and a non-zero `dropped_count`: it found matches and discarded
+  them. `recallRelevant` retries four times before believing it. Four eval runs
+  gave 4, 9, 0 and 15 drop events with no pattern, and nothing client-side
+  prevents it. See `docs/issues/01` and `docs/SPIKES.md` §H.
+- **Writes take about 24 seconds and can be dropped upstream.** Jobs die with
+  `seal encrypt failed … Too Many Requests` when the relayer's own Sui RPC is
+  throttled, so a failed job is resubmitted up to three times, and the local
+  index row is written at accept time so a deploy inside the window cannot lose
+  a memory the user was already told about. See `docs/issues/02`.
+- **The relayer honours a delegate key the chain does not list.** Ours is absent
+  from the account's on-chain `delegate_keys` yet works for every route,
+  including decryption, while SEAL's `seal_approve` correctly refuses it. So
+  "revoke on chain and the bot forgets" is unproven. `/disconnect` therefore
+  destroys hippo's own copy of the key, which makes the revoke true regardless.
+  See `docs/issues/08`.
+- **Relayer sees plaintext** during embedding and encryption. Ownership here is
+  about access control and portability, not about hiding data from the relayer
+  operator.
+- **hippo holds users' delegate keys**, AES-256-GCM encrypted under
+  `KEY_ENCRYPTION_KEY`. A leaked database alone does not leak keys, and a user
+  can revoke on chain at any time. The article says this plainly rather than
+  implying hippo never sees a key.
+- **Rate limits.** The write path allows 60 weighted requests per minute per
+  delegate key, not the documented 30, and the weights are unpublished. Guest
+  mode shares one key across every user, so `packages/memory/src/limiter.ts`
+  paces all traffic and honours `retry_after_seconds`. The public web chat is
+  additionally capped per person at 10 turns a minute and 200 a day, commands
+  included.
+- **Vietnamese works.** Checked rather than assumed: byte-identical round trip
+  and 8/8 recall including across languages (`docs/SPIKES.md` §12).
 
 ## 8. Stack and versions
 
@@ -197,7 +247,7 @@ Defined once in `apps/server/src/commands.ts`; every adapter routes through `han
 |---|---|---|
 | Runtime | Node 20, TypeScript strict, pnpm workspaces, turborepo | Matches MemWal monorepo. |
 | API + bots | Hono on `@hono/node-server`, one process | Streaming responses, tiny, and the bot gateways need a long-lived process anyway. |
-| LLM | OpenRouter via `@openrouter/ai-sdk-provider` + Vercel AI SDK (`ai` v6). Primary `google/gemini-2.5-flash`, fallback `qwen/qwen3-235b-a22b` | One key, model switch by env. Primary model is not OpenAI/Anthropic (Beyond the Big Two). State model + runtime in the article. |
+| LLM | OpenRouter via `@openrouter/ai-sdk-provider` + Vercel AI SDK (`ai` v7). Primary `google/gemini-2.5-flash`, fallback `qwen/qwen3-235b-a22b` | One key, model switch by env. Primary model is not OpenAI/Anthropic (Beyond the Big Two). State model + runtime in the article. |
 | Memory | `@mysten-incubation/memwal` (`MemWal`, `/account`, `formatUntrustedMemories` from `/ai`) | Official SDK. |
 | Web | Vite 6 + React 19 + Tailwind v4 + shadcn/ui, `react-router`, `@tanstack/react-query`, `@ai-sdk/react` (`useChat`), `@mysten/dapp-kit` 1.x, `@mysten/sui` 2.x | SPA, same wallet stack as the dashboard. |
 | Telegram | `grammy` (long polling) | No public webhook needed. |
