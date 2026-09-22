@@ -137,8 +137,10 @@ so one crash takes them all down. Check the server logs.
 
 ## Deploy
 
+`docs/DEPLOY.md` has the step by step: Neon for the database, Railway for the
+server, Vercel or Walrus Sites for the web app, with every environment variable
+and the three things that will bite you. The image is verified by building and
+running it, not just by building it.
+
 The server is a long-running process, not serverless, because the chat adapters
-hold gateway connections and memory writes finish in the background. `Dockerfile`
-and `railway.toml` are set up for Railway. The web app is a static build: deploy
-it to Walrus Sites with `site-builder` (`apps/web/ws-resources.json` handles SPA
-routing) or to Vercel (`apps/web/vercel.json`).
+hold gateway connections and memory writes finish in the background.

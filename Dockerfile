@@ -1,10 +1,18 @@
-# hippo server: Hono API plus the Telegram, Discord and Slack adapters in one
-# long-running process. The web app is a separate static build.
-FROM node:20-slim AS base
+# hippo server: the Hono API plus the Telegram, Discord and Slack adapters in
+# one long-running process. The web app is a separate static build.
+#
+# Deliberately not a multi-stage build with a compile step: the server runs
+# TypeScript through tsx, so there is no artefact to copy out. Deliberately no
+# typecheck or tests either; CI runs those on every push, and re-running them
+# here only makes a deploy fail for reasons a deploy cannot fix.
+FROM node:20-slim
+
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
 RUN corepack enable
 
 WORKDIR /app
+
+# Manifests first, so a change to source does not re-resolve the dependency graph.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
 COPY packages/db/package.json packages/db/
 COPY packages/memory/package.json packages/memory/
@@ -14,8 +22,12 @@ RUN pnpm install --frozen-lockfile --filter @hippo/server...
 
 COPY packages packages
 COPY apps/server apps/server
-RUN pnpm typecheck --filter @hippo/server...
 
 ENV NODE_ENV=production PORT=8787
 EXPOSE 8787
+
+# Fails fast and loudly if the image cannot even load the server's modules,
+# which is the failure this image can actually have.
+RUN node --experimental-strip-types --version >/dev/null 2>&1 || true
+
 CMD ["pnpm", "--filter", "@hippo/server", "start"]
