@@ -12,6 +12,7 @@ interface Me {
   accountId?: string | null;
   walletAddress?: string | null;
   namespace?: string;
+  surveyUrl?: string | null;
 }
 
 interface Memory {
@@ -200,6 +201,16 @@ export function MePage() {
       </section>
 
       {!me.signedIn && <WalletSignIn onSignedIn={load} />}
+
+      {me.surveyUrl && (
+        <p className="text-sm text-muted-foreground">
+          Used hippo for a bit?{" "}
+          <a className="underline" href={me.surveyUrl} target="_blank" rel="noreferrer">
+            Telling me how it went
+          </a>{" "}
+          helps more than you would think.
+        </p>
+      )}
 
       <section className="space-y-1 text-sm text-muted-foreground">
         <h2 className="font-medium text-foreground">Commands</h2>

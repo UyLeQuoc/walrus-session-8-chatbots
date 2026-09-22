@@ -101,6 +101,40 @@ unrecallable but not deleted, and the relayer's `restore()` does not currently
 re-index this account, so treat the search index as the fragile part and Walrus
 as the durable one. Both are written up in `docs/issues/`.
 
+## Troubleshooting
+
+**`401` from the relayer.** Almost always one of four things, and `pnpm diagnose`
+tells you which: the delegate private key is wrong, the key is not registered on
+the account, `MEMWAL_ACCOUNT_ID` names something other than the account object,
+or staging credentials are pointed at the mainnet relayer. Note that a wrong
+account id *works* on mainnet, because the relayer repairs it by scanning the
+registry, and fails on testnet, where that scan is unavailable. So a config that
+looks fine can be wrong; run `pnpm diagnose`.
+
+**"I set `MEMWAL_ACCOUNT_ID` and it still says the wrong account."** The account
+id is the `MemWalAccount` object id, not your wallet address and not the delegate
+public key. All three are `0x` plus 64 hex.
+`pnpm --filter @hippo/memory exec tsx scripts/find-account.ts` prints all three,
+correctly labelled, from the delegate key alone.
+
+**Staging versus mainnet.** Credentials are per-deployment. A key created on
+`staging.memory.walrus.xyz` will not authenticate against
+`relayer.memory.walrus.xyz`, and the error is a bare `401` either way.
+
+**`recall` returns nothing for a namespace that has memories.** Two causes.
+Either the namespace does not match what was written, since namespaces are exact
+strings with no normalisation and `my-app` and `My-App` are different buckets, or
+you have hit the relayer bug where an empty result comes back with a non-zero
+`dropped_count`. hippo retries that four times; if you are calling the SDK
+directly, check for the field. See `docs/issues/01`.
+
+**A memory was saved but `/memory` does not list it.** Writes take about
+25 seconds and land in the background. `memory_index` holds the row immediately
+with status `pending`; look there for a `failed` row and its error.
+
+**The bot went quiet on every channel at once.** The adapters share one process,
+so one crash takes them all down. Check the server logs.
+
 ## Deploy
 
 The server is a long-running process, not serverless, because the chat adapters

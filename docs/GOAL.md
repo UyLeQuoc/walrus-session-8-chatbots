@@ -85,7 +85,7 @@ Goal: a stranger can talk to hippo on web, CLI and Telegram and it visibly remem
 
 Tasks:
 1. Web guest identity via cookie (exists) + `GET /api/me` returning mode, person ID, memory count (`RelayerExtras.stats`), memory enabled flag.
-2. Commands on every channel, implemented once in `packages/core/src/commands.ts` and mapped by adapters: `/whoami`, `/memory` (list by type from `memory_index` + recall text), `/memory search <q>`, `/memory off|on`, `/memory forget`, `/proof`, `/connect` (placeholder link until M3), `/help`.
+2. Commands on every channel, implemented once (in `apps/server/src/commands.ts` rather than `packages/core`, since they need database access) and mapped by adapters: `/whoami`, `/memory` (list by type from `memory_index` + recall text), `/memory search <q>`, `/memory off|on`, `/memory forget`, `/proof`, `/connect` (placeholder link until M3), `/help`.
 3. Style adaptation: `style` memories change the system prompt (exists in prompt builder; verify with an eval).
 4. Per-person throttle: 10 turns/min, 200/day, in `apps/server/src/ratelimit.ts` backed by Postgres. Web `/api/chat` requires the cookie.
 5. Evals: `pnpm demo` runs a scripted two-session conversation against mainnet with a fresh guest ID and asserts that session 2 recalls facts from session 1 (`packages/core/src/demo.ts`). Output saved to `docs/evidence/demo-<date>.txt`.

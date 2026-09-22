@@ -173,5 +173,6 @@ export const chatRoutes = new Hono()
       accountId: person.accountId,
       walletAddress: person.walletAddress,
       namespace: port.scope.namespace,
+      surveyUrl: env.SURVEY_URL ?? null,
     });
   });

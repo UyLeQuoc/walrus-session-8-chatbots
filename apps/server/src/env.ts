@@ -13,6 +13,8 @@ const schema = operatorEnvSchema.extend({
   CORS_ORIGIN: z.string().default("http://localhost:5173,http://localhost:5174"),
   SESSION_SECRET: z.string().min(32),
   KEY_ENCRYPTION_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/),
+  /** Optional WalForm (or any) feedback survey, shown on /start and /me. */
+  SURVEY_URL: z.string().url().optional(),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   DISCORD_TOKEN: z.string().optional(),
   DISCORD_CLIENT_ID: z.string().optional(),
