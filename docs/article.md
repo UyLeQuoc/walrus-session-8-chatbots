@@ -126,6 +126,15 @@ prove that revoking on chain stops access, which is the whole promise.
 So hippo does the honest thing: when you revoke, it deletes its copy of your key.
 Whatever the relayer decides, hippo no longer has the credential.
 
+There is one more limit worth stating, because I built a UI for it before I read
+carefully enough. You cannot delete a memory. `forget` removes the search index,
+so nothing can recall it, and the encrypted blob sits on Walrus until its storage
+epochs run out. The API that looks like permanent deletion turns out to be
+migration cleanup for pre-July blobs and explicitly never accepts a new one. That
+is a defensible position for immutable storage to take. It is just not the
+position "you own your memory" leads a user to expect, so hippo says it out loud
+when you ask it to forget something.
+
 All of these are filed: github.com/MystenLabs/MemWal/issues.
 
 ### Run it

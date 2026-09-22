@@ -88,11 +88,35 @@ memory is a real, publicly addressable Walrus blob that only the account can rea
 Script kept at `packages/memory/scripts/spike-decrypt.ts` so it can be re-run in
 one command once the key is genuinely on chain.
 
-## 8 — Security Delete API on the managed relayer — PASS
+## 8 — Security Delete API — CORRECTED, it does not do what I assumed
 
-`GET /config` reports `securityDeleteEnabled: true`, `securityDeleteBatchMax: 900`, `securityDeleteMaxActiveBatchesPerOwner: 16`. `POST /api/security-delete-auth/challenge` returns `200`.
+First read: `GET /config` reports `securityDeleteEnabled: true` and
+`POST /api/security-delete-auth/challenge` returns `200`, so I concluded that
+owned-mode users could permanently delete individual memories from `/me`.
 
-**Decision:** `/me` offers permanent per-memory deletion for owned-mode users, signed by their own wallet. Guest users get index-only `forget`. This is another concrete ownership difference to show judges.
+**That was wrong, and I only caught it when I went to implement it.** The first
+two sentences of `docs/api/security-delete.md` say what the API is for:
+
+> The Security Delete API permanently deletes legacy Walrus Blob objects that
+> were tracked in MemWal's old-V1 database.
+>
+> This API never enrolls caller-supplied blobs into the legacy tracking set.
+
+It is a migration cleanup tool for blobs from before the July 2026 cutover. A
+memory hippo writes today is never in that set, so it can never be deleted
+through it. The endpoint being enabled means only that the relayer would delete
+pre-migration blobs for an owner who has any.
+
+**So there is no way to permanently delete a memory you own.** `POST /api/forget`
+removes vector index rows, which makes a memory unrecallable, and the encrypted
+blob stays on Walrus until its epochs run out. Nothing in the relayer API or the
+SDK deletes a current blob.
+
+**Decisions:** `/me` does not offer permanent deletion, because it cannot.
+`/memory forget` says plainly what it does and does not do, rather than pointing
+at a deletion path that does not exist. Filed as `docs/issues/09`, and it goes in
+the article as the honest limit of the ownership story: you own it, you can stop
+anyone recalling it, and you cannot make it go away.
 
 ## 9 — Enoki zkLogin — BLOCKED (needs an Enoki API key + Google OAuth client)
 

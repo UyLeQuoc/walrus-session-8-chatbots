@@ -134,7 +134,7 @@ async function forget(ctx: CommandContext): Promise<CommandResult> {
     const res = await extrasFor(port.scope).forget(port.scope.namespace);
     await db.delete(memoryIndex).where(eq(memoryIndex.personId, ctx.person.id));
     return {
-      text: `Removed ${res.deleted} memories from the search index, so I can no longer recall them.\n\nThe encrypted blobs stay on Walrus until they expire. Permanent deletion is signed by your own wallet and is available in owned mode at ${env.WEB_BASE_URL}/me`,
+      text: `Removed ${res.deleted} memories from the search index, so I can no longer recall any of them.\n\nBeing straight with you about the limit: the encrypted blobs stay on Walrus until their storage epochs run out, and there is currently no way to delete them earlier. Nobody can read them without your account's keys, and I can no longer find them, but they are not gone.`,
     };
   } catch (e) {
     return { text: `Could not reach the relayer: ${e instanceof Error ? e.message : String(e)}` };
