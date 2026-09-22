@@ -66,6 +66,26 @@ leaked local absolute paths. Both fixed.
   placeholders, and the 64-hex value that appears in the docs is the delegate
   *public* key, which the submission form asks to publish.
 
+## Hardened afterwards
+
+While writing tests for the verification path, two more things got tightened.
+
+**`readAccount` now checks the object's type.** The connect callback takes the
+user's wallet from `readAccount(...).owner`, and many unrelated Sui objects have
+an `owner` field. Without a type check, a caller could name one of those and have
+its owner treated as their wallet. The delegate-membership check made that
+unexploitable in practice, since the wrong object lists no matching delegate, but
+relying on a second check to save the first is how bugs survive refactors. It now
+returns null for anything that is not a `MemWalAccount`.
+
+**The path has tests against mainnet**, in `packages/memory/src/registry.test.ts`:
+a key that is genuinely on chain verifies true, an absent key verifies false, a
+`0x`-prefixed upper-case key still verifies, a real object of the wrong type
+returns null, and a non-existent object returns null. They read the live account
+rather than a mock, because the point of the check is that the chain is the
+authority. They skip themselves when credentials are absent, so a fresh clone
+still passes.
+
 ## Accepted for now
 
 **A link code is a one-message takeover if a user is tricked into redeeming

@@ -95,7 +95,18 @@ function normaliseKey(value: unknown): string {
   return "";
 }
 
-/** Read a MemWalAccount straight from chain. The relayer is not the authority here. */
+/** Objects keep their original package in their type after a Move upgrade. */
+const ACCOUNT_TYPE_SUFFIX = "::account::MemWalAccount";
+
+/**
+ * Read a MemWalAccount straight from chain. The relayer is not the authority here.
+ *
+ * The object's type is checked, not just its shape. The connect callback takes
+ * the user's wallet from this object's `owner`, and plenty of unrelated Sui
+ * objects have an `owner` field; without the type check a caller could name one
+ * of those and have its owner treated as their wallet. Returns null for
+ * anything that is not a MemWalAccount.
+ */
 export async function readAccount(
   client: SuiGrpcClient,
   accountId: string,
@@ -103,7 +114,9 @@ export async function readAccount(
   const res = await client.core
     .getObject({ objectId: accountId, include: { json: true } })
     .catch(() => null);
-  const json = (res?.object as { json?: Record<string, unknown> } | undefined)?.json;
+  const object = res?.object as { json?: Record<string, unknown>; type?: string } | undefined;
+  if (!object?.type?.endsWith(ACCOUNT_TYPE_SUFFIX)) return null;
+  const json = object.json;
   if (!json) return null;
   const rawDelegates = Array.isArray(json.delegate_keys) ? json.delegate_keys : [];
   return {
