@@ -14,10 +14,6 @@ import { fromHex, normalizeSuiAddress } from "@mysten/sui/utils";
 import { fetchRelayerConfig, readOperatorEnv } from "../src/index.ts";
 
 const AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space";
-const SEAL_SERVERS_MAINNET = [
-  { objectId: "0x145540d931f182fef76467dd8074c9839aea126852d90d18e1556fcbbd1208b6", weight: 1 },
-  { objectId: "0xe0eb52eba9261b96e895bbb4deca10dcd64fbc626a1133017adcd5131353fd10", weight: 1 },
-];
 
 const blobId = process.argv[2];
 if (!blobId) throw new Error("usage: tsx scripts/spike-decrypt.ts <blob-id>");
@@ -46,10 +42,31 @@ const keypair = Ed25519Keypair.fromSecretKey(fromHex(env.MEMWAL_PRIVATE_KEY));
 const address = keypair.getPublicKey().toSuiAddress();
 console.log(`delegate address     ${address}`);
 
+/**
+ * Take the key servers from the ciphertext, never from a list of our own.
+ *
+ * A hardcoded pair of mainnet server ids cost a working session here. Asking
+ * servers that hold no share for this identity fails as "Not enough shares",
+ * which reads like a permission problem, and the earlier conclusion drawn from
+ * it was that our delegate key was not on chain. Every EncryptedObject names
+ * the services and the threshold it was sealed with, so there is nothing to
+ * guess.
+ */
+console.log(`seal threshold       ${parsed.threshold}`);
+/**
+ * A committee ("decentralized") key server is not reachable directly; every
+ * fetch goes through an aggregator, and the SDK refuses the config without one.
+ */
+const SEAL_AGGREGATOR_MAINNET = "https://seal-aggregator-mainnet.mystenlabs.com";
+const serverConfigs = parsed.services.map(([objectId, weight]) => {
+  console.log(`seal key server      ${objectId} (weight ${weight})`);
+  return { objectId, weight, aggregatorUrl: SEAL_AGGREGATOR_MAINNET };
+});
+
 const sealClient = new SealClient({
   // biome-ignore lint/suspicious/noExplicitAny: SealClient types against the JSON-RPC client
   suiClient: suiClient as any,
-  serverConfigs: SEAL_SERVERS_MAINNET,
+  serverConfigs,
   verifyKeyServers: true,
 });
 
@@ -77,7 +94,18 @@ tx.moveCall({
 // biome-ignore lint/suspicious/noExplicitAny: same client type mismatch
 const txBytes = await tx.build({ client: suiClient as any, onlyTransactionKind: true });
 
-await sealClient.fetchKeys({ ids: [parsed.id], txBytes, sessionKey, threshold: 2 });
+/**
+ * Ask for the threshold the ciphertext actually declares. Hardcoding 2 while
+ * the object needs 1 turns a single unreachable key server into
+ * "Not enough shares", which reads like a permission problem and is not one.
+ */
+
+await sealClient.fetchKeys({
+  ids: [parsed.id],
+  txBytes,
+  sessionKey,
+  threshold: parsed.threshold,
+});
 const plaintext = await sealClient.decrypt({ data: ciphertext, sessionKey, txBytes });
 
 console.log("\nDECRYPTED:");

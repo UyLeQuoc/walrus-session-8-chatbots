@@ -190,6 +190,14 @@ Everything here was measured, not assumed. Where a limitation changed the design
 the change is named; where it is simply a limit, hippo says so to the user rather
 than papering over it.
 
+- **An owner cannot decrypt their own memory without the relayer.** Mainnet
+  memories are sealed by a committee SEAL key server that the SDK does not list
+  among its mainnet defaults, and that server is reachable only through an
+  aggregator which requires an API key we have no way to obtain. `seal_approve`
+  passes; the key fetch does not. So ownership here is real about access control
+  and revocation, which we measured, and not yet real about reading your own
+  bytes independently. `/proof` links the public ciphertext and says so rather
+  than implying otherwise. See `docs/issues/12`.
 - **No way to read a memory's text by blob ID.** `GET /v1/owners/:owner/memories`
   returns metadata only. So `/memory` lists
   from the local index and reads text back through recall, and `/proof` links the

@@ -85,8 +85,16 @@ registry id came from the documentation and our package id from `GET /config`.
 Against the correct account the key is registered and the chain and the relayer
 agree exactly. See `docs/issues/11`.
 
-**Decision:** client-side decryption stays shelved, but for a much weaker reason
-than before. It is optional work, not blocked work, and it is now worth retrying.
+**Retried 2026-09-22, and it is blocked after all, for a third reason.** With the
+account id corrected, `seal_approve` no longer refuses us. What refuses us is the
+key server: mainnet memories are sealed by a committee server the SDK does not
+list among its mainnet defaults, and that server is only reachable through an
+aggregator that answers `No API key found in request`. So an owner cannot read
+their own memory without the relayer today. Access control is on chain and
+revocation works; possession does not follow yet. Written up as
+`docs/issues/12`, and the spike now takes its key servers from the ciphertext
+rather than from a hardcoded list, which is what got past the misleading
+"Not enough shares".
 `/proof` links the public ciphertext instead, which still makes the point that a
 memory is a real, publicly addressable Walrus blob that only the account can read.
 Script kept at `packages/memory/scripts/spike-decrypt.ts` so it can be re-run in
