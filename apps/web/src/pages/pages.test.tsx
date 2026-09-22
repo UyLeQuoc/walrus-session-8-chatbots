@@ -12,6 +12,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatPage } from "./chat.tsx";
 import { MePage } from "./me.tsx";
 
+/**
+ * The chat transport is real network; what we care about is what each state
+ * paints. `chatMessages` lets a test put the page into "there is a conversation"
+ * without a server.
+ */
+let chatMessages: unknown[] = [];
+vi.mock("@ai-sdk/react", () => ({
+  useChat: () => ({
+    messages: chatMessages,
+    sendMessage: vi.fn(),
+    status: "ready",
+    error: undefined,
+  }),
+}));
+
 /** dapp-kit reaches for wallet APIs that jsdom has no notion of. */
 vi.mock("@mysten/dapp-kit", () => ({
   ConnectModal: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
@@ -37,6 +52,7 @@ function stubFetch(routes: Record<string, unknown>) {
 }
 
 beforeEach(() => {
+  chatMessages = [];
   vi.stubGlobal("fetch", stubFetch({}));
 });
 afterEach(() => {
@@ -45,17 +61,51 @@ afterEach(() => {
 });
 
 describe("chat page", () => {
-  it("tells a first-time visitor what to do", () => {
+  it("explains why the project exists, not just how to type", () => {
     const { container } = render(
       <MemoryRouter>
         <ChatPage />
       </MemoryRouter>,
     );
     const seen = container.textContent ?? "";
-    expect(seen).toMatch(/remembers across sessions/i);
-    // The three-step invitation is the whole first impression.
-    expect(seen).toMatch(/Reload this page/i);
+    // The claim that makes hippo different, and the two halves of it.
+    expect(seen).toMatch(/memory you own/i);
+    expect(seen).toMatch(/Take ownership/i);
+    expect(seen).toMatch(/Take it away/i);
     expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
+  });
+
+  it("links hippo's own account on chain once the config arrives", async () => {
+    const account = `0x${"ab".repeat(32)}`;
+    vi.stubGlobal("fetch", stubFetch({ "/api/config": { operatorAccountId: account } }));
+    render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    // Asserting the href, because a claim about on-chain ownership that does
+    // not actually link the object is the thing this section exists to avoid.
+    await waitFor(() => {
+      const link = screen.getByRole("link", { name: new RegExp(account.slice(0, 10), "i") });
+      expect(link.getAttribute("href")).toContain(account);
+    });
+  });
+
+  it("drops the landing section once there is a conversation", () => {
+    // Keyed off messages.length. Leaving it above a real conversation would
+    // push every reply below the fold, which is worse than not having it.
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "I use pnpm" }] },
+      { id: "2", role: "assistant", parts: [{ type: "text", text: "Noted." }], metadata: {} },
+    ];
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    const seen = container.textContent ?? "";
+    expect(seen).toMatch(/Noted\./);
+    expect(seen).not.toMatch(/memory you own/i);
   });
 });
 

@@ -9,6 +9,8 @@ export interface ChainConfig {
   relayerUrl: string;
   packageId: string;
   registryId: string;
+  /** hippo's own account, where guest memories live until a wallet is connected. */
+  operatorAccountId?: string;
 }
 
 export function createAccountTx(cfg: ChainConfig): Transaction {

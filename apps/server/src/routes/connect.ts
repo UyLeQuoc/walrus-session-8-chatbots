@@ -13,7 +13,16 @@ import { mergePersons, personByWallet } from "../persons.ts";
 const sui = createSuiClient(env.SUI_NETWORK);
 
 export const connectRoutes = new Hono()
-  /** Deployment parameters the web app needs. The package is upgradeable, so it is read live. */
+  /**
+   * Deployment parameters the web app needs. The package is upgradeable, so it
+   * is read live.
+   *
+   * `operatorAccountId` is hippo's own Walrus Memory account, where guest
+   * memories live until a user connects a wallet. It is a shared object on a
+   * public chain and the submission form asks for it, so publishing it here
+   * costs nothing and lets the landing page link to the real thing rather than
+   * asking people to take the claim on faith.
+   */
   .get("/api/config", async (c) => {
     const cfg = await fetchRelayerConfig(env.MEMWAL_SERVER_URL).catch(() => null);
     return c.json({
@@ -21,6 +30,7 @@ export const connectRoutes = new Hono()
       relayerUrl: env.MEMWAL_SERVER_URL,
       packageId: cfg?.packageId ?? env.MEMWAL_PACKAGE_ID,
       registryId: env.MEMWAL_REGISTRY_ID,
+      operatorAccountId: env.MEMWAL_ACCOUNT_ID,
     });
   })
 
