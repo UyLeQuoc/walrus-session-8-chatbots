@@ -10,23 +10,28 @@ Two forms of the same brief. Update the State line in both as milestones land.
 ```
 Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
 
-Read CLAUDE.md and docs/GOAL.md first. GOAL.md is the master plan: milestones M0-M7, each with tasks and the command that verifies them. docs/SPIKES.md is what we measured on mainnet and what it changed. docs/BLOCKERS.md is what only I can provide. docs/DECISIONS.md is the decision log. docs/NEXT-PROMPT.md holds the long version of this brief.
+Read CLAUDE.md and docs/GOAL.md first. GOAL.md is the master plan: milestones M0-M7, each marked with its real status. docs/SPIKES.md is what we measured on mainnet and what it changed. docs/BLOCKERS.md is what only I can provide. docs/DECISIONS.md is the decision log. docs/RUNBOOK.md is how to run the real-use week. docs/NEXT-PROMPT.md holds the long version of this brief.
 
-State (2026-09-22): M0, M1, M2, M5 done. M3 written and security-reviewed, never run against a real wallet. M4 waits on channel tokens, M6 on real users, M7 is drafted and waits on M6's numbers. `pnpm demo` asserts cross-session recall, style adaptation and cross-channel recall on mainnet; a clean clone runs from the README alone; `pnpm evidence` counts only memories that actually landed and says whether the session requirement is met. Vietnamese recall verified 8/8 including across languages.
+State (2026-09-22): M0, M1, M2, M5 done. M3 written, security-reviewed and tested against mainnet reads, but the wallet flow has never run. M4 partly done: cross-channel linking works and is asserted in the eval; Discord and Slack need tokens. M6 is ready to start. M7 is drafted.
+
+Verified on mainnet: `pnpm demo` asserts cross-session recall, style adaptation and cross-channel recall. `pnpm diagnose` reports config, chain-versus-relayer disagreements and storage expiry. A clean clone runs from the README alone. Telegram is live as @walrussession8_bot, polling with seven commands registered, and has never received a message.
 
 Blocked on me, in order of risk. Read docs/BLOCKERS.md; it is current.
-1. An owner-signed revocation test on the Sessions wallet. Highest-risk unknown in the project.
-2. One message to @walrussession8_bot from a real Telegram account, then the invites in docs/RUNBOOK.md. The adapter is live and polling; it has just never received a message, and that cannot be tested without a Telegram account.
+1. An owner-signed revocation test on the Sessions wallet. Highest-risk unknown in the project: the relayer honours a delegate key the chain does not list, so "revoke on chain and the bot forgets" is unproven.
+2. Message @walrussession8_bot, then send the invites in docs/RUNBOOK.md. Testing that needs a Telegram account, which the bot API cannot provide.
 3. A second Slush wallet with no MemWalAccount, for the owned-mode and revoke demos.
 
-Two findings shape the design. First, recall() can return an empty list while reporting it found and discarded matches, so hippo retries before believing it. Do not try to prevent this on the client: four runs gave 4, 9, 0 and 15 drops with no pattern, I wrongly blamed concurrency and had to retract it, and SPIKES.md keeps the wrong hypothesis on purpose. Only retrying helps. Second, the relayer honours a delegate key absent from the account's on-chain delegate_keys, so "revoke on chain and the bot forgets" is unproven; hippo therefore destroys its own copy of the key on revoke.
+Findings that shape the design, all ten written up in docs/issues/ and filed with scripts/file-issues.sh:
+- recall() can return an empty list while reporting it found and discarded matches. Do not try to prevent this on the client: four runs gave 4, 9, 0 and 15 drops with no pattern, I wrongly blamed concurrency and had to retract it, and SPIKES.md keeps the wrong hypothesis on purpose. Only retrying helps.
+- The relayer honours a delegate key absent from the on-chain delegate_keys, so /disconnect destroys hippo's own copy of the key rather than trusting the revoke.
+- There is no way to delete a memory you own, and restore() cannot re-index this account. Treat the search index as fragile and Walrus as durable.
 
 How to work.
 - Do not ask me what to do next. Every open choice is settled in GOAL.md or ARCHITECTURE.md. If something new comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in DECISIONS.md, and keep going.
-- When blocked, do everything that is not blocked, append the exact ask to BLOCKERS.md, and move to the next milestone's unblocked work. Never fabricate credentials, users or evidence.
-- Verify each task with the command under its milestone. Keep pnpm typecheck, lint and test green on every commit. Commit per task, push per milestone.
-- Any SDK or relayer friction becomes a draft in docs/issues/ with a repro, the same day. Ten are written and ready to file.
-- Measure twice before claiming a cause, and never leave a polling loop running against the relayer. One encouraging run in the direction I expected nearly went into the article as a finding; a clean re-run refuted it.
+- When blocked, do everything that is not blocked, append the exact ask to BLOCKERS.md, and move on. Never fabricate credentials, users or evidence.
+- Keep pnpm typecheck, lint and test green on every commit. Commit per task, push per milestone.
+- Any SDK or relayer friction becomes a docs/issues/ draft with a repro, the same day.
+- Measure twice before claiming a cause, and never leave a polling loop running against the relayer. One encouraging run in the direction I expected nearly went into the article as a finding.
 - Never store memory text in Postgres, never log a private key, never route to an OpenAI or Anthropic model, never edit memwal/, never commit .env.
 - If time runs short, cut in this order: Slack, Sui Stack Messaging, Discord, manual SEAL decrypt, Enoki zkLogin, SuiNS, Walrus Sites. Never cut owned mode, the revoke demo, Telegram, the web app, the article or the evidence.
 

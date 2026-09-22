@@ -38,11 +38,17 @@ pnpm dev:web                 # the Vite app on :5173
 pnpm hippo                   # the CLI, talking to the same server
 ```
 
-`pnpm demo` is the proof: it teaches hippo five things, throws the conversation
-away, and asks four questions in a fresh session, then checks that a second
-channel recalls the same facts. `pnpm evidence` prints the numbers the session's
-submission form asks for, counting only memories that actually landed on Walrus.
-`pnpm restore` checks the relayer's index against what we wrote.
+`pnpm diagnose` is the first thing to run when something looks wrong: it prints
+what is configured, what works, and where the chain and the relayer disagree.
+
+`pnpm demo` is the proof. It teaches hippo five things, throws the conversation
+away, and in a fresh session asserts three things: that it recalls the facts,
+that a `style` memory changed the reply language without being asked again, and
+that a second channel recalls the same facts.
+
+`pnpm evidence` prints the numbers the session's submission form asks for,
+counting only memories that actually landed on Walrus. `pnpm restore` checks the
+relayer's index against what we wrote.
 
 `pnpm smoke`, `pnpm db:push`, `pnpm typecheck` and `pnpm test` need only the
 Walrus Memory credentials. `pnpm demo`, `pnpm hippo` and the chat itself also
