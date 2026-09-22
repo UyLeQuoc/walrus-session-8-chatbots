@@ -313,3 +313,29 @@ away. `DEFAULT_MAX_DISTANCE` at 0.8 keeps them.
 extraction and embedding quality was on the list to check; there is nothing to
 report. Worth saying plainly, because a list of complaints is more credible when
 the things that work are also named.
+
+## 13 — How long do memories actually live? — PASS, about 7 months
+
+Judging runs to 2026-10-16, so a short storage lifetime would have quietly
+undone the submission. `GET /v1/owners/:owner/memories` answers it.
+
+| | |
+|---|---|
+| Memories visible on the read API | 125, all `status: active` |
+| With a resolved expiry | 89 (the sweep had not reached the other 36) |
+| Soonest expiry | 2027-03-20, 179 days out, epoch 52 |
+| Latest expiry | 2027-04-20, 210 days out, epoch 54 |
+| Expiring before judging | **0** |
+
+A memory written today gets roughly **210 days**. Nothing to worry about and
+nothing to file: another candidate off the bug-bounty list.
+
+Two things fall out of it.
+
+**`/me` can show expiry honestly.** The read API carries `expires_at` per blob,
+so the page tells a user when each memory's storage runs out rather than
+implying "forever".
+
+**It makes `docs/issues/10` much sharper.** The read API enumerates 125 live
+memories for this owner while `restore()` reports seeing zero on chain for the
+same owner. Those two relayer endpoints cannot both be describing this account.

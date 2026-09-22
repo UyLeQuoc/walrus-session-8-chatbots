@@ -25,6 +25,14 @@ The owner does own the blobs. Listing owned objects for
 **197 Walrus `Blob` objects**, so this is not a case of the relayer keeping blob
 ownership.
 
+**Sharper still: your own read API sees 125 of these memories.**
+`GET /v1/owners/:owner/memories` returns 125 rows for this owner, all
+`status: "active"`, 89 of them with a resolved `end_epoch` and `expires_at`
+running to March and April 2027. So one relayer endpoint enumerates 125 live
+memories for the owner while another reports that it can see zero on chain for
+the same owner. Whatever the cause, those two answers cannot both be describing
+the same account.
+
 ## Why we think the candidate cap is involved
 
 `docs/api/memory-read-api.md` and the `restore` notes already describe the

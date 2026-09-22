@@ -59,7 +59,9 @@ Checked and found fine, so not filed: Vietnamese fact extraction and embedding q
 
 Confirmed and filed since: `restore()` does not see this account's blobs at all (issue 10), and there is no way to delete a memory you own (issue 9).
 
-Still to confirm before filing: blob epoch length, and anything the wallet connect flow throws once a second wallet is available.
+Checked and found fine, so not filed: Vietnamese quality (§12) and blob lifetime (§13, about 210 days, nothing expires before judging).
+
+Still to confirm before filing: anything the wallet connect flow throws once a second wallet is available.
 
 ## Article outline (Medium + Inkray)
 
