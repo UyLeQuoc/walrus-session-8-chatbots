@@ -266,6 +266,42 @@ export const chatRoutes = new Hono()
   })
 
   /**
+   * Read memories back by meaning, the same thing `/memory search` does.
+   *
+   * The page cannot search its own list: memory text is never stored in
+   * Postgres, only blob ids and dates, so the text has to come back from Walrus
+   * through a recall. That spends the shared relayer budget, so it is rate
+   * limited exactly like the command.
+   */
+  .get("/api/me/search", async (c) => {
+    const query = (c.req.query("q") ?? "").trim();
+    if (!query) return c.json({ results: [] });
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ results: [] });
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
+
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, CHANNEL);
+
+    const port = await portFor(person, CHANNEL);
+    const hits = await port.recall({ query, limit: 8, maxDistance: 0.9 }).catch(() => null);
+    if (hits === null) {
+      return c.json({ error: "Walrus Memory could not be reached just now." }, 502);
+    }
+    return c.json({
+      results: hits.map((h) => ({
+        text: h.parsed?.text ?? h.text,
+        type: h.parsed?.type ?? null,
+        // Distance is the relayer's language; relevance is the reader's.
+        relevance: Number((1 - h.distance).toFixed(2)),
+        blobId: h.blob_id,
+        explorerUrl: explorer.blobExplorer(h.blob_id),
+      })),
+    });
+  })
+
+  /**
    * Start connect or disconnect from the page rather than the chat.
    *
    * Both mint rows and `connect` mints a keypair, so they cost the same as the

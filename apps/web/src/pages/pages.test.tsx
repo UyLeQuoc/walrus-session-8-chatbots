@@ -7,6 +7,7 @@
  * with the network stubbed and asserts something a user would actually see.
  */
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatPage } from "./chat.tsx";
@@ -267,6 +268,88 @@ describe("me page, on chain", () => {
     );
     await waitFor(() => expect(container.textContent ?? "").toMatch(/could not be read/i));
     expect(screen.getByRole("link", { name: new RegExp(account.slice(0, 12), "i") })).toBeDefined();
+  });
+});
+
+describe("me page, finding a memory", () => {
+  const rows = (type: string, id: string) => ({
+    id,
+    type,
+    status: "stored" as const,
+    channel: "web",
+    createdAt: new Date().toISOString(),
+    blobId: `blob${id}`,
+    expiresAt: null,
+    ciphertextUrl: `https://aggregator.example/v1/blobs/blob${id}`,
+    explorerUrl: `https://walruscan.com/mainnet/blob/blob${id}`,
+  });
+
+  const base = {
+    "/api/me": { mode: "guest", signedIn: false, memoryEnabled: true, namespace: "hippo-guest:a" },
+    "/api/me/memories": { memories: [rows("profile", "1"), rows("style", "2")] },
+  };
+
+  it("filters the list by type without asking the server", async () => {
+    vi.stubGlobal("fetch", stubFetch(base));
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "style" })).toBeDefined());
+    const rowCount = () => container.querySelectorAll("ul li").length;
+    expect(rowCount()).toBe(2);
+
+    await userEvent.click(screen.getByRole("button", { name: "style" }));
+    expect(screen.getByRole("button", { name: "style" }).getAttribute("aria-pressed")).toBe("true");
+    // The row is gone, not just the chip highlighted. Local filter, no request.
+    expect(rowCount()).toBe(1);
+    expect(container.textContent ?? "").toMatch(/style/);
+  });
+
+  it("reads the words back from Walrus when you search", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        ...base,
+        "/api/me/search": {
+          results: [
+            {
+              text: "Uy deploys with Railway.",
+              type: "profile",
+              relevance: 0.72,
+              blobId: "blobX",
+              explorerUrl: "https://walruscan.com/mainnet/blob/blobX",
+            },
+          ],
+        },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByLabelText(/search your memory/i)).toBeDefined());
+    await userEvent.type(screen.getByLabelText(/search your memory/i), "how do I deploy");
+    await userEvent.click(screen.getByRole("button", { name: /^search$/i }));
+
+    // The text is the whole point: it cannot come from Postgres, only Walrus.
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/Uy deploys with Railway\./));
+    expect(container.textContent ?? "").toMatch(/relevance 0\.72/);
+  });
+
+  it("says so when a search finds nothing rather than showing an empty box", async () => {
+    vi.stubGlobal("fetch", stubFetch({ ...base, "/api/me/search": { results: [] } }));
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByLabelText(/search your memory/i)).toBeDefined());
+    await userEvent.type(screen.getByLabelText(/search your memory/i), "sailing");
+    await userEvent.click(screen.getByRole("button", { name: /^search$/i }));
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/Nothing close to that/i));
   });
 });
 

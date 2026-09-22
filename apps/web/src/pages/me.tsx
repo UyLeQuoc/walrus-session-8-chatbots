@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { ChainPanel } from "@/components/chain-panel";
+import { type Memory, MemoryList } from "@/components/memory-list";
 import { Button } from "@/components/ui/button";
 import { WalletSignIn } from "@/components/wallet-signin";
 import { API_URL, forgetSession, identityHeaders } from "@/lib/api";
@@ -14,22 +15,6 @@ interface Me {
   walletAddress?: string | null;
   namespace?: string;
   surveyUrl?: string | null;
-}
-
-interface Memory {
-  id: string;
-  type: string;
-  status: "pending" | "stored" | "failed";
-  channel: string;
-  createdAt: string;
-  blobId: string | null;
-  expiresAt: string | null;
-  ciphertextUrl: string | null;
-  explorerUrl: string | null;
-}
-
-function daysUntil(iso: string): number {
-  return Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000);
 }
 
 const CLAUDE_CODE_STEPS = [
@@ -132,55 +117,7 @@ export function MePage() {
 
       <ChainPanel owned={owned} onError={setError} />
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="font-medium">What hippo wrote</h2>
-          <p className="text-sm text-muted-foreground">
-            Each one is an encrypted blob on Walrus. Anyone can download the ciphertext; only your
-            account can read it.
-          </p>
-        </div>
-        {memories.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nothing yet.</p>
-        ) : (
-          <ul className="divide-y rounded-lg border text-sm">
-            {memories.map((m) => (
-              <li key={m.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                <span className="flex items-center gap-2">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
-                    {m.type}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    {new Date(m.createdAt).toISOString().slice(0, 10)} · {m.channel}
-                    {m.expiresAt ? ` · storage ends in ${daysUntil(m.expiresAt)} days` : ""}
-                  </span>
-                </span>
-                {m.status === "stored" && m.explorerUrl ? (
-                  <span className="flex gap-3 text-xs">
-                    <a className="underline" href={m.explorerUrl} target="_blank" rel="noreferrer">
-                      blob
-                    </a>
-                    {m.ciphertextUrl && (
-                      <a
-                        className="underline"
-                        href={m.ciphertextUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        ciphertext
-                      </a>
-                    )}
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    {m.status === "pending" ? "writing to Walrus…" : "write failed"}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <MemoryList memories={memories} onError={setError} />
 
       <section className="space-y-2">
         <h2 className="font-medium">Read the same memory in Claude Code</h2>
