@@ -1,6 +1,39 @@
 # Continuation prompt
 
-Paste this into a fresh session to carry hippo forward. Kept here so it is not lost between sessions; update the "State" section as milestones land.
+Two forms of the same brief. Update the State line in both as milestones land.
+
+- **Short form** below fits the `/goal` command, which caps at 4000 characters.
+- **Long form** further down is for pasting into a fresh session, where there is no limit.
+
+## Short form, for `/goal`
+
+```
+Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
+
+Read CLAUDE.md and docs/GOAL.md first. GOAL.md is the master plan: milestones M0-M7, each with tasks and the command that verifies them. docs/SPIKES.md is what we measured on mainnet and what it changed. docs/BLOCKERS.md is what only I can provide. docs/DECISIONS.md is the decision log. docs/NEXT-PROMPT.md holds the long version of this brief.
+
+State (2026-09-22): M0, M1, M2, M5 done. M3 written and security-reviewed, never run against a real wallet. M4 waits on channel tokens, M6 on real users, M7 is drafted and waits on M6's numbers. `pnpm demo` passes 4/4 plus a cross-channel check on mainnet; a clean clone runs from the README alone.
+
+Blocked on me, in order of risk. Read docs/BLOCKERS.md; it is current.
+1. An owner-signed revocation test on the Sessions wallet. Highest-risk unknown in the project.
+2. A Telegram bot token. The adapter is written and typechecked but has never run.
+3. A second Slush wallet with no MemWalAccount, for the owned-mode and revoke demos.
+
+Two findings shape the design. First, recall() can return an empty list while reporting it found and discarded matches, so hippo retries before believing it. Do not try to prevent this on the client: four runs gave 4, 9, 0 and 15 drops with no pattern, I wrongly blamed concurrency and had to retract it, and SPIKES.md keeps the wrong hypothesis on purpose. Only retrying helps. Second, the relayer honours a delegate key absent from the account's on-chain delegate_keys, so "revoke on chain and the bot forgets" is unproven; hippo therefore destroys its own copy of the key on revoke.
+
+How to work.
+- Do not ask me what to do next. Every open choice is settled in GOAL.md or ARCHITECTURE.md. If something new comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in DECISIONS.md, and keep going.
+- When blocked, do everything that is not blocked, append the exact ask to BLOCKERS.md, and move to the next milestone's unblocked work. Never fabricate credentials, users or evidence.
+- Verify each task with the command under its milestone. Keep pnpm typecheck, lint and test green on every commit. Commit per task, push per milestone.
+- Any SDK or relayer friction becomes a draft in docs/issues/ with a repro, the same day. Eight are written and ready to file.
+- Measure twice before claiming a cause, and never leave a polling loop running against the relayer. One encouraging run in the direction I expected nearly went into the article as a finding; a clean re-run refuted it.
+- Never store memory text in Postgres, never log a private key, never route to an OpenAI or Anthropic model, never edit memwal/, never commit .env.
+- If time runs short, cut in this order: Slack, Sui Stack Messaging, Discord, manual SEAL decrypt, Enoki zkLogin, SuiNS, Walrus Sites. Never cut owned mode, the revoke demo, Telegram, the web app, the article or the evidence.
+
+Start by reading the docs above, then pick up the next unblocked task.
+```
+
+## Long form
 
 ---
 
