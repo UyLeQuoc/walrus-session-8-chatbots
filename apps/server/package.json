@@ -12,7 +12,8 @@
     "test": "vitest run",
     "discord:commands": "tsx scripts/register-discord-commands.ts",
     "probe:signin": "tsx scripts/probe-signin.ts",
-    "prune:people": "tsx scripts/prune.ts"
+    "prune:people": "tsx scripts/prune.ts",
+    "probe:header": "tsx scripts/probe-header-identity.ts"
   },
   "dependencies": {
     "@hippo/core": "workspace:*",

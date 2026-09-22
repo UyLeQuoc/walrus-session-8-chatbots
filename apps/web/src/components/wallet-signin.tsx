@@ -1,7 +1,7 @@
 import { ConnectModal, useCurrentAccount, useSignPersonalMessage } from "@mysten/dapp-kit";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { API_URL } from "@/lib/api";
+import { API_URL, identityHeaders, rememberSession } from "@/lib/api";
 
 /**
  * Prove control of a wallet, so someone who ran `/connect` on Telegram can open
@@ -22,6 +22,7 @@ export function WalletSignIn({ onSignedIn }: { onSignedIn: () => void }) {
       const challenge = await fetch(`${API_URL}/api/auth/challenge`, {
         method: "POST",
         credentials: "include",
+        headers: identityHeaders(),
       });
       if (!challenge.ok) throw new Error("Could not start sign-in.");
       const { nonce, message } = (await challenge.json()) as { nonce: string; message: string };
@@ -32,13 +33,16 @@ export function WalletSignIn({ onSignedIn }: { onSignedIn: () => void }) {
 
       const verified = await fetch(`${API_URL}/api/auth/verify`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...identityHeaders() },
         credentials: "include",
         body: JSON.stringify({ nonce, signature }),
       });
       if (!verified.ok) {
         throw new Error(((await verified.json()) as { error?: string }).error ?? "Sign-in failed.");
       }
+      // Cross-origin the cookie will not come back, so keep the session id.
+      const body = (await verified.json()) as { sessionId?: string };
+      if (body.sessionId) rememberSession(body.sessionId);
       onSignedIn();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign-in failed.");

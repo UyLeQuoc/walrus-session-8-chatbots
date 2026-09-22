@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { WalletSignIn } from "@/components/wallet-signin";
-import { API_URL } from "@/lib/api";
+import { API_URL, forgetSession, identityHeaders } from "@/lib/api";
 
 interface Me {
   mode: "anonymous" | "guest" | "owned";
@@ -43,11 +43,11 @@ export function MePage() {
   const [memories, setMemories] = useState<Memory[]>([]);
 
   const load = useCallback(() => {
-    void fetch(`${API_URL}/api/me`, { credentials: "include" })
+    void fetch(`${API_URL}/api/me`, { credentials: "include", headers: identityHeaders() })
       .then((r) => r.json() as Promise<Me>)
       .then((d) => setMe(d?.mode ? d : { mode: "anonymous" }))
       .catch(() => setMe({ mode: "anonymous" }));
-    void fetch(`${API_URL}/api/me/memories`, { credentials: "include" })
+    void fetch(`${API_URL}/api/me/memories`, { credentials: "include", headers: identityHeaders() })
       .then((r) => r.json() as Promise<{ memories?: Memory[] }>)
       // An unexpected shape must not blank the page: without the fallback,
       // `setMemories(undefined)` makes the next render throw on `.filter`.
@@ -58,7 +58,12 @@ export function MePage() {
   useEffect(load, [load]);
 
   const signOut = useCallback(async () => {
-    await fetch(`${API_URL}/api/auth/signout`, { method: "POST", credentials: "include" });
+    await fetch(`${API_URL}/api/auth/signout`, {
+      method: "POST",
+      credentials: "include",
+      headers: identityHeaders(),
+    });
+    forgetSession();
     load();
   }, [load]);
 

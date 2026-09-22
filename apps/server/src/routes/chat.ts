@@ -16,6 +16,40 @@ import { checkRate, noteCommand } from "../ratelimit.ts";
 const CHANNEL = "web";
 const COOKIE = "hippo_guest";
 const SESSION_COOKIE = "hippo_session";
+
+/**
+ * Cross-origin fallbacks for the cookies.
+ *
+ * A `SameSite=Lax` cookie is not sent on a cross-site request, which is what
+ * broke production when the page was on vercel.app and the API on railway.app.
+ * Proxying fixed that, but it ties the app to a host that can proxy, and the UI
+ * is meant to be able to live on Walrus Sites, where it cannot.
+ *
+ * So a client on a different origin may carry the same opaque id in a header
+ * instead. A header is never attached by the browser on its own, so this cannot
+ * be used for CSRF: it is strictly safer in that respect than `SameSite=None`,
+ * which was the other way to solve it. The trade is that the id lives in
+ * `localStorage` rather than an `HttpOnly` cookie, so a cross-site scripting
+ * bug on the page could read it. Same-origin deployments keep the cookie and
+ * never touch this path.
+ */
+const GUEST_HEADER = "x-hippo-guest";
+const SESSION_HEADER = "x-hippo-session";
+
+/** A guest id is opaque, but it must still look like one we would have minted. */
+function readGuestId(c: Context): string | undefined {
+  const cookie = getCookie(c, COOKIE);
+  if (cookie) return cookie;
+  const header = c.req.header(GUEST_HEADER);
+  return header && /^[0-9a-f-]{36}$/i.test(header) ? header : undefined;
+}
+
+function readSessionId(c: Context): string | undefined {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  if (cookie) return cookie;
+  const header = c.req.header(SESSION_HEADER);
+  return header && /^[0-9a-f]{64}$/i.test(header) ? header : undefined;
+}
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
 
 /**
@@ -28,7 +62,7 @@ async function webPerson(
   cookie: string | undefined,
   setId: (id: string) => void,
 ): Promise<Person> {
-  const sessionId = getCookie(c, SESSION_COOKIE);
+  const sessionId = readSessionId(c);
   if (sessionId) {
     const signedIn = await personFromSession(sessionId);
     if (signedIn) return signedIn;
@@ -52,7 +86,7 @@ export const chatRoutes = new Hono()
   .post("/api/chat", async (c) => {
     const body = (await c.req.json()) as { messages: UIMessage[]; sessionStart?: boolean };
     const channel = c.req.header("x-hippo-channel") === "cli" ? "cli" : CHANNEL;
-    const person = await webPerson(c, channel, getCookie(c, COOKIE), (id) =>
+    const person = await webPerson(c, channel, readGuestId(c), (id) =>
       setCookie(c, COOKIE, id, {
         httpOnly: true,
         sameSite: "Lax",
@@ -126,8 +160,8 @@ export const chatRoutes = new Hono()
 
   /** The memories hippo wrote for this person, newest first, with links and expiry. */
   .get("/api/me/memories", async (c) => {
-    const cookie = getCookie(c, COOKIE);
-    if (!cookie && !getCookie(c, SESSION_COOKIE)) return c.json({ memories: [] });
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ memories: [] });
     const person = await webPerson(c, CHANNEL, cookie, () => {});
     const rows = await db
       .select()
@@ -173,8 +207,8 @@ export const chatRoutes = new Hono()
 
   /** Everything the /me page shows. */
   .get("/api/me", async (c) => {
-    const cookie = getCookie(c, COOKIE);
-    const sessionId = getCookie(c, SESSION_COOKIE);
+    const cookie = readGuestId(c);
+    const sessionId = readSessionId(c);
     // `signedIn` has to mean the session resolved, not that a cookie was sent.
     // A signed-out or expired session leaves the cookie in the browser, and
     // reporting that as signed in would show the wrong thing on /me.

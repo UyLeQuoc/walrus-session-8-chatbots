@@ -16,7 +16,13 @@ const app = new Hono();
 app.use(logger());
 app.use(
   "/api/*",
-  cors({ origin: env.CORS_ORIGIN.split(",").map((o: string) => o.trim()), credentials: true }),
+  cors({
+    origin: env.CORS_ORIGIN.split(",").map((o: string) => o.trim()),
+    credentials: true,
+    // A cross-origin client (Walrus Sites, say) carries its id in a header
+    // because a SameSite=Lax cookie would not be sent. See routes/chat.ts.
+    allowHeaders: ["content-type", "x-hippo-channel", "x-hippo-guest", "x-hippo-session"],
+  }),
 );
 app.route("/", healthRoutes);
 app.route("/", chatRoutes);

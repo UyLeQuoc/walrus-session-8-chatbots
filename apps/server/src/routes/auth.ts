@@ -54,11 +54,14 @@ export const authRoutes = new Hono()
       mode: result.person.mode,
       address: result.address,
       hadGuestCookie: Boolean(guestCookie),
+      // A cross-origin page cannot read the cookie, so it keeps this instead.
+      // Same-origin pages ignore it and use the HttpOnly cookie.
+      sessionId: result.sessionId,
     });
   })
 
   .post("/api/auth/signout", async (c) => {
-    const sessionId = getCookie(c, SESSION_COOKIE);
+    const sessionId = getCookie(c, SESSION_COOKIE) ?? c.req.header("x-hippo-session");
     if (sessionId) await signOut(sessionId);
     deleteCookie(c, SESSION_COOKIE, { path: "/" });
     return c.json({ ok: true });

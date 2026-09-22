@@ -4,11 +4,16 @@ import { useMemo, useState } from "react";
 import { Recalled, type RecalledMemory } from "@/components/recalled";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { API_URL } from "@/lib/api";
+import { API_URL, identityHeaders } from "@/lib/api";
 
 export function ChatPage() {
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: `${API_URL}/api/chat`, credentials: "include" }),
+    () =>
+      new DefaultChatTransport({
+        api: `${API_URL}/api/chat`,
+        credentials: "include",
+        headers: identityHeaders,
+      }),
     [],
   );
   const { messages, sendMessage, status, error } = useChat({ transport });

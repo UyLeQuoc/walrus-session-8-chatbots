@@ -8,7 +8,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Button } from "@/components/ui/button";
-import { API_URL } from "@/lib/api";
+import { API_URL, identityHeaders } from "@/lib/api";
 import {
   addDelegateKeyTx,
   type ChainConfig,
@@ -46,7 +46,10 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
     void (async () => {
       try {
         const [tokenRes, cfgRes] = await Promise.all([
-          fetch(`${API_URL}/api/connect/${token}`, { credentials: "include" }),
+          fetch(`${API_URL}/api/connect/${token}`, {
+            credentials: "include",
+            headers: identityHeaders(),
+          }),
           fetch(`${API_URL}/api/config`),
         ]);
         if (!tokenRes.ok)
@@ -119,7 +122,7 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
       for (let i = 0; i < 6; i++) {
         const res = await fetch(`${API_URL}/api/connect/${token}/done`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...identityHeaders() },
           credentials: "include",
           body: JSON.stringify({ accountId, walletAddress, digest }),
         });
