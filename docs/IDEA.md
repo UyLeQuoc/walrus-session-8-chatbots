@@ -4,7 +4,7 @@ Working codename: **hippo** (hippocampus). Final product name TBD.
 
 ## One-line pitch
 
-A chatbot that lives on the web, Telegram, Discord and Slack at once, where **every user owns their own memory on-chain**. The bot is only a delegate: it reads and writes into the user's own Walrus Memory account, the user can revoke it in one transaction, and the same memory shows up in Claude Code, Cursor, or any other agent the user connects. Talk to it on Telegram in the morning, on the web in the afternoon, in Claude Code at night: same memory.
+A chatbot on the web, Telegram and a CLI, with Discord and Slack adapters written and waiting on tokens, where **every user can own their own memory on-chain**. The bot is only a delegate: it reads and writes into the user's own Walrus Memory account, the user can revoke it in one transaction, and the same memory shows up in Claude Code, Cursor, or any other agent the user connects. Talk to it on Telegram in the morning, on the web in the afternoon, in Claude Code at night: same memory.
 
 ## Why this can win
 
@@ -25,7 +25,9 @@ The judging rubric (see `BRIEF.md` §3) and prior sessions tell us what the pane
 
 **Owned mode (the wow).** The user runs `/connect`. The bot generates an Ed25519 delegate keypair for that user, then hands them a link to the hippo web page. The page connects a Sui wallet (Slush, or Google via zkLogin), creates a Walrus Memory account if the wallet has none, and signs `add_delegate_key` for the bot's key. **Gas is sponsored by the Walrus relayer**, so the user pays nothing. From that moment the bot writes into the user's account. Existing guest memories are migrated across with one click.
 
-**Ownership is real, not a slogan.**
+**Ownership is real, and its limits are stated.** Two of them, both measured rather than assumed: a memory can be made unrecallable but never deleted, and the relayer's own recovery tool cannot re-index this account. hippo says both out loud, in the bot and in the article, because a pitch about ownership that hides what you cannot do is worse than one that names it.
+
+**What ownership does give you.**
 - `/whoami` shows the user's MemWalAccount object with a Sui explorer link and the delegate key label.
 - `/memory` lists what the bot remembers, each with a blob ID.
 - `/disconnect` builds a sponsored `remove_delegate_key` transaction. After it lands, the bot cannot decrypt or recall anything. Re-run `/connect` and it all comes back.
@@ -33,7 +35,7 @@ The judging rubric (see `BRIEF.md` §3) and prior sessions tell us what the pane
 
 **Portable.** The user pastes the same account into Claude Code via the Walrus Memory MCP plugin and asks "what does hippo know about my stack?" It answers from the same memories. Memory the bot wrote on Telegram is now context in the IDE.
 
-**Same person, every channel.** `/connect` on Telegram and a wallet sign-in on the web resolve to the same person, so a fact learned in one channel is recalled in all of them. Judges can verify this with a link and a bot handle in under two minutes.
+**Same person, every channel.** A wallet sign-in on the web resolves to the same person as `/connect` on Telegram, and a `/link` code does it without a wallet at all, so a fact learned in one channel is recalled in every other. Verified web-to-CLI and asserted in `pnpm demo`; a judge can check it with a link and a bot handle in under two minutes.
 
 ## What the bot remembers (memory doing real work)
 
@@ -53,11 +55,13 @@ The bot writes proactively using the four-part policy from the official prompt t
 1. **Day 0, memory off.** Baseline logs. The bot re-asks the stack, re-suggests rejected tools, forgets commitments.
 2. **Memory on, guest mode.** Same users, same questions. The bot recalls and adapts. Screenshots of "the moment it mattered".
 3. **Owned mode.** The user connects a wallet. The bot now writes to the user's account. Demo: revoke the key, watch the bot forget, re-grant, watch it remember. Then open Claude Code and recall the same memory there.
+
+   One caveat to record honestly when this is filmed: the relayer honours a delegate key that is absent from the account's on-chain list, so the revoke has to be verified rather than assumed. hippo also destroys its own copy of the key, which makes the revoke true on its side regardless. See `docs/issues/08`.
 4. **What broke.** The honest list of SDK frictions, each linked to a GitHub issue.
 
 ## Scope guardrails
 
-- Order: core + web + Telegram first (by Sep 26), Discord second (one day, the adapter is thin), Slack third if time allows. Team/shared scope is stretch.
+- Order: core, web and Telegram first, then Discord, then Slack. Core, web and the CLI are done and Telegram is live; Discord and Slack are written and need tokens. Team and shared scope remains stretch, and has not been started.
 - The bot holds users' delegate private keys encrypted at rest. This is the standard delegate model (the MCP plugin does the same on the user's machine). Ownership means the user can revoke, not that the bot never sees a key. Say this plainly in the article.
 - No self-hosted relayer. Managed mainnet relayer only.
 
