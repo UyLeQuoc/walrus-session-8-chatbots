@@ -20,7 +20,9 @@ Deeper reference than `BRIEF.md` §5, distilled from `memwal/` (SDK 0.1.8 source
 - `MemWalAccount` (shared): `owner`, `delegate_keys: vector<DelegateKey{public_key, sui_address, label, created_at}>`, `active`, rotation counter for SEAL identities.
 - Owner: add/remove delegates, freeze/unfreeze, decrypt. Delegate: remember/recall/analyze/restore/decrypt. Delegates cannot manage keys.
 - Max 20 delegate keys. Duplicate key → error 0. Removal bumps the rotation counter so old SEAL keys stop working for new writes.
-- Mainnet: package `0xcee7a6fd8de52ce645c38332bde23d4a30fd9426bc4681409733dd50958a24c6`, registry `0x0da982cefa26864ae834a8a0504b904233d49e20fcc17c373c8bed99c75a7edd`. Testnet IDs in `docs/contract/overview.md`.
+- Mainnet registry: `0x0da982cefa26864ae834a8a0504b904233d49e20fcc17c373c8bed99c75a7edd`.
+- **Mainnet package: read it from `GET /config`.** The published docs give the original package `0xcee7a6fd8de52ce645c38332bde23d4a30fd9426bc4681409733dd50958a24c6`; the relayer runs an upgrade at `0xe7c16fbea0560e7057e2bf7422feaa4fb313749fc69c9e9092fac7a33b81d7f5`. Existing objects keep the original in their type, which is normal after a Move upgrade, but **Move calls must target the newer package** or the sponsorship allowlist rejects them. `fetchRelayerConfig()` does this. See `docs/issues/04`.
+- A delegate key that the relayer accepts is **not necessarily on chain**. Ours is not, which means `seal_approve` refuses it for client-side decryption and revocation behaviour is unproven. Check with `pnpm diagnose`. See `docs/issues/08`.
 
 ## Sponsored transactions (gasless)
 
@@ -45,9 +47,9 @@ Headers: `x-public-key`, `x-signature`, `x-timestamp` (±300 s), `x-nonce` (UUID
 | `POST /api/recall` | `recall()` | `{query, limit, namespace, maxDistance}`; returns `{blob_id, text, distance}`. |
 | `POST /api/analyze` | `analyze*` | LLM fact extraction then one job per fact. |
 | `POST /api/embed` | `embed()` | |
-| `POST /api/restore` | `restore(ns, limit)` | Rebuild index from Walrus, newest-first, no cursor, limit 1–100. |
+| `POST /api/restore` | `restore(ns, limit)` | Meant to rebuild the index from Walrus, newest-first, no cursor, limit 1–100. **On our account it reports `total: 0` and `truncated: false` for namespaces that have memories**, while the read API lists 125 for the same owner. Do not rely on it as a recovery path. See `docs/issues/10`. |
 | `POST /api/stats` | used internally by `resolveOwner()` | `{memory_count, storage_bytes, namespace, owner}`. Reuse for `/whoami`. |
-| `POST /api/forget` | **none** | Deletes index rows for a namespace. Blobs persist. |
+| `POST /api/forget` | **none** | Deletes index rows for a namespace, so nothing can recall them. Blobs persist until their epochs expire, and **nothing deletes a current blob** (see Deletion below). |
 | `POST /api/ask` | **none** | Recall + LLM answer server-side. |
 | `GET /api/whoami` | **none** | `{account_id, owner, package_id}`; mainnet can resolve without `x-account-id`. |
 | `GET /v1/owners/:owner/namespaces` | `listNamespaces()` | Cursor via `updated_after`. |
@@ -56,7 +58,13 @@ Headers: `x-public-key`, `x-signature`, `x-timestamp` (±300 s), `x-nonce` (UUID
 | `GET /api/accounts/:owner/exists` | none, public | Rate-limited existence check. |
 | `GET /health`, `/version`, `/config` | `health()`, `compatibility()` | `/config` returns `packageId, network, suiRpcUrl, suiGrpcUrl`. |
 
-Rate limits: write path 30 weighted req/min per delegate key (plus per-account tiers); read API 200/min per delegate key, separate budget.
+Rate limits: the write path returns `60 weighted-requests/min per delegate_key`, not the 30 the public docs state, and the weights are unpublished so a client cannot predict its own budget. The read API is a separate 200/min per delegate key. The official multi-tenant pattern puts every end user behind one delegate key, so pace requests in process; `packages/memory/src/limiter.ts` does, and honours `retry_after_seconds`. See `docs/issues/06`.
+
+**`recall()` can lie about finding nothing.** It sometimes returns `{"results": [], "total": 0, "dropped_count": N}`: N matches found and discarded, HTTP 200, no error, and `dropped_count` is absent from the SDK's types. Six identical eval runs gave 4, 9, 0, 15, 0 and 2 of these. Nothing client-side prevents it; retry before believing an empty result. See `docs/issues/01`.
+
+**Writes take about 24 seconds** and jobs die when the relayer's own Sui RPC is throttled (`seal encrypt failed … Too Many Requests`). Never block a reply on a write, and resubmit a failed job. See `docs/issues/02`.
+
+**Only the object form of `recall()` works.** The documented positional form `recall(q, limit, ns)` dropped every match in testing. See `docs/issues/03`.
 
 ## SDK behaviours to design around
 
@@ -85,8 +93,9 @@ Rate limits: write path 30 weighted req/min per delegate key (plus per-account t
 
 ## Deletion
 
-- `POST /api/forget {namespace}`: index only.
-- Security Delete API (`docs/api/security-delete.md`, `docs/guides/delete-memories-programmatically.md`): wallet challenge → bearer → list deletable blobs → prepare sponsored deletion → submit signature. Owner wallet required. Out of scope; link from `/memory forget` reply.
+- `POST /api/forget {namespace}`: index rows only. The memory becomes unrecallable; the blob stays.
+- **The Security Delete API does not delete your memories.** Its own opening lines say it "permanently deletes legacy Walrus Blob objects that were tracked in MemWal's old-V1 database" and "never enrolls caller-supplied blobs into the legacy tracking set". It is migration cleanup for pre-July-2026 blobs. `GET /config` reporting `securityDeleteEnabled: true` means only that the route is exposed, not that an account can use it on current memories, which is how we first read it.
+- **So there is no way to permanently delete a memory, even as the owner.** Storage runs about 210 days on mainnet, measured, and then the blob expires. Say this plainly to users rather than implying deletion. See `docs/issues/09`.
 
 ## Versions (Sep 22, 2026)
 
@@ -99,4 +108,12 @@ Rate limits: write path 30 weighted req/min per delegate key (plus per-account t
 | `@ai-sdk/google` | 4.0.76 | – |
 | `grammy` | 1.46.0 | – (Telegram, stretch) |
 
-Pin `ai` to the major the SDK's `/ai` entry was tested with (v6) unless a spike shows v7 works with `wrapLanguageModel`.
+hippo runs `ai` v7, because `@openrouter/ai-sdk-provider` 3.x requires it and nothing here uses `withMemWal`. If you do use the SDK's `/ai` middleware, check it against v7 first: it was written for v4 and v5 and carries a `specificationVersion: "v3"` shim for v6.
+
+## What we would tell someone starting today
+
+1. Run something like `pnpm diagnose` before writing a feature. A wrong `MEMWAL_ACCOUNT_ID` works on mainnet and fails on testnet, so a broken config looks fine (`docs/issues/05`).
+2. Read the package id from `GET /config`, not the docs.
+3. Measure your own recall distances. True positives ran 0.449 to 0.777 for question-shaped queries, and `withMemWal`'s default relevance threshold works out to a 0.6 cutoff that would drop half of them.
+4. Treat the relayer's search index as the fragile part and Walrus as the durable part, and do not count on `restore()` to bridge them.
+5. Retry recalls that come back empty with a non-zero `dropped_count`, and resubmit writes whose jobs fail.
