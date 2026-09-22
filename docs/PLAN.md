@@ -57,7 +57,9 @@ Seven reports drafted with repros in `docs/issues/`, all hit while building on t
 
 Checked and found fine, so not filed: Vietnamese fact extraction and embedding quality. Six Vietnamese facts came back byte-identical and eight questions recalled 8/8, including across languages in both directions (`docs/SPIKES.md` §12).
 
-Still to confirm before filing: blob epoch length, whether `restore()` pagination bites us, and anything the wallet connect flow throws once a second wallet is available.
+Confirmed and filed since: `restore()` does not see this account's blobs at all (issue 10), and there is no way to delete a memory you own (issue 9).
+
+Still to confirm before filing: blob epoch length, and anything the wallet connect flow throws once a second wallet is available.
 
 ## Article outline (Medium + Inkray)
 

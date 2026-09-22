@@ -73,6 +73,8 @@ https://suiscan.xyz/mainnet/object/0x4926f26b7a166e146161c517723c50762988f277202
 | 6 | Write rate limit is 60/min, not the documented 30/min, weights unpublished |
 | 7 | `GET /api/whoami` 404s; `GET /v1/owners/:owner/agents` is flaky and miscounts |
 | 8 | The relayer authorizes a delegate key that is not in the on-chain `delegate_keys` |
+| 9 | No way to permanently delete a memory, even as the owner |
+| 10 | `restore()` reports `total: 0` and `truncated: false` for a namespace that has memories |
 
 **One bug or friction point you hit.**
 
@@ -83,6 +85,16 @@ https://suiscan.xyz/mainnet/object/0x4926f26b7a166e146161c517723c50762988f277202
 > product this is the worst possible silent failure, and during one run of our
 > four-question eval it fired four times. We now retry three times before
 > believing an empty result that had candidates.
+
+**A second friction worth naming, if the form allows more than one.**
+
+> `restore()` is the documented answer to "what happens if the relayer loses its
+> index", and on our account it reports `total: 0` with `truncated: false` for
+> namespaces whose memories recall returns right now. The owner address does own
+> the blobs, 197 of them, so this looks like the owner-wide candidate fetch being
+> capped below the account's blob count, which your own notes flag as an
+> unreported case (WALM-451). A recovery tool that silently sees nothing is worse
+> than one that errors.
 
 **One improvement idea.**
 

@@ -25,7 +25,7 @@ How to work.
 - Do not ask me what to do next. Every open choice is settled in GOAL.md or ARCHITECTURE.md. If something new comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in DECISIONS.md, and keep going.
 - When blocked, do everything that is not blocked, append the exact ask to BLOCKERS.md, and move to the next milestone's unblocked work. Never fabricate credentials, users or evidence.
 - Verify each task with the command under its milestone. Keep pnpm typecheck, lint and test green on every commit. Commit per task, push per milestone.
-- Any SDK or relayer friction becomes a draft in docs/issues/ with a repro, the same day. Eight are written and ready to file.
+- Any SDK or relayer friction becomes a draft in docs/issues/ with a repro, the same day. Ten are written and ready to file.
 - Measure twice before claiming a cause, and never leave a polling loop running against the relayer. One encouraging run in the direction I expected nearly went into the article as a finding; a clean re-run refuted it.
 - Never store memory text in Postgres, never log a private key, never route to an OpenAI or Anthropic model, never edit memwal/, never commit .env.
 - If time runs short, cut in this order: Slack, Sui Stack Messaging, Discord, manual SEAL decrypt, Enoki zkLogin, SuiNS, Walrus Sites. Never cut owned mode, the revoke demo, Telegram, the web app, the article or the evidence.
@@ -50,11 +50,11 @@ Working and verified on mainnet:
 - A clean clone runs from the README alone: install, db:push, typecheck, test, build, smoke. Transcript in `docs/evidence/clean-clone-2026-09-21.md`.
 - Owned mode code exists end to end (connect page, sponsored transactions, on-chain verification, revoke) but has never been run against a real wallet.
 - M7 is drafted and needs editing rather than writing: `docs/article.md`, `docs/promo.md`, `docs/video.md`, `docs/submission.md` (every form field, with `[M6]` and `[HUMAN]` marking what is still missing).
-- `/proof` links the Walrus blobs behind the last answer; `pnpm evidence` separates slash commands from conversation turns so the before/after is honest. Vietnamese and cross-language recall verified (`docs/SPIKES.md` §12), which removed a bug-bounty candidate rather than adding one.
+- `/proof` links the Walrus blobs behind the last answer; `pnpm evidence` separates slash commands from conversation turns so the before/after is honest; `pnpm restore` exists and warns that the relayer's restore path does not actually work on this account. Vietnamese and cross-language recall verified (`docs/SPIKES.md` §12), which removed a bug-bounty candidate rather than adding one.
 
 A security review of the repo has been run and its three real findings are fixed, including an unauthenticated takeover in the connect callback. Results in `docs/evidence/security-review-2026-09-21.md`.
 
-Eight findings against Walrus Memory are written up with repros in `docs/issues/`; all eight are ready to file. The two that changed the design:
+Ten findings against Walrus Memory are written up with repros in `docs/issues/`; all ten are ready to file. The two that changed the design:
 - `recall()` can return an empty list while reporting it found and discarded matches, so hippo retries before believing an empty result. **Do not try to prevent this on the client.** Four runs gave 4, 9, 0 and 15 drops with no pattern; I wrongly concluded concurrency was the cause and had to retract it. `docs/SPIKES.md` §H keeps the wrong hypothesis on purpose so it is not repeated. Only retrying helps.
 - The relayer honours a delegate key that is absent from the account's on-chain `delegate_keys`, so "revoke on chain and the bot forgets" is unproven. hippo therefore deletes its own copy of the key on revoke, which makes the revoke true regardless.
 

@@ -135,6 +135,14 @@ is a defensible position for immutable storage to take. It is just not the
 position "you own your memory" leads a user to expect, so hippo says it out loud
 when you ask it to forget something.
 
+One more, found while writing the recovery tooling. `restore()` is the documented
+answer to "what if the relayer loses its index": the blobs are on Walrus, re-index
+them. On my account it reports finding zero blobs for a namespace whose memories
+recall returns right now, and reports it with `truncated: false`, which reads
+like completeness. The address does own the blobs, 197 of them. So the memory is
+genuinely on Walrus and I currently have no working way to rebuild an index from
+it.
+
 All of these are filed: github.com/MystenLabs/MemWal/issues.
 
 ### Run it
