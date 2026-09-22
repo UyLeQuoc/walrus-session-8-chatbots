@@ -144,9 +144,9 @@ Original task list:
 
 Verification: a clean clone on another machine (or a fresh directory) follows README and chats; live URLs answer; `curl <api>/api/health` from outside.
 
-### M6 — Real use and evidence — BLOCKED on a Telegram token and real people
+### M6 — Real use and evidence — READY TO START, waiting on people
 
-Nothing here can start without a channel real users will actually open. `docs/RUNBOOK.md` has the invite text, consent rules and daily checklist ready to run. Everything else it depends on is ready: `pnpm evidence` counts only memories that landed and prints whether the three-people-ten-memories requirement is met, `docs/evidence/` exists, and ten bug reports are drafted and ready to file.
+The Telegram token arrived and the adapter is live: `@walrussession8_bot` polls, registers its commands, and runs the same turn handler verified through the web and CLI. What is left is genuinely human: somebody has to message it, and a few people have to use it for a week. `docs/RUNBOOK.md` has the invite text, consent rules and daily checklist ready to run. Everything else it depends on is ready: `pnpm evidence` counts only memories that landed and prints whether the three-people-ten-memories requirement is met, `docs/evidence/` exists, and ten bug reports are drafted and ready to file.
 
 Original task list:
 
@@ -188,7 +188,7 @@ Verification: every checklist item in `docs/PLAN.md` "Submission checklist" is t
 ## Current blockers, in order of risk
 
 1. **An owner-signed revocation test** on the Sessions wallet. The relayer honours a delegate key the chain does not list (`docs/issues/08`), so the central claim, revoke on chain and the bot forgets, is unproven. Remove one delegate key on the dashboard and immediately run `pnpm smoke` with it.
-2. **A Telegram bot token.** Nothing in M6 can start without a channel real people will open.
+2. **One message to @walrussession8_bot**, then the invites from `docs/RUNBOOK.md`. The adapter has never received a message; that cannot be tested without a Telegram account.
 3. **A second Slush wallet** with no MemWalAccount, for the owned-mode and revoke demos.
 
 Also needed later: Neon, Railway and Vercel for M5's actual deploy; Medium, Inkray, X and the Airtable form for M7; optionally an Enoki key and some WAL.

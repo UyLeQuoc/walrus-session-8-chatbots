@@ -16,7 +16,7 @@ State (2026-09-22): M0, M1, M2, M5 done. M3 written and security-reviewed, never
 
 Blocked on me, in order of risk. Read docs/BLOCKERS.md; it is current.
 1. An owner-signed revocation test on the Sessions wallet. Highest-risk unknown in the project.
-2. A Telegram bot token. The adapter is written and typechecked but has never run.
+2. One message to @walrussession8_bot from a real Telegram account, then the invites in docs/RUNBOOK.md. The adapter is live and polling; it has just never received a message, and that cannot be tested without a Telegram account.
 3. A second Slush wallet with no MemWalAccount, for the owned-mode and revoke demos.
 
 Two findings shape the design. First, recall() can return an empty list while reporting it found and discarded matches, so hippo retries before believing it. Do not try to prevent this on the client: four runs gave 4, 9, 0 and 15 drops with no pattern, I wrongly blamed concurrency and had to retract it, and SPIKES.md keeps the wrong hypothesis on purpose. Only retrying helps. Second, the relayer honours a delegate key absent from the account's on-chain delegate_keys, so "revoke on chain and the bot forgets" is unproven; hippo therefore destroys its own copy of the key on revoke.
@@ -60,7 +60,7 @@ Ten findings against Walrus Memory are written up with repros in `docs/issues/`;
 
 **Blocked on me.** Read `docs/BLOCKERS.md` first; it is current. The three that matter, in order:
 1. An owner-signed revocation test on the Sessions wallet. This is the highest-risk unknown in the project, not a nice-to-have.
-2. A Telegram bot token. The adapter is written and typechecked but has never run.
+2. One message to @walrussession8_bot from a real Telegram account, then the invites in docs/RUNBOOK.md. The adapter is live and polling; it has just never received a message, and that cannot be tested without a Telegram account.
 3. A second Slush wallet with no MemWalAccount, for the owned-mode and revoke demos.
 
 **How to work.**

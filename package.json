@@ -20,7 +20,8 @@
     "format": "biome format --write .",
     "demo": "pnpm --filter @hippo/core demo",
     "evidence": "pnpm --filter @hippo/server evidence",
-    "restore": "pnpm --filter @hippo/server restore"
+    "restore": "pnpm --filter @hippo/server restore",
+    "diagnose": "pnpm --filter @hippo/memory diagnose"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

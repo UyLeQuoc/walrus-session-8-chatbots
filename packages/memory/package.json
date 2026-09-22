@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "smoke": "tsx scripts/smoke.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "diagnose": "tsx scripts/doctor.ts"
   },
   "dependencies": {
     "@mysten-incubation/memwal": "^0.1.7",

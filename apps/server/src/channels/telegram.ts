@@ -60,6 +60,7 @@ export function telegramAdapter(): ChannelAdapter | null {
         { command: "memory", description: "what I remember about you" },
         { command: "whoami", description: "your account and where the memory lives" },
         { command: "proof", description: "the memories behind my last answer" },
+        { command: "link", description: "use the same memory on another channel" },
         { command: "connect", description: "own your memory on-chain" },
         { command: "disconnect", description: "revoke my access" },
         { command: "help", description: "all commands" },
