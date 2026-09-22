@@ -5,6 +5,13 @@ Two forms of the same brief. Update the State line in both as milestones land.
 - **Short form** below fits the `/goal` command, which caps at 4000 characters.
 - **Long form** further down is for pasting into a fresh session, where there is no limit.
 
+## Done 2026-09-22: the web UI goal below
+
+All six tasks landed and were checked in a browser against production
+(`docs/evidence/web-ui-2026-09-22.md`). Task 4 did not produce a feature: client
+-side SEAL decryption is blocked by an aggregator API key, written up as
+`docs/issues/12`, and `docs/ARCHITECTURE.md` now lists it as a limitation.
+
 ## This session's goal, for `/goal` — the web UI
 
 ```
