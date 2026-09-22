@@ -144,7 +144,7 @@ The relayer sometimes answers a recall with `{"results": [], "total": 0, "droppe
 
 ### Rate limiting
 
-The relayer allows 60 weighted requests per minute per delegate key, and guest mode shares one key across every user. `packages/memory/src/limiter.ts` paces all traffic per key (50/min, concurrency 4) and `runLimited` honours `retry_after_seconds`. `apps/server/src/ratelimit.ts` separately caps each person at 10 turns per minute and 200 per day, because the web chat is public and every turn costs model credit.
+The relayer allows 60 weighted requests per minute per delegate key, and guest mode shares one key across every user. `packages/memory/src/limiter.ts` paces all traffic per key (50/min, concurrency 2) and `runLimited` honours `retry_after_seconds`. `apps/server/src/ratelimit.ts` separately caps each person at 10 turns per minute and 200 per day, because the web chat is public and every turn costs model credit.
 
 ### Recall policy
 
@@ -319,6 +319,17 @@ Original list:
 | Secrets in memory text | Strip API keys / private keys / tokens before `remember` (mirror the MCP's credential filter). |
 | Namespace leakage | Only the three fixed namespace patterns; person IDs are UUIDs. |
 
-## 12. Evidence pipeline
+## 12. Evidence pipeline and operator commands
 
-`turn_log` stores per turn: person, channel, memory on/off, memories injected (blob IDs + distances), model, tokens. `memory_index` stores writes. `pnpm evidence` prints: users, memories per user, agents (delegate keys) per account, blob counts for the form, and memory hit rate for the article. `pnpm demo` runs a scripted two-session eval that proves recall end to end.
+| Command | What it is for |
+|---|---|
+| `pnpm diagnose` | Config, relayer health, package id against `/config`, account id against the registry, chain-versus-relayer delegate comparison, storage expiry. Exits non-zero when something is broken, so it can gate a deploy. It is the tool we wished the SDK shipped (`docs/issues/05`). |
+| `pnpm demo` | The memory eval. Asserts cross-session recall, style adaptation and cross-channel recall. |
+| `pnpm evidence` | The submission numbers, counting only memories that landed and excluding slash commands from the turn counts. |
+| `pnpm smoke` | Health, identity, and with `--write` one round trip on mainnet. |
+| `pnpm restore` | Relayer index versus what we wrote, with a warning when restore sees nothing (`docs/issues/10`). |
+| `scripts/file-issues.sh` | Files the ten drafted reports, `--dry-run` first. |
+| `pnpm --filter @hippo/server discord:commands <guildId>` | Publishes the slash commands to Discord. |
+
+
+`turn_log` stores per turn: person, channel, memory on/off, mode, memories injected (blob IDs, distances and types), model. Slash commands are recorded with mode `command` so they count against the rate limit without polluting the before/after. `memory_index` stores one row per write, inserted at accept time with status `pending` and updated to `stored` or `failed` when the blob lands, so a restart inside the 25-second write window cannot lose the record of a memory the user was already told about.
