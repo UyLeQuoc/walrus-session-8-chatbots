@@ -19,7 +19,7 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "dotenv": "^17.0.0",
-    "drizzle-kit": "^0.31.0",
+    "drizzle-kit": "^0.31.11",
     "typescript": "^5.9.3"
   }
 }

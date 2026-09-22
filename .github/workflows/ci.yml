@@ -37,6 +37,9 @@ jobs:
       - name: Build the web app
         run: pnpm build
 
+      - name: Audit dependencies
+        run: pnpm audit --audit-level moderate
+
       - name: Secrets must not be committed
         run: |
           if git ls-files | grep -qx '.env'; then
