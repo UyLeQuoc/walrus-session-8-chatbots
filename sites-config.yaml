@@ -1,0 +1,23 @@
+# site-builder configuration for publishing apps/web to Walrus Sites.
+#
+# Mainnet values and the RPC notes below are carried over from WalForm, which
+# learned them the hard way. The short version: site-builder and the walrus
+# subprocess need different endpoints and unifying them breaks one of them.
+contexts:
+  mainnet:
+    package: 0x5a0c509a659ba982f91ff1189872b8d528f8c02b5f6285a3931fc4c2869ccc9c
+    staking_object: 0x10b9d30c28448939ce6c4d6c6e0ffce4a7f8a4ada8248bdad09ef8b70e4a3904
+    general:
+      wallet_env: mainnet
+      # Assumes ~/.config/walrus/client_config.yaml has a "mainnet" context.
+      walrus_context: mainnet
+      walrus_package: 0x98da433aa0139512c210597b1c5e3df6cd121d8d77f8652691bb66fadfc8aa1b
+      # Must be a gRPC fullnode: this feeds site-builder's client and is passed
+      # to the walrus subprocess as --rpc-url, and walrus >= 1.55 is gRPC-only.
+      # JSON-RPC-only providers fail here with "invalid compression flag".
+      rpc_url: https://fullnode.mainnet.sui.io:443
+      # A real deploy costs roughly 0.006 SUI; site-builder still needs one coin
+      # at least this large to reserve against.
+      gas_budget: 300000000
+
+default_context: mainnet
