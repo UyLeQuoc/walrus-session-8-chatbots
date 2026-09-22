@@ -61,7 +61,7 @@ https://suiscan.xyz/mainnet/object/0x4926f26b7a166e146161c517723c50762988f277202
 
 **Which tool did you use to connect with Walrus Memory?** The TypeScript SDK, `@mysten-incubation/memwal`, against the managed mainnet relayer. The official MCP plugin is used separately to demonstrate that the same memory is readable from Claude Code.
 
-**Feedback: GitHub tickets.** Drafted with repros in `docs/issues/`; file before submitting and paste the links here.
+**Feedback: GitHub tickets.** Drafted with repros in `docs/issues/`. File with `scripts/file-issues.sh`, which writes each resulting URL back into its draft, then paste the links here.
 
 | # | Title |
 |---|---|

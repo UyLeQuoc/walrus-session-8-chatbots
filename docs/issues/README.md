@@ -1,6 +1,18 @@
 # Bug reports for MystenLabs/MemWal
 
 Drafts to file at https://github.com/MystenLabs/MemWal/issues during the session.
+
+File them with:
+
+```bash
+scripts/file-issues.sh --dry-run    # see exactly what would be posted
+scripts/file-issues.sh              # file all of them
+scripts/file-issues.sh 01 02 08     # or a subset, in that order
+```
+
+Each file's first heading becomes the issue title and the rest becomes the body.
+The script writes the resulting URL back into the draft as an HTML comment, so
+`docs/submission.md` can be filled from the files afterwards.
 Every one was hit while building hippo on the managed mainnet relayer, and every
 one has a repro that runs from this repo.
 

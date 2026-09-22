@@ -45,7 +45,7 @@ Evidence to collect per user: baseline transcript, first "it remembered" moment,
 
 ## Bug bounty
 
-Seven reports drafted with repros in `docs/issues/`, all hit while building on the managed mainnet relayer. File the first five; six and seven are lower severity and can follow.
+Ten reports drafted with repros in `docs/issues/`, all hit while building on the managed mainnet relayer. File them with `scripts/file-issues.sh` (dry-run first). Order matters if filing a subset: 1, 8 and 10 are the substantial ones.
 
 | # | Title |
 |---|---|
