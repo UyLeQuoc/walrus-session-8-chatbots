@@ -1,4 +1,5 @@
 import { Link, Outlet } from "react-router";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Layout() {
   return (
@@ -18,6 +19,7 @@ export function Layout() {
             <Link to="/me" className="hover:text-foreground">
               my memory
             </Link>
+            <ThemeToggle />
           </nav>
         </div>
       </header>

@@ -5,6 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>hippo</title>
+    <meta
+      name="description"
+      content="A chatbot that remembers you, on memory you own. Your memory is an encrypted blob on Walrus, indexed by an account on Sui, and you can revoke the bot's access on chain."
+    />
+    <!--
+      Decide the theme before the first paint. React sets the same class, but it
+      does so after mount, which is long enough for a dark-mode reader to get a
+      white flash. Wrapped because storage throws in a private window.
+    -->
+    <script>
+      try {
+        const saved = localStorage.getItem("hippo.theme");
+        const dark =
+          saved === "dark" ||
+          (saved === null && matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

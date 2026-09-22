@@ -10,6 +10,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Layout } from "../components/layout.tsx";
 import { ChatPage } from "./chat.tsx";
 import { MePage } from "./me.tsx";
 
@@ -350,6 +351,77 @@ describe("me page, finding a memory", () => {
     await userEvent.type(screen.getByLabelText(/search your memory/i), "sailing");
     await userEvent.click(screen.getByRole("button", { name: /^search$/i }));
     await waitFor(() => expect(container.textContent ?? "").toMatch(/Nothing close to that/i));
+  });
+});
+
+describe("theme", () => {
+  /**
+   * This jsdom has no localStorage, which is also why `lib/api.ts` guards every
+   * access. The toggle must work with it and without it, so the tests supply a
+   * minimal one rather than pretending the guard is unnecessary.
+   */
+  function fakeStorage() {
+    const map = new Map<string, string>();
+    return {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => void map.set(k, v),
+      removeItem: (k: string) => void map.delete(k),
+      clear: () => map.clear(),
+    };
+  }
+
+  beforeEach(() => {
+    document.documentElement.classList.remove("dark");
+    vi.stubGlobal("localStorage", fakeStorage());
+    // jsdom has no matchMedia; without it the toggle cannot read the system.
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+  });
+
+  const mount = () =>
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<p>hello</p>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+  it("applies the dark class and remembers the choice", async () => {
+    mount();
+    // The palette existed in index.css and nothing ever switched it on.
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: /switch to dark/i }));
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(localStorage.getItem("hippo.theme")).toBe("dark");
+  });
+
+  it("honours a stored choice over the system preference", () => {
+    localStorage.setItem("hippo.theme", "dark");
+    mount();
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(screen.getByRole("button", { name: /switch to light/i })).toBeDefined();
+  });
+
+  it("follows the system when nothing is stored", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    mount();
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 });
 
