@@ -1,0 +1,56 @@
+
+> hippo@0.0.1 demo /Users/uydev/orca/walrus-session-8-chatbots
+> pnpm --filter @hippo/core demo
+
+
+> @hippo/core@0.0.1 demo /Users/uydev/orca/walrus-session-8-chatbots/packages/core
+> tsx src/demo.ts
+
+hippo memory eval · model google/gemini-2.5-flash · namespace hippo-guest:demo-muc5b7x4
+
+SESSION 1 — teaching
+  › Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.
+  ‹ Hi Mai. I've noted that you work with Sui, Next.js, and TypeScript in strict mode.  (1 writes)
+  › For package managers I only use pnpm, never npm or yarn.
+  ‹ Okay, you use pnpm exclusively. I've saved that to your profile.  (1 writes)
+    stored [profile] blob oU4QT_ZWp7nX…
+    stored [profile] blob wWmO0cRZDx_d…
+  › We decided to use Drizzle instead of Prisma for this project's ORM.
+  ‹ Got it. You've decided to use Drizzle as the ORM for this project.  (1 writes)
+  › One thing to remember: our Postgres runs on port 5433 because 5432 is taken.
+  ‹ Understood. Your Postgres is on port 5433.  (1 writes)
+    stored [decision] blob rcMOAtCMj1W0…
+    stored [gotcha] blob 3-worqlwjj0m…
+  › Please keep your answers short, and always answer me in Vietnamese.
+  ‹ Được rồi. Tôi sẽ giữ câu trả lời ngắn gọn và luôn trả lời bạn bằng tiếng Việt.  (1 writes)
+
+  5 memories written. Waiting 90s for indexing…
+    stored [style] blob bucdjWlI_VhW…
+
+SESSION 2 — fresh conversation, no history carried over
+  PASS  Which package manager should I use here?
+        You should use pnpm.
+        recalled 3 memories
+  PASS  Which ORM did we settle on?
+        We decided to use Drizzle instead of Prisma for this project's ORM.
+        recalled 4 memories
+  PASS  What port is the database on?
+        Our Postgres runs on port 5433.
+        recalled 4 memories
+  PASS  What do you know about me?
+        Tôi là Hippo. Tôi biết bạn là Mai, làm việc với Sui và Next.js, luôn ở chế độ nghiêm ngặt TypeScript. Bạn chỉ dùng pnpm làm trình quản lý gó
+        recalled 3 memories
+
+STYLE — did a [style] memory change how it writes?
+  PASS  the answer came back in Vietnamese, unprompted in this session
+[memory] recall in hippo-guest:demo-muc5b7x4 dropped all 5 candidates (attempt 1/4)
+[memory] recall in hippo-guest:demo-muc5b7x4 dropped all 5 candidates (attempt 2/4)
+
+CROSS-CHANNEL — a second channel, same memory
+  PASS  You use pnpm.
+        recalled 3 memories
+
+4/4 recalled correctly across sessions.
+style adaptation:     PASS
+cross-channel recall: PASS
+namespace: hippo-guest:demo-muc5b7x4

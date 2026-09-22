@@ -261,10 +261,12 @@ four retries**. Sequential, clean, worse than ever.
 | 2 | concurrent | poller | 9 | 3 | pass |
 | 3 | sequential | poller | 0 | 0 | pass |
 | 4 | sequential | none | 15 | 1 | pass |
+| 5 | sequential | none | 0 | 0 | pass |
+| 6 | sequential | none | 2 | 0 | pass |
 
-There is no relationship here. The drop rate swings by a factor of four between
-runs of an identical script against an identical namespace, and run 3's zero was
-luck, not a fix. I am recording the wrong hypothesis rather than deleting it,
+There is no relationship here. Six runs of the same script against equivalent
+namespaces gave 4, 9, 0, 15, 0 and 2 drop events. Run 3's zero was luck, not a
+fix, and so was run 5's. I am recording the wrong hypothesis rather than deleting it,
 because the shape of the mistake matters: one encouraging measurement, in the
 direction I expected, and I nearly published it.
 

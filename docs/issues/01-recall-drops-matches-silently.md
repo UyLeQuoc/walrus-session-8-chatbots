@@ -68,12 +68,16 @@ Four runs of the same four-question eval against the same namespace:
 | 2 | four in parallel | 9 | 3 | 4/4 |
 | 3 | one at a time | 0 | 0 | 4/4 |
 | 4 | one at a time | 15 | 1 | 4/4 |
+| 5 | one at a time | 0 | 0 | 4/4 |
+| 6 | one at a time | 2 | 0 | 4/4 |
 
 We first thought concurrency was the trigger, since recall plausibly shares the
 SEAL decrypt pool your docs describe as capped at three concurrent decrypts.
 Run 3 seemed to confirm it. Run 4, sequential and with nothing else touching the
-relayer, produced the worst numbers of the set. So concurrency is not the
-explanation, and nothing we tried on the client side reduces it.
+relayer, produced the worst numbers of the set, and runs 5 and 6 then gave 0 and
+2. So concurrency is not the explanation, the rate varies by an order of
+magnitude between identical runs, and nothing we tried on the client side
+reduces it.
 
 What does work is retrying: every run passed, including the one where a recall
 gave up after four attempts, because a session-start turn issues several
