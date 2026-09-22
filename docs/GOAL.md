@@ -119,7 +119,7 @@ Verification: a fresh wallet goes guest → owned → revoked → owned again wi
 
 ### M4 — More channels and identity linking — PARTLY DONE
 
-Cross-channel identity linking is done and verified without a wallet, using a six-character code, and it is asserted in `pnpm demo`. Evidence in `docs/evidence/cross-channel-2026-09-21.md`. The CLI is a real channel over HTTP and is documented. Discord and Slack adapters are written and typechecked but need tokens.
+Cross-channel identity linking is done and verified without a wallet, using a six-character code, and it is asserted in `pnpm demo`. Evidence in `docs/evidence/cross-channel-2026-09-21.md`. The CLI is a real channel over HTTP and is documented. Discord and Slack adapters are written and typechecked but need tokens; Discord's slash-command registration is a one-command script (`pnpm --filter @hippo/server discord:commands <guildId>`) so task 1 is ready to run the moment a token exists.
 
 Original task list:
 

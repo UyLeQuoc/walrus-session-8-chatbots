@@ -9,7 +9,8 @@
     "start": "tsx src/index.ts",
     "evidence": "tsx scripts/evidence.ts",
     "restore": "tsx scripts/restore.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "discord:commands": "tsx scripts/register-discord-commands.ts"
   },
   "dependencies": {
     "@hippo/core": "workspace:*",

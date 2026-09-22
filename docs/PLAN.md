@@ -118,7 +118,7 @@ Do these before writing code. Everything here is free.
 
 **Channels**
 - [ ] Telegram: `@BotFather` → `/newbot` → `TELEGRAM_BOT_TOKEN`. Enable inline privacy off if group use is wanted.
-- [ ] Discord: Developer Portal → New Application → Bot → copy token, enable **Message Content Intent**; OAuth2 URL with `bot` + `applications.commands` scopes to invite it to a test server. `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`.
+- [ ] Discord: Developer Portal → New Application → Bot → copy token, enable **Message Content Intent**; OAuth2 URL with `bot` + `applications.commands` scopes to invite it to a test server. `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`. Then `pnpm --filter @hippo/server discord:commands <guildId>` to publish the slash commands instantly in that server.
 - [ ] Slack: api.slack.com/apps → From scratch → enable **Socket Mode** (app-level token `SLACK_APP_TOKEN` with `connections:write`) → Bot scopes `chat:write`, `im:history`, `im:read`, `im:write`, `app_mentions:read`, `commands` → Event subscriptions `message.im`, `app_mention` → install to workspace → `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`.
 
 **Sui Stack extras**
