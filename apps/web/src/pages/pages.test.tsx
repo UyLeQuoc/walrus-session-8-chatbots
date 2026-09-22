@@ -29,6 +29,16 @@ vi.mock("@ai-sdk/react", () => ({
   }),
 }));
 
+/**
+ * What matters is that a failure is reported once and not left on the page.
+ * Rendering sonner's own internals under jsdom tests sonner, not hippo.
+ */
+const toastError = vi.fn();
+vi.mock("sonner", () => ({
+  toast: { error: (m: string) => toastError(m) },
+  Toaster: () => null,
+}));
+
 /** dapp-kit reaches for wallet APIs that jsdom has no notion of. */
 vi.mock("@mysten/dapp-kit", () => ({
   ConnectModal: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
@@ -39,12 +49,19 @@ vi.mock("@mysten/dapp-kit", () => ({
   useSuiClient: () => ({}),
 }));
 
+/**
+ * Routes are matched on the path, not as a substring of the whole URL.
+ *
+ * Substring matching looks harmless and is a trap: "/api/me/search?q=x"
+ * contains "/api/me", so a test that forgot to stub the search route got the
+ * profile object back with `ok: true` and passed while exercising nothing. A
+ * key matches only if it is the whole path, or a prefix ending in "/".
+ */
 function stubFetch(routes: Record<string, unknown>) {
-  // Longest key first, so `/api/me/memories` is not swallowed by `/api/me`.
   const keys = Object.keys(routes).sort((a, b) => b.length - a.length);
   return vi.fn(async (input: RequestInfo | URL) => {
-    const url = String(input);
-    const match = keys.find((k) => url.includes(k));
+    const path = String(input).split("?")[0] ?? "";
+    const match = keys.find((k) => path === k || (k.endsWith("/") && path.startsWith(k)));
     return {
       ok: match !== undefined,
       status: match === undefined ? 404 : 200,
@@ -55,7 +72,28 @@ function stubFetch(routes: Record<string, unknown>) {
 
 beforeEach(() => {
   chatMessages = [];
+  toastError.mockClear();
   vi.stubGlobal("fetch", stubFetch({}));
+  // jsdom has neither of these, and both the toaster and the theme toggle read
+  // them on mount. Without them the component throws before it paints.
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    })),
+  );
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -115,7 +153,7 @@ describe("me page", () => {
   it("points an anonymous visitor at the chat instead of showing an empty table", async () => {
     vi.stubGlobal(
       "fetch",
-      stubFetch({ "/api/me": { mode: "anonymous" }, "/memories": { memories: [] } }),
+      stubFetch({ "/api/me": { mode: "anonymous" }, "/api/me/memories": { memories: [] } }),
     );
     const { container } = render(
       <MemoryRouter>
@@ -137,7 +175,7 @@ describe("me page", () => {
           namespace: "hippo-guest:abc",
           surveyUrl: null,
         },
-        "/memories": {
+        "/api/me/memories": {
           memories: [
             {
               id: "1",
@@ -172,7 +210,7 @@ describe("me page", () => {
       "fetch",
       stubFetch({
         "/api/me": { mode: "guest", signedIn: false, memoryEnabled: true, namespace: "ns" },
-        "/memories": { memories: [] },
+        "/api/me/memories": { memories: [] },
       }),
     );
     const { container } = render(
@@ -338,6 +376,40 @@ describe("me page, finding a memory", () => {
     // The text is the whole point: it cannot come from Postgres, only Walrus.
     await waitFor(() => expect(container.textContent ?? "").toMatch(/Uy deploys with Railway\./));
     expect(container.textContent ?? "").toMatch(/relevance 0\.72/);
+  });
+
+  it("surfaces a failed search as a toast instead of a stale red line", async () => {
+    // A real failure shape: the relayer answers 502 with a message, which is
+    // what the user should be told rather than "something went wrong".
+    const inner = stubFetch(base);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).includes("/api/me/search")) {
+          return {
+            ok: false,
+            status: 502,
+            json: async () => ({ error: "Search failed: Walrus Memory is unreachable." }),
+          } as Response;
+        }
+        return inner(input);
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<MePage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByLabelText(/search your memory/i)).toBeDefined());
+    await userEvent.type(screen.getByLabelText(/search your memory/i), "anything");
+    await userEvent.click(screen.getByRole("button", { name: /^search$/i }));
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/Search failed/i)),
+    );
   });
 
   it("says so when a search finds nothing rather than showing an empty box", async () => {

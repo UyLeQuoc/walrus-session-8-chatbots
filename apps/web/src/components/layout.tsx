@@ -1,5 +1,6 @@
 import { Link, Outlet } from "react-router";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Toaster } from "@/components/ui/sonner";
 
 export function Layout() {
   return (
@@ -26,6 +27,7 @@ export function Layout() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
         <Outlet />
       </main>
+      <Toaster />
     </div>
   );
 }

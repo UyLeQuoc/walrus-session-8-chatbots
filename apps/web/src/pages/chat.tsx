@@ -1,6 +1,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Landing } from "@/components/landing";
 import { Recalled, type RecalledMemory } from "@/components/recalled";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,12 @@ export function ChatPage() {
   const [text, setText] = useState("");
   const [operatorAccountId, setOperatorAccountId] = useState<string | undefined>();
   const busy = status === "submitted" || status === "streaming";
+
+  // A failed turn used to leave a red line under the transcript that nothing
+  // ever cleared, so the next successful answer appeared beneath a stale error.
+  useEffect(() => {
+    if (error) toast.error(error.message);
+  }, [error]);
 
   // Only the landing section needs this, and only until the first message, so a
   // failure here must never keep the page from answering.
@@ -84,7 +91,6 @@ export function ChatPage() {
             </div>
           </div>
         ))}
-        {error && <p className="text-sm text-destructive">{error.message}</p>}
       </div>
       <form
         className="flex gap-2"

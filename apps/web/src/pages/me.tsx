@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
+import { toast } from "sonner";
 import { ChainPanel } from "@/components/chain-panel";
 import { type Memory, MemoryList } from "@/components/memory-list";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,6 @@ const CLAUDE_CODE_STEPS = [
 export function MePage() {
   const [me, setMe] = useState<Me | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [error, setError] = useState("");
 
   const load = useCallback(() => {
     void fetch(`${API_URL}/api/me`, { credentials: "include", headers: identityHeaders() })
@@ -113,11 +113,9 @@ export function MePage() {
         )}
       </dl>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      <ChainPanel owned={owned} onError={(m) => toast.error(m)} />
 
-      <ChainPanel owned={owned} onError={setError} />
-
-      <MemoryList memories={memories} onError={setError} />
+      <MemoryList memories={memories} onError={(m) => toast.error(m)} />
 
       <section className="space-y-2">
         <h2 className="font-medium">Read the same memory in Claude Code</h2>
