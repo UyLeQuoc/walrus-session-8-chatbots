@@ -1,6 +1,6 @@
 import { gatherContext, runTurn } from "@hippo/core";
 import { desc, eq, memoryIndex } from "@hippo/db";
-import { explorer } from "@hippo/memory";
+import { explorer, RelayerExtras } from "@hippo/memory";
 import { convertToModelMessages, type UIMessage } from "ai";
 import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
@@ -95,7 +95,7 @@ export const chatRoutes = new Hono()
     });
   })
 
-  /** The memories hippo wrote for this person, newest first, with links. */
+  /** The memories hippo wrote for this person, newest first, with links and expiry. */
   .get("/api/me/memories", async (c) => {
     const cookie = getCookie(c, COOKIE);
     if (!cookie) return c.json({ memories: [] });
@@ -106,6 +106,25 @@ export const chatRoutes = new Hono()
       .where(eq(memoryIndex.personId, person.id))
       .orderBy(desc(memoryIndex.createdAt))
       .limit(100);
+
+    /**
+     * Storage on Walrus is paid per epoch, so a memory is not kept forever.
+     * The read API carries `expires_at` per blob, and telling the user when
+     * their memory runs out is more honest than implying it never does.
+     * Best-effort: the relayer's metadata routes are flaky, so a failure here
+     * costs the expiry column and nothing else.
+     */
+    const port = await portFor(person, CHANNEL);
+    const expiry = new Map<string, string>();
+    try {
+      const extras = new RelayerExtras(port.scope);
+      for (const m of await extras.allMemories()) {
+        if (m.expires_at) expiry.set(m.blob_id, m.expires_at);
+      }
+    } catch (e) {
+      console.warn("[web] expiry lookup failed", e instanceof Error ? e.message : e);
+    }
+
     return c.json({
       memories: rows.map((r) => ({
         id: r.id,
@@ -114,6 +133,7 @@ export const chatRoutes = new Hono()
         channel: r.channel,
         createdAt: r.createdAt,
         blobId: r.blobId,
+        expiresAt: r.blobId ? (expiry.get(r.blobId) ?? null) : null,
         // The ciphertext is public; only this account can read it. That is the
         // point, so both links are offered.
         ciphertextUrl: r.blobId ? explorer.blob(r.blobId) : null,

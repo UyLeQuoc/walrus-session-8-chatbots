@@ -18,8 +18,13 @@ interface Memory {
   channel: string;
   createdAt: string;
   blobId: string | null;
+  expiresAt: string | null;
   ciphertextUrl: string | null;
   explorerUrl: string | null;
+}
+
+function daysUntil(iso: string): number {
+  return Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000);
 }
 
 const CLAUDE_CODE_STEPS = [
@@ -120,6 +125,7 @@ export function MePage() {
                   </span>
                   <span className="text-muted-foreground text-xs">
                     {new Date(m.createdAt).toISOString().slice(0, 10)} · {m.channel}
+                    {m.expiresAt ? ` · storage ends in ${daysUntil(m.expiresAt)} days` : ""}
                   </span>
                 </span>
                 {m.status === "stored" && m.explorerUrl ? (
