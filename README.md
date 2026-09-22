@@ -39,8 +39,10 @@ pnpm hippo                   # the CLI, talking to the same server
 ```
 
 `pnpm demo` is the proof: it teaches hippo five things, throws the conversation
-away, and asks four questions in a fresh session. `pnpm evidence` prints the
-numbers the session's submission form asks for.
+away, and asks four questions in a fresh session, then checks that a second
+channel recalls the same facts. `pnpm evidence` prints the numbers the session's
+submission form asks for, counting only memories that actually landed on Walrus.
+`pnpm restore` checks the relayer's index against what we wrote.
 
 `pnpm smoke`, `pnpm db:push`, `pnpm typecheck` and `pnpm test` need only the
 Walrus Memory credentials. `pnpm demo`, `pnpm hippo` and the chat itself also
@@ -79,9 +81,17 @@ packages/db      Drizzle schema
 docs/            brief, idea, architecture, plan, spikes, evidence, bug reports
 ```
 
-`docs/ARCHITECTURE.md` explains guest and owned mode, `docs/SPIKES.md` records
-what we measured on mainnet and what it changed, and `docs/issues/` holds the bug
-reports filed against the SDK.
+`docs/ARCHITECTURE.md` explains guest and owned mode and lists every limitation
+we measured, `docs/SPIKES.md` records what we measured on mainnet and what it
+changed (including a hypothesis we had to retract), `docs/issues/` holds the ten
+bug reports we are filing against Walrus Memory, and
+`docs/evidence/security-review-2026-09-21.md` is an adversarial review of this
+repo with its findings fixed.
+
+Two limits worth knowing before you rely on this: a memory can be made
+unrecallable but not deleted, and the relayer's `restore()` does not currently
+re-index this account, so treat the search index as the fragile part and Walrus
+as the durable one. Both are written up in `docs/issues/`.
 
 ## Deploy
 
