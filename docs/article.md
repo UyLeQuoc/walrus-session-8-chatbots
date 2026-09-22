@@ -78,9 +78,11 @@ PASS  What port is the database on?              → "Our Postgres runs on 5433.
 PASS  What do you know about me?                 → answered in Vietnamese
 ```
 
-The last one is my favourite. Nobody asked it to speak Vietnamese in that
-session. A `style` memory from the previous one changed how it writes. That is
-memory shaping behaviour, not memory being quoted back.
+The last one is my favourite, and it is now an assertion rather than an
+observation. Nobody asked it to speak Vietnamese in that session. A `style`
+memory from the previous one changed how it writes, and the eval fails if the
+answer comes back in English. That is memory shaping behaviour, not memory being
+quoted back.
 
 `[M6]` Real-world use: N people over M days, X memories each, the moment it
 mattered.

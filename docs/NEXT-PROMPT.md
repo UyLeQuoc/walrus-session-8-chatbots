@@ -12,7 +12,7 @@ Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline
 
 Read CLAUDE.md and docs/GOAL.md first. GOAL.md is the master plan: milestones M0-M7, each with tasks and the command that verifies them. docs/SPIKES.md is what we measured on mainnet and what it changed. docs/BLOCKERS.md is what only I can provide. docs/DECISIONS.md is the decision log. docs/NEXT-PROMPT.md holds the long version of this brief.
 
-State (2026-09-22): M0, M1, M2, M5 done. M3 written and security-reviewed, never run against a real wallet. M4 waits on channel tokens, M6 on real users, M7 is drafted and waits on M6's numbers. `pnpm demo` passes 4/4 plus a cross-channel check on mainnet; a clean clone runs from the README alone; `pnpm evidence` counts only memories that actually landed and says whether the session requirement is met. Vietnamese recall verified 8/8 including across languages.
+State (2026-09-22): M0, M1, M2, M5 done. M3 written and security-reviewed, never run against a real wallet. M4 waits on channel tokens, M6 on real users, M7 is drafted and waits on M6's numbers. `pnpm demo` asserts cross-session recall, style adaptation and cross-channel recall on mainnet; a clean clone runs from the README alone; `pnpm evidence` counts only memories that actually landed and says whether the session requirement is met. Vietnamese recall verified 8/8 including across languages.
 
 Blocked on me, in order of risk. Read docs/BLOCKERS.md; it is current.
 1. An owner-signed revocation test on the Sessions wallet. Highest-risk unknown in the project.
@@ -44,7 +44,7 @@ Read `CLAUDE.md` and `docs/GOAL.md` first. `docs/GOAL.md` is the master plan: mi
 **State (2026-09-22): M0, M1, M2 and M5 are done. M3 is written and security-reviewed but has never run against a real wallet. M4 waits on channel tokens. M6 waits on real users. M7 is drafted end to end and waits on M6's numbers plus my accounts.**
 
 Working and verified on mainnet:
-- `pnpm demo` teaches five facts, drops the conversation, asks four questions in a fresh session, and adds a cross-channel check. Four runs, all 4/4 plus cross-channel.
+- `pnpm demo` teaches five facts, drops the conversation, and asserts three things in a fresh session: 4/4 cross-session recall, that a `style` memory changed the reply language unprompted, and that a second channel recalls the same facts. Five runs, all passing.
 - Cross-channel linking without a wallet: a fact taught on the web chat is recalled from the CLI after `/link <code>`. Wallet sign-in performs the same merge through a stronger proof.
 - Guest mode, slash commands, per-person throttle, `/me` with real blob links, evidence reporting.
 - A clean clone runs from the README alone: install, db:push, typecheck, test, build, smoke. Transcript in `docs/evidence/clean-clone-2026-09-21.md`.

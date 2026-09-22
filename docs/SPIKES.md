@@ -190,6 +190,13 @@ The positional form found the same three and dropped every one. **Bug bounty.**
 
 ## Eval result (M2 exit criterion, met early)
 
+*Updated 2026-09-22: the eval now asserts three things rather than one. Latest
+run in `docs/evidence/demo-2026-09-22-style-asserted.txt`: 4/4 cross-session
+recall, style adaptation PASS, cross-channel recall PASS, zero dropped recalls.
+The style check looks for Vietnamese-only diacritics in an answer nothing in that
+session asked to be Vietnamese, so it cannot pass by accident.*
+
+
 `pnpm demo` teaches hippo five things in one session, throws the conversation away, then asks four questions in a fresh session. Full log: `docs/evidence/demo-2026-09-21.txt`.
 
 ```
