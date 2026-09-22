@@ -14,7 +14,7 @@ Read CLAUDE.md and docs/GOAL.md first. GOAL.md is the master plan: milestones M0
 
 State (2026-09-22): M0, M1, M2, M5 done. M3 written, security-reviewed and tested against mainnet reads, but the wallet flow has never run. M4 partly done: cross-channel linking works and is asserted in the eval; Discord and Slack need tokens. M6 is ready to start. M7 is drafted.
 
-Verified on mainnet: `pnpm demo` asserts cross-session recall, style adaptation and cross-channel recall. `pnpm diagnose` reports config, chain-versus-relayer disagreements and storage expiry. A clean clone runs from the README alone. Telegram is live as @walrussession8_bot, polling with seven commands registered, and has never received a message.
+Verified on mainnet: `pnpm demo` asserts cross-session recall, style adaptation and cross-channel recall. `pnpm diagnose` reports config, chain-versus-relayer disagreements and storage expiry. A clean clone runs from the README alone, CI is green and the dependency audit is clean. Telegram is live as @walrussession8_bot, polling with seven commands registered, and has never received a message.
 
 Blocked on me, in order of risk. Read docs/BLOCKERS.md; it is current.
 1. An owner-signed revocation test on the Sessions wallet. Highest-risk unknown in the project: the relayer honours a delegate key the chain does not list, so "revoke on chain and the bot forgets" is unproven.
@@ -53,9 +53,11 @@ Working and verified on mainnet:
 - `pnpm diagnose` reports what is configured, what works, and where the chain and the relayer disagree. It catches a wrong account id, a stale package id, and a delegate the chain does not list. Exits non-zero when something is broken.
 - Cross-channel linking without a wallet: a fact taught on the web chat is recalled from the CLI after `/link <code>`. Wallet sign-in performs the same merge through a stronger proof.
 - Telegram is live as `@walrussession8_bot`, polling with seven commands registered. It has never received a message; that needs a Telegram account.
-- Guest mode, slash commands, per-person throttle covering commands, `/me` with blob links and storage expiry, `/proof`, evidence and restore reporting.
+- Guest mode, slash commands, per-person throttle covering commands, `/me` with blob links, storage expiry and wallet sign-in, `/proof`, evidence and restore reporting.
+- Wallet sign-in verified end to end with a throwaway keypair (`pnpm --filter @hippo/server probe:signin`): valid signature opens a session, replayed nonce refused, signature over another challenge refused, sign-out closes it. The address is recovered from the signature, never read from the request.
+- CI runs lint (failing on warnings), typecheck, test, the web build and `pnpm audit`, plus a guard that `.env`, `memwal/` and `.turbo/` stay untracked. The audit is clean.
 - A clean clone runs from the README alone: install, db:push, typecheck, test, build, smoke. Transcript in `docs/evidence/clean-clone-2026-09-21.md`.
-- 15 tests, five of them reading the real account on mainnet to cover the verification path that gates owned mode.
+- 24 tests, five of them reading the real account on mainnet to cover the verification path that gates owned mode, and five covering wallet signature verification including replay resistance.
 - Owned mode code exists end to end (connect page, sponsored transactions, on-chain verification, revoke) but has never been run against a real wallet.
 - M7 is drafted and needs editing rather than writing: `docs/article.md`, `docs/promo.md`, `docs/video.md`, `docs/submission.md`, with `[M6]` and `[HUMAN]` marking what is missing. `docs/RUNBOOK.md` has the invite text and consent rules for the real-use week.
 
