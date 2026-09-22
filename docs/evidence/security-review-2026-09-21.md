@@ -99,6 +99,13 @@ refused, and signing out really closes the session. Five unit tests cover the
 signature helper, including that a signature over one nonce does not verify
 against another.
 
+## Also found later, by tests
+
+Render tests added on 2026-09-22 caught a denial-of-self on `/me`: an unexpected
+response shape from the memories endpoint set state to `undefined`, and the next
+render threw on `.filter`, blanking the page. Not a security issue, but the same
+class as trusting a payload's shape, and now guarded.
+
 ## Accepted for now
 
 **A link code is a one-message takeover if a user is tricked into redeeming

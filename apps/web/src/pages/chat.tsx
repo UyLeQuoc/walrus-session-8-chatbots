@@ -19,10 +19,31 @@ export function ChatPage() {
     <div className="flex h-[calc(100dvh-8rem)] flex-col gap-4">
       <div className="flex-1 space-y-4 overflow-y-auto rounded-lg border p-4">
         {messages.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Tell hippo something about yourself. It remembers across sessions, and the memory is
-            yours.
-          </p>
+          <div className="space-y-3 text-sm">
+            <p className="text-foreground">
+              Tell hippo something about yourself. It remembers across sessions, across channels,
+              and the memory can belong to you rather than to the bot.
+            </p>
+            <ol className="space-y-1 text-muted-foreground">
+              <li>
+                <span className="text-foreground">1.</span> Say something like "I only use pnpm and
+                I want short answers in Vietnamese."
+              </li>
+              <li>
+                <span className="text-foreground">2.</span> Reload this page, so nothing is left in
+                the conversation, and ask what it knows about you.
+              </li>
+              <li>
+                <span className="text-foreground">3.</span> Every answer shows which memories it
+                used, and each one links to its encrypted blob on Walrus.
+              </li>
+            </ol>
+            <p className="text-muted-foreground">
+              <code>/help</code> lists the commands. <code>/connect</code> moves the memory into a
+              Walrus Memory account owned by your own wallet, where <code>/disconnect</code> takes
+              hippo's access away on-chain.
+            </p>
+          </div>
         )}
         {messages.map((m) => (
           <div key={m.id} className={m.role === "user" ? "text-right" : ""}>

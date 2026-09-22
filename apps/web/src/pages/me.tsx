@@ -45,11 +45,13 @@ export function MePage() {
   const load = useCallback(() => {
     void fetch(`${API_URL}/api/me`, { credentials: "include" })
       .then((r) => r.json() as Promise<Me>)
-      .then(setMe)
+      .then((d) => setMe(d?.mode ? d : { mode: "anonymous" }))
       .catch(() => setMe({ mode: "anonymous" }));
     void fetch(`${API_URL}/api/me/memories`, { credentials: "include" })
-      .then((r) => r.json() as Promise<{ memories: Memory[] }>)
-      .then((d) => setMemories(d.memories))
+      .then((r) => r.json() as Promise<{ memories?: Memory[] }>)
+      // An unexpected shape must not blank the page: without the fallback,
+      // `setMemories(undefined)` makes the next render throw on `.filter`.
+      .then((d) => setMemories(Array.isArray(d.memories) ? d.memories : []))
       .catch(() => setMemories([]));
   }, []);
 

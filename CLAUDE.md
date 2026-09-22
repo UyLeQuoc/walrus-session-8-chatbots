@@ -68,7 +68,9 @@ memwal/          reference clone (gitignored)
 ## Checks
 
 `pnpm lint` fails on warnings, not just errors, so unused imports and other drift
-do not accumulate. `.github/workflows/ci.yml` runs lint, typecheck, test, the web
+do not accumulate. The web pages have jsdom render tests (`apps/web/src/pages/pages.test.tsx`)
+that mount each page with the network stubbed and assert what a reader sees, because
+typecheck and build both pass happily on a component that throws on first paint. `.github/workflows/ci.yml` runs lint, typecheck, test, the web
 build and `pnpm audit` on every push, plus a guard that `.env`, `memwal/` and
 `.turbo/` are never tracked. There is one `pnpm.overrides` entry, for esbuild,
 because `drizzle-kit` still pulls a version with a dev-server advisory it never
