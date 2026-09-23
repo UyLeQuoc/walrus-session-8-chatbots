@@ -8,6 +8,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    include: ["src/**/*.test.tsx"],
+    // Both extensions. It was .tsx only, so a plain .ts test file was collected
+    // by nothing and reported as neither passing nor failing.
+    include: ["src/**/*.test.{ts,tsx}"],
   },
 });

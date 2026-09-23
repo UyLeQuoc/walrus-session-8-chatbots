@@ -2,6 +2,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Examples, rememberPendingAsk, takePendingAsk } from "@/components/examples";
 import { Landing } from "@/components/landing";
 import { Recalled, type RecalledMemory } from "@/components/recalled";
 import { StreamingWords, Thinking, useSmoothedText } from "@/components/streaming-text";
@@ -45,10 +46,24 @@ export function ChatPage() {
     };
   }, []);
 
+  // Set before a reload by "Reload, then ask", so the demo is two clicks rather
+  // than a reload plus remembering what to type.
+  useEffect(() => {
+    const pending = takePendingAsk();
+    if (pending) setText(pending);
+  }, []);
+
   const lastId = messages.at(-1)?.id;
+  const taught = messages.some((m) => m.role === "assistant");
+
+  const send = (value: string) => {
+    if (!value.trim() || busy) return;
+    void sendMessage({ text: value });
+    setText("");
+  };
 
   return (
-    <div className="flex h-[calc(100dvh-8rem)] flex-col gap-4">
+    <div className="flex h-[calc(100dvh-8rem)] flex-col gap-3">
       <div className="flex-1 space-y-5 overflow-y-auto rounded-lg border p-4">
         {messages.length === 0 && <Landing operatorAccountId={operatorAccountId} />}
         {messages.map((m) => (
@@ -60,13 +75,20 @@ export function ChatPage() {
           />
         ))}
       </div>
+      <Examples
+        taught={taught}
+        onPick={send}
+        onReloadAndAsk={(value) => {
+          rememberPendingAsk(value);
+          window.location.reload();
+        }}
+      />
+
       <form
         className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!text.trim() || busy) return;
-          void sendMessage({ text });
-          setText("");
+          send(text);
         }}
       >
         <Input

@@ -22,10 +22,11 @@ import { MePage } from "./me.tsx";
  */
 let chatMessages: unknown[] = [];
 let chatStatus = "ready";
+const chatSend = vi.fn();
 vi.mock("@ai-sdk/react", () => ({
   useChat: () => ({
     messages: chatMessages,
-    sendMessage: vi.fn(),
+    sendMessage: chatSend,
     status: chatStatus,
     error: undefined,
   }),
@@ -86,10 +87,18 @@ function stubFetch(routes: Record<string, unknown>) {
 beforeEach(() => {
   chatMessages = [];
   chatStatus = "ready";
+  chatSend.mockClear();
   wallet = null;
   signAndExecute.mockClear();
   suiClientStub.core = {};
   suiClientStub.getBalance = undefined;
+  // jsdom here has neither storage; the examples must survive without one.
+  const session = new Map<string, string>();
+  vi.stubGlobal("sessionStorage", {
+    getItem: (k: string) => session.get(k) ?? null,
+    setItem: (k: string, v: string) => void session.set(k, v),
+    removeItem: (k: string) => void session.delete(k),
+  });
   toastError.mockClear();
   vi.stubGlobal("fetch", stubFetch({}));
   // jsdom has neither of these, and both the toaster and the theme toggle read
@@ -244,6 +253,38 @@ describe("chat page", () => {
       const link = screen.getByRole("link", { name: new RegExp(account.slice(0, 10), "i") });
       expect(link.getAttribute("href")).toContain(account);
     });
+  });
+
+  it("offers something to teach it before there is a conversation", async () => {
+    render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    // One message proves nothing here, so the first set is things to teach it.
+    const chip = screen.getByRole("button", { name: /only use pnpm/i });
+    expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
+
+    await userEvent.click(chip);
+    expect(chatSend).toHaveBeenCalledWith({
+      text: "I only use pnpm, and I want short answers in Vietnamese.",
+    });
+  });
+
+  it("switches to proving it once hippo has answered", () => {
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "I use pnpm" }] },
+      { id: "2", role: "assistant", parts: [{ type: "text", text: "Noted." }], metadata: {} },
+    ];
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("button", { name: /Reload, then ask/i })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /only use pnpm/i })).toBeNull();
+    // The reload is the whole demonstration, so the page says why.
+    expect(container.textContent ?? "").toMatch(/came back from Walrus, not from the page/i);
   });
 
   it("bubbles what you said and leaves hippo's answer in the page", () => {
