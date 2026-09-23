@@ -5,6 +5,46 @@ Two forms of the same brief. Update the State line in both as milestones land.
 - **Short form** below fits the `/goal` command, which caps at 4000 characters.
 - **Long form** further down is for pasting into a fresh session, where there is no limit.
 
+## Next goal, for `/goal` — M6 pre-flight
+
+```
+Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
+
+Read CLAUDE.md, docs/GOAL.md and docs/AUDIT.md first, then docs/RUNBOOK.md, which is the week this session exists to protect.
+
+State (2026-09-23): live in production, feature-complete, and the writing is corrected. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, Neon, Telegram @walrussession8_bot polling. 42 tests, CI green, clean tree. M0 to M5 done, M7 drafted and fact-checked. M6 is the only unmet judging criterion: 5 people and 13 memories in production against a requirement of 3 people with 10 each.
+
+M6 starts the moment I send the bot one message and then invite people. Everything below is what should be true before strangers arrive, because a failure during that week cannot be redone with the time left.
+
+1. Disclosure at first contact. /start tells a new user the memory "can belong to you" and then says "just talk to me and I will start remembering". It never says what is actually happening: every memory becomes an encrypted blob on Walrus whose ciphertext anyone can download, the namespace name is public on chain, storage lasts about 180 days, and /memory off stops it. docs/RUNBOOK.md has consent rules for transcripts; the product itself discloses nothing. Fix that in /start, in /help and in the web landing section, in plain sentences, without turning it into a legal notice. Nobody should learn this from the article after the fact.
+
+2. There is no length guard on an inbound message. Find what a very long paste does to the model call, to the memory writer and to Telegram chunking, then cap it and say so in words a person understands. A memory should never be a wall of pasted text either.
+
+3. Make failure legible. Take the three that will happen during a real week and check what the user actually sees: OpenRouter out of credit or down, the relayer answering 429 or 502, and the database unreachable. Each should be one sentence a person understands, and none should lose a memory the user was told was saved. Fix what is not.
+
+4. The connect and disconnect pages have never run in a browser, only by script. dapp-kit discovers wallets through the wallet standard, so a mock wallet can be registered in a test page and the whole flow driven headlessly against production. That proves the central demo's UI path without waiting for a spare Slush wallet. If it turns out not to be feasible in an afternoon, say so in docs/DECISIONS.md and move on rather than sinking the session into it.
+
+5. Capacity. Check the OpenRouter credit balance, the Neon free-tier limits and the Railway usage against a week of five people talking daily, and write the numbers into docs/RUNBOOK.md. Running out of model credit mid-week would end M6 quietly.
+
+6. A daily evidence snapshot. `pnpm evidence` against production, committed to docs/evidence/daily/, so the final numbers are a record rather than a reconstruction. Add the command to the RUNBOOK checklist.
+
+Rules.
+- Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
+- Nothing outward-facing without me saying so: do not file issues, post, publish, submit, or message anyone. Dry runs are fine.
+- Never invent a number, a user, a quote or a result.
+- Keep pnpm lint, typecheck and test green on every commit. Commit per task. Redeploy after a server change.
+- Do not touch the Walrus Site or site-builder.
+- If time runs short cut in this order: task 4, task 6, task 5. Never cut disclosure.
+
+Start by reading the docs above, then task 1.
+```
+
+## Done 2026-09-23: the M7 writing goal below
+
+All six tasks landed. The article, submission form, README, promo and video all
+carried the retracted finding, and `submission.md` named the account in the
+superseded deployment.
+
 ## Next goal, for `/goal` — M7, the writing
 
 ```
