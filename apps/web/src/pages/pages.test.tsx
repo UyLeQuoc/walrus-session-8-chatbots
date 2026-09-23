@@ -21,11 +21,12 @@ import { MePage } from "./me.tsx";
  * without a server.
  */
 let chatMessages: unknown[] = [];
+let chatStatus = "ready";
 vi.mock("@ai-sdk/react", () => ({
   useChat: () => ({
     messages: chatMessages,
     sendMessage: vi.fn(),
-    status: "ready",
+    status: chatStatus,
     error: undefined,
   }),
 }));
@@ -84,6 +85,7 @@ function stubFetch(routes: Record<string, unknown>) {
 
 beforeEach(() => {
   chatMessages = [];
+  chatStatus = "ready";
   wallet = null;
   signAndExecute.mockClear();
   suiClientStub.core = {};
@@ -242,6 +244,38 @@ describe("chat page", () => {
       const link = screen.getByRole("link", { name: new RegExp(account.slice(0, 10), "i") });
       expect(link.getAttribute("href")).toContain(account);
     });
+  });
+
+  it("bubbles what you said and leaves hippo's answer in the page", () => {
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "I use pnpm" }] },
+      { id: "2", role: "assistant", parts: [{ type: "text", text: "Noted." }], metadata: {} },
+    ];
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    // Both sides used to be bubbles, which cramped every long answer and made
+    // the two voices compete. Only the user's turn carries one now.
+    const bubbles = container.querySelectorAll(".bg-muted.ml-auto, .ml-auto.bg-muted");
+    expect(bubbles).toHaveLength(1);
+    expect(bubbles[0]?.textContent).toBe("I use pnpm");
+    expect(container.textContent ?? "").toMatch(/Noted\./);
+  });
+
+  it("shows hippo thinking before the first word arrives", () => {
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "hello" }] },
+      { id: "2", role: "assistant", parts: [], metadata: {} },
+    ];
+    chatStatus = "submitted";
+    render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("status", { name: /thinking/i })).toBeDefined();
   });
 
   it("drops the landing section once there is a conversation", () => {

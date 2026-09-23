@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Landing } from "@/components/landing";
 import { Recalled, type RecalledMemory } from "@/components/recalled";
+import { StreamingWords, Thinking, useSmoothedText } from "@/components/streaming-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { API_URL, identityHeaders } from "@/lib/api";
@@ -44,52 +45,19 @@ export function ChatPage() {
     };
   }, []);
 
+  const lastId = messages.at(-1)?.id;
+
   return (
     <div className="flex h-[calc(100dvh-8rem)] flex-col gap-4">
-      <div className="flex-1 space-y-4 overflow-y-auto rounded-lg border p-4">
+      <div className="flex-1 space-y-5 overflow-y-auto rounded-lg border p-4">
         {messages.length === 0 && <Landing operatorAccountId={operatorAccountId} />}
         {messages.map((m) => (
-          <div key={m.id} className={m.role === "user" ? "text-right" : ""}>
-            <div
-              className={
-                m.role === "user"
-                  ? "inline-block rounded-lg bg-primary px-3 py-2 text-primary-foreground"
-                  : "inline-block rounded-lg bg-muted px-3 py-2"
-              }
-            >
-              {m.parts.map((p, i) => {
-                if (p.type === "text")
-                  return (
-                    <span key={i} className="whitespace-pre-wrap">
-                      {p.text}
-                    </span>
-                  );
-                if (p.type === "tool-remember") {
-                  const input = p.input as { type?: string; text?: string } | undefined;
-                  const output = p.output as { saved?: boolean; note?: string } | undefined;
-                  const done = p.state === "output-available";
-                  return (
-                    <div key={i} className="mt-1 text-xs text-muted-foreground">
-                      {done && output?.saved === false ? "already knew" : "remembering"}
-                      {input?.type ? ` [${input.type}]` : ""} {input?.text ?? ""}
-                    </div>
-                  );
-                }
-                if (p.type === "tool-recall")
-                  return (
-                    <div key={i} className="mt-1 text-xs text-muted-foreground">
-                      ⟶ recalled
-                    </div>
-                  );
-                return null;
-              })}
-              {m.role === "assistant" && (
-                <Recalled
-                  memories={(m.metadata as { recalled?: RecalledMemory[] })?.recalled ?? []}
-                />
-              )}
-            </div>
-          </div>
+          <Message
+            key={m.id}
+            message={m}
+            live={m.id === lastId && busy}
+            streaming={m.id === lastId && status === "streaming"}
+          />
         ))}
       </div>
       <form
@@ -112,5 +80,83 @@ export function ChatPage() {
         </Button>
       </form>
     </div>
+  );
+}
+
+/**
+ * The user speaks in a bubble; hippo does not.
+ *
+ * Both sides used to be bubbles, which cramped every answer longer than a line
+ * and made the two voices compete. The asymmetry is the convention for a reason:
+ * what you said is a quoted artefact, what the assistant says is the page.
+ */
+interface ChatMessage {
+  id: string;
+  role: string;
+  parts?: Array<Record<string, unknown>>;
+  metadata?: unknown;
+}
+
+function Message({
+  message,
+  live,
+  streaming,
+}: {
+  message: ChatMessage;
+  live: boolean;
+  streaming: boolean;
+}) {
+  const parts: Array<Record<string, unknown>> = message.parts ?? [];
+  const spoken = parts
+    .filter((p) => p.type === "text")
+    .map((p) => String(p.text ?? ""))
+    .join("");
+  const smoothed = useSmoothedText(spoken, !streaming);
+  const shown = streaming ? smoothed : spoken;
+
+  if (message.role === "user") {
+    return (
+      <div className="flex">
+        <div className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-lg bg-muted px-3 py-2 text-sm">
+          {spoken}
+        </div>
+      </div>
+    );
+  }
+
+  const recalled =
+    (message.metadata as { recalled?: RecalledMemory[] } | undefined)?.recalled ?? [];
+  const tools = parts.filter((p) => p.type === "tool-remember" || p.type === "tool-recall");
+
+  return (
+    <div className="space-y-1.5 text-sm">
+      {tools.map((p, i) => (
+        <ToolLine key={`${p.type as string}-${i}`} part={p} />
+      ))}
+      {shown ? (
+        <p className="whitespace-pre-wrap leading-relaxed">
+          {streaming ? <StreamingWords text={shown} /> : shown}
+        </p>
+      ) : (
+        live && <Thinking />
+      )}
+      <Recalled memories={recalled} />
+    </div>
+  );
+}
+
+/** What hippo did while answering, in one muted line. */
+function ToolLine({ part }: { part: Record<string, unknown> }) {
+  if (part.type === "tool-recall") {
+    return <p className="text-xs text-muted-foreground">⟶ recalled</p>;
+  }
+  const input = part.input as { type?: string; text?: string } | undefined;
+  const output = part.output as { saved?: boolean } | undefined;
+  const done = part.state === "output-available";
+  return (
+    <p className="text-xs text-muted-foreground">
+      {done && output?.saved === false ? "already knew" : "remembering"}
+      {input?.type ? ` [${input.type}]` : ""} {input?.text ?? ""}
+    </p>
   );
 }
