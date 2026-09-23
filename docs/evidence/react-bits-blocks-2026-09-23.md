@@ -58,3 +58,34 @@ If hippo ever grows a page that is mostly presentation with content we control,
 a marketing block is a reasonable starting point, and the harmonization rules in
 the skill are good. The App UI blocks would fit a dashboard built from scratch.
 Neither describes a chat wired to a live model and a relayer.
+
+---
+
+## Correction: the survey above measured the wrong thing
+
+The table asks whether the exported function takes props, and concludes the
+`ai-chat-*` blocks are mockups with nothing to reuse. The mockup half is right:
+`ai-chat-8` is a voice-recording panel with a waveform and a simulated
+transcript, and `ai-chat-3` ships a canned conversation with suggestion chips.
+
+The other half was wrong. Both carry generic, parameterised behaviour further
+down the file that no top-level signature reveals:
+
+- `useSmoothedText`, a buffer that runs behind a stream and cuts at word
+  boundaries, with the catch-up rate expressed as an exponential approach plus a
+  floor so it never stalls.
+- `StreamingWords`, a per-word fade with a reduced-motion fallback.
+
+Both are now in `apps/web/src/components/streaming-text.tsx`, wired to the AI
+SDK. The original is fed deltas through a `push(chunk)` callback; the SDK hands
+over the whole text on each render, so it takes the target string and derives
+the rest. Without any of this, a token boundary lands mid-word and a reader
+watches "Vietnam" become "Vietnames" become "Vietnamese".
+
+The layout was worth taking too: the user's turn is a bubble and the
+assistant's is plain text in the page. Ours had both as bubbles, which cramped
+every answer longer than a line.
+
+**The lesson for the next survey.** Grepping an export signature measures how a
+block is packaged, not what is inside it. Reading two files end to end found
+more than eight summaries did.
