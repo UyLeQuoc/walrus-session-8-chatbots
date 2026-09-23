@@ -7,6 +7,7 @@ import { slackAdapter } from "./channels/slack.ts";
 import { telegramAdapter } from "./channels/telegram.ts";
 import type { ChannelAdapter } from "./channels/types.ts";
 import { env } from "./env.ts";
+import { checkAddress, clientAddress } from "./iplimit.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chat.ts";
 import { connectRoutes } from "./routes/connect.ts";
@@ -24,6 +25,25 @@ app.use(
     allowHeaders: ["content-type", "x-hippo-channel", "x-hippo-guest", "x-hippo-session"],
   }),
 );
+/**
+ * Applied to the routes that cost something, and never to health or config,
+ * which an uptime check hits on a schedule and which spend nothing.
+ */
+app.use("/api/*", async (c, next) => {
+  const path = c.req.path;
+  if (path.startsWith("/api/health") || path === "/api/config" || path === "/api/stats") {
+    return next();
+  }
+  const gate = checkAddress(clientAddress(c.req.raw.headers));
+  if (!gate.allowed) {
+    c.header("retry-after", String(gate.retryAfterSeconds));
+    // `command: true` so the web chat renders it as a reply rather than a
+    // stream, the same shape every other refusal on this route uses.
+    return c.json({ command: true, text: gate.message, error: gate.message }, 429);
+  }
+  return next();
+});
+
 app.route("/", healthRoutes);
 app.route("/", chatRoutes);
 app.route("/", connectRoutes);

@@ -1,0 +1,52 @@
+/**
+ * The limit a caller cannot opt out of.
+ *
+ * The per-person throttle keys on an id the browser invents, so a loop sending
+ * a fresh UUID each time gets an unlimited budget. This is the ceiling above
+ * it, and these assert the properties that make it one.
+ */
+import { beforeEach, describe, expect, it } from "vitest";
+import { checkAddress, clientAddress, resetAddressLimits } from "./iplimit.ts";
+
+const start = 1_700_000_000_000;
+
+describe("the per-address ceiling", () => {
+  beforeEach(resetAddressLimits);
+
+  it("lets an ordinary visitor through", () => {
+    for (let i = 0; i < 25; i++) {
+      expect(checkAddress("1.2.3.4", start + i * 1000).allowed).toBe(true);
+    }
+  });
+
+  it("stops a burst from one address", () => {
+    for (let i = 0; i < 30; i++) checkAddress("1.2.3.4", start + i);
+    const blocked = checkAddress("1.2.3.4", start + 30);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("does not punish anyone else for it", () => {
+    for (let i = 0; i < 40; i++) checkAddress("1.2.3.4", start + i);
+    expect(checkAddress("5.6.7.8", start + 41).allowed).toBe(true);
+  });
+
+  it("forgets a minute later, so a real person is not locked out", () => {
+    for (let i = 0; i < 30; i++) checkAddress("1.2.3.4", start + i);
+    expect(checkAddress("1.2.3.4", start + 30).allowed).toBe(false);
+    expect(checkAddress("1.2.3.4", start + 61_000).allowed).toBe(true);
+  });
+
+  it("still holds an hourly ceiling once the minutes are spread out", () => {
+    // 200 requests, one every ten seconds: never trips the per-minute rule.
+    for (let i = 0; i < 200; i++) checkAddress("9.9.9.9", start + i * 10_000);
+    expect(checkAddress("9.9.9.9", start + 200 * 10_000).allowed).toBe(false);
+  });
+
+  it("reads the client from the proxy header, not the socket", () => {
+    const headers = new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" });
+    expect(clientAddress(headers)).toBe("203.0.113.7");
+    expect(clientAddress(new Headers({ "x-real-ip": "198.51.100.2" }))).toBe("198.51.100.2");
+    expect(clientAddress(new Headers())).toBe("unknown");
+  });
+});

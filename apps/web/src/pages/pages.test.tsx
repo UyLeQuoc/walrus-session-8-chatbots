@@ -14,6 +14,7 @@ import { Layout } from "../components/layout.tsx";
 import { ChatPage } from "./chat.tsx";
 import { ConnectPage } from "./connect.tsx";
 import { MePage } from "./me.tsx";
+import { NotFoundPage } from "./not-found.tsx";
 
 /**
  * The chat transport is real network; what we care about is what each state
@@ -651,6 +652,20 @@ describe("me page, finding a memory", () => {
     await userEvent.type(screen.getByLabelText(/search your memory/i), "sailing");
     await userEvent.click(screen.getByRole("button", { name: /^search$/i }));
     await waitFor(() => expect(container.textContent ?? "").toMatch(/Nothing close to that/i));
+  });
+});
+
+describe("an address that is not a page", () => {
+  it("says so and offers a way back, rather than rendering nothing", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <NotFoundPage />
+      </MemoryRouter>,
+    );
+    expect(container.textContent ?? "").toMatch(/Nothing here/i);
+    // Expired connect links are the likeliest way somebody lands here.
+    expect(container.textContent ?? "").toMatch(/expire after ten minutes/i);
+    expect(screen.getByRole("link", { name: /go to the chat/i })).toBeDefined();
   });
 });
 

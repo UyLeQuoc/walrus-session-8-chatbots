@@ -10,6 +10,26 @@
       content="A chatbot that remembers you, on memory you own. Your memory is an encrypted blob on Walrus, indexed by an account on Sui, and you can revoke the bot's access on chain."
     />
     <!--
+      The submission is shared on X, cross-posted outside the ecosystem and
+      linked from an article. Every one of those renders a link card, and
+      without these it renders a bare URL. No og:image yet, so the card is the
+      small variety; a 1200x630 png would upgrade it to the large one.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="hippo" />
+    <meta property="og:title" content="A chatbot that remembers you, on memory you own" />
+    <meta
+      property="og:description"
+      content="Your memory is an encrypted blob on Walrus, indexed by an account on Sui. hippo reaches it with a delegate key you can revoke on chain at any time."
+    />
+    <meta property="og:url" content="https://hippo-web-ten-nu.vercel.app/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="A chatbot that remembers you, on memory you own" />
+    <meta
+      name="twitter:description"
+      content="Teach it something, reload the page, and ask again. Anything it still knows came back from Walrus."
+    />
+    <!--
       Decide the theme before the first paint. React sets the same class, but it
       does so after mount, which is long enough for a dark-mode reader to get a
       white flash. Wrapped because storage throws in a private window.
