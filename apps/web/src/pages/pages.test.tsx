@@ -162,6 +162,57 @@ describe("chat page", () => {
     expect(seen).toMatch(/cannot delete the bytes early/i);
   });
 
+  it("shows real numbers once they arrive, and links the account", async () => {
+    const account = `0x${"ef".repeat(32)}`;
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/stats": { memories: 149, people: 5, accountId: account, network: "mainnet" },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/149/));
+    const seen = container.textContent ?? "";
+    expect(seen).toMatch(/memories/);
+    expect(seen).toMatch(/5\s*people/);
+    // The claim has to be checkable, and it has to say what it counted.
+    expect(seen).toMatch(/actually landed on Walrus/i);
+    expect(
+      screen
+        .getByRole("link", { name: new RegExp(account.slice(0, 10), "i") })
+        .getAttribute("href"),
+    ).toContain(account);
+  });
+
+  it("says nothing rather than guessing when the numbers cannot be read", async () => {
+    // No /api/stats route, so the stub answers 404. A front page that invents
+    // its own evidence is worse than one that shows none.
+    vi.stubGlobal("fetch", stubFetch({}));
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/memory you own/i));
+    expect(container.textContent ?? "").not.toMatch(/actually landed on Walrus/i);
+  });
+
+  it("names the three steps in the order they happen", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    const seen = container.textContent ?? "";
+    const order = ["Talk to it", "Take ownership", "Take it away"].map((t) => seen.indexOf(t));
+    expect(order.every((i) => i > -1)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
   it("keeps the headline readable while it is still scrambled", () => {
     // The effect resolves the headline out of noise on first view. The vendored
     // component put the scrambled characters in the screen-reader span, so

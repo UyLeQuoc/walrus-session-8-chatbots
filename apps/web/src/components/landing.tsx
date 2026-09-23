@@ -5,45 +5,31 @@
  * which explains nothing about why the project exists. The claim that makes
  * hippo different is not "it remembers"; every chatbot remembers. It is that
  * the memory is an object on a public chain that you can take away from the
- * bot. So the section links the real account on Sui rather than asserting it,
- * and it disappears the moment there is a conversation to read instead.
+ * bot.
+ *
+ * So the section leads with that claim, shows the three steps in the order they
+ * happen, and then backs it with numbers read live from the same query the
+ * evidence script uses. It disappears the moment there is a conversation to
+ * read instead, because by then the reader has something better to look at.
  */
+
+import HowItWorks from "@/components/blocks/how-it-works-5";
 import DecryptedText from "@/components/DecryptedText";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { LiveStats } from "@/components/live-stats";
 
 const SUISCAN = "https://suiscan.xyz/mainnet/object/";
 
-const STEPS = [
-  {
-    badge: "now",
-    title: "Talk to it",
-    body: "Say something about yourself. hippo decides what is worth keeping, writes it to Walrus encrypted, and shows you which memories it used in every answer.",
-  },
-  {
-    badge: "/connect",
-    title: "Take ownership",
-    body: "Sign one transaction and the memory moves into a Walrus Memory account that you own on Sui. hippo keeps only a delegate key. Gas is normally sponsored, so it costs you nothing.",
-  },
-  {
-    badge: "/disconnect",
-    title: "Take it away",
-    body: "Remove that key on chain and hippo stops being able to read or write, within about a minute. Nobody has to be asked, and hippo does not have to cooperate.",
-  },
-];
-
 export function Landing({ operatorAccountId }: { operatorAccountId?: string }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="space-y-2">
         {/*
           The headline resolves out of noise on first view. It is the one effect
           on the page and it is here because it is literally what the project
           does: every memory is ciphertext on Walrus that only the owning
-          account can turn back into words. Decoration that says nothing would
-          not be worth the dependency.
+          account can turn back into words.
         */}
-        <h1 className="text-lg font-semibold tracking-tight">
+        <h1 className="text-xl font-semibold tracking-tight">
           <DecryptedText
             text="A chatbot that remembers you, on memory you own"
             animateOn="view"
@@ -63,17 +49,9 @@ export function Landing({ operatorAccountId }: { operatorAccountId?: string }) {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {STEPS.map((s) => (
-          <Card key={s.title}>
-            <CardContent className="space-y-1.5 p-3">
-              <Badge variant="outline">{s.badge}</Badge>
-              <p className="text-sm font-medium">{s.title}</p>
-              <p className="text-xs text-muted-foreground">{s.body}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <HowItWorks />
+
+      <LiveStats />
 
       <div className="rounded-lg border p-3 text-xs text-muted-foreground">
         <p className="text-foreground">Before you start</p>
@@ -99,7 +77,6 @@ export function Landing({ operatorAccountId }: { operatorAccountId?: string }) {
             >
               {operatorAccountId.slice(0, 10)}…
             </a>
-            , on Sui mainnet
           </>
         ) : null}
         . Type <code>/help</code> for the commands, or <code>/connect</code> to move it to your own.

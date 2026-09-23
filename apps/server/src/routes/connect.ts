@@ -2,7 +2,15 @@
  * The owned-mode handshake. The browser does the wallet work; this decides
  * whether it really happened by reading the account on chain.
  */
-import { channelIdentities, connectTokens, delegateKeys, eq, people } from "@hippo/db";
+import {
+  channelIdentities,
+  connectTokens,
+  delegateKeys,
+  eq,
+  memoryIndex,
+  people,
+  sql,
+} from "@hippo/db";
 import { createSuiClient, fetchRelayerConfig, readAccount } from "@hippo/memory";
 import { Hono } from "hono";
 import { db } from "../app-context.ts";
@@ -12,7 +20,37 @@ import { mergePersons, personByWallet } from "../persons.ts";
 
 const sui = createSuiClient(env.SUI_NETWORK);
 
+/**
+ * The landing page's numbers, cached.
+ *
+ * Counted the same way `pnpm evidence` counts them: only `stored` rows, because
+ * a pending write is not yet a blob on Walrus and a failed one never will be.
+ * Claiming otherwise on the front page would be the cheapest possible lie and
+ * the easiest to check.
+ */
+let statsCache: { at: number; body: unknown } | null = null;
+const STATS_TTL_MS = 60_000;
+
 export const connectRoutes = new Hono()
+  .get("/api/stats", async (c) => {
+    if (statsCache && Date.now() - statsCache.at < STATS_TTL_MS) {
+      return c.json(statsCache.body as Record<string, unknown>);
+    }
+    const [row] = await db
+      .select({
+        stored: sql<number>`count(*) filter (where ${memoryIndex.status} = 'stored')::int`,
+        people: sql<number>`count(distinct ${memoryIndex.personId})::int`,
+      })
+      .from(memoryIndex);
+    const body = {
+      memories: row?.stored ?? 0,
+      people: row?.people ?? 0,
+      accountId: env.MEMWAL_ACCOUNT_ID,
+      network: env.SUI_NETWORK,
+    };
+    statsCache = { at: Date.now(), body };
+    return c.json(body);
+  })
   /**
    * Deployment parameters the web app needs. The package is upgradeable, so it
    * is read live.
