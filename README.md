@@ -1,14 +1,39 @@
-# hippo
+<p align="center">
+  <img src="apps/web/public/og.png" alt="hippo — a chatbot that remembers you, on memory you own" width="820">
+</p>
 
-A chatbot that remembers you across the web, Telegram, Discord, Slack and a CLI,
-where **you own the memory**: it lives in your own Walrus Memory account on Sui
-mainnet and hippo is a delegate you can revoke in one transaction.
+<h1 align="center">hippo</h1>
+
+<p align="center">
+  A chatbot that remembers you across the web, Telegram, Discord, Slack and a CLI,
+  where <b>you own the memory</b>: it lives in your own Walrus Memory account on Sui
+  mainnet and hippo is a delegate you can revoke in one transaction.
+</p>
+
+<p align="center">
+  <a href="https://hippo-web-ten-nu.vercel.app"><b>Live app</b></a> ·
+  <a href="https://t.me/walrussession8_bot"><b>@walrussession8_bot</b></a> ·
+  <a href="https://suiscan.xyz/mainnet/object/0x5a257802b4881641b49ea3ad3e460a4387f9262b4f96fd68cd4be3928e5a07aa"><b>The account on Sui</b></a>
+</p>
+
+---
+
+## See it work in three clicks
+
+1. Open the [live app](https://hippo-web-ten-nu.vercel.app) and click a starter,
+   for example *"I only use pnpm, and I want short answers in Vietnamese."*
+2. Click **Reload, then ask what it knows**. The page reloads and the question is
+   waiting.
+3. Press Send.
+
+The conversation is gone, so nothing in the page can be answering. Whatever
+comes back came back from Walrus. Transcript of that run:
+`docs/evidence/three-click-demo-2026-09-23.md`.
 
 Built for Walrus Session 8, "Chatbots That Remember".
-Primary model: `google/gemini-2.5-flash` through OpenRouter on the Vercel AI SDK.
-
-Live: **[hippo-web-ten-nu.vercel.app](https://hippo-web-ten-nu.vercel.app)** and
-**[@walrussession8_bot](https://t.me/walrussession8_bot)** on Telegram.
+Primary model: `google/gemini-2.5-flash` through OpenRouter on the Vercel AI SDK,
+with `qwen/qwen3.7-flash` as a fallback. Both chosen by measuring them against
+the project's own eval, not by reputation: `docs/evidence/model-bakeoff-2026-09-23.md`.
 
 ## Why this is different
 

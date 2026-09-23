@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; background:#0a0a0a; }
+  .banner {
+    width:1456px; height:762px; background:#0a0a0a; color:#fafafa;
+    /* A size is required in the `font` shorthand. Without one the declaration
+       is invalid and the page silently falls back to a serif. */
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display:flex; flex-direction:column; justify-content:center; gap:38px;
+    padding:0 86px;
+  }
+  .brand { display:flex; align-items:center; gap:24px; }
+  .brand b { font-size:54px; letter-spacing:-.035em; font-weight:650; }
+  h1 { font-size:92px; line-height:1.05; letter-spacing:-.04em; font-weight:650;
+        margin:0; max-width:21ch; }
+  p { font-size:34px; line-height:1.45; color:#a1a1aa; margin:0; max-width:60ch; }
+  .foot { display:flex; gap:16px; align-items:center; margin-top:8px; }
+  .chip { border:1px solid #27272a; border-radius:999px; padding:11px 24px;
+           font-size:25px; color:#d4d4d8; }
+</style>
+<div class="banner">
+  <div class="brand"><svg width="104" height="104" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M6 9.5a2 2 0 1 1 1.6-3.2" />
+  <path d="M18 9.5a2 2 0 1 0-1.6-3.2" />
+  <path d="M4.5 14c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" />
+  <circle cx="9.3" cy="11.6" r="0.9" fill="currentColor" stroke="none" />
+  <circle cx="14.7" cy="11.6" r="0.9" fill="currentColor" stroke="none" />
+  <path d="M2 14h20" />
+  <path d="M5 17.5h3M10.5 17.5h3M16 17.5h3" opacity="0.45" />
+</svg><b>hippo</b></div>
+  <h1>A chatbot that remembers you, on memory you own</h1>
+  <p>Encrypted on Walrus, indexed by an account on Sui, reached with a delegate key you can revoke on chain in about a minute.</p>
+  <div class="foot">
+    <span class="chip">Walrus Memory</span>
+    <span class="chip">Sui mainnet</span>
+    <span class="chip">Gemini 2.5 Flash via OpenRouter</span>
+  </div>
+</div>

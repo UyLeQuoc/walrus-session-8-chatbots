@@ -1,0 +1,8 @@
+<!-- 5. Delegate. Two rings joined, one filled: your account and the key you
+     lend it, joined only while you allow it. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="8.5" cy="12" r="5" />
+  <circle cx="15.5" cy="12" r="5" opacity="0.55" />
+  <circle cx="8.5" cy="12" r="1.7" fill="currentColor" stroke="none" />
+</svg>

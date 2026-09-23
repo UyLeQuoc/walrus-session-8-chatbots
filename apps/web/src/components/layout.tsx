@@ -1,4 +1,5 @@
 import { Link, Outlet } from "react-router";
+import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -7,7 +8,8 @@ export function Layout() {
     <div className="min-h-dvh flex flex-col">
       <header className="border-b">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <Link to="/" className="flex items-baseline gap-2">
+          <Link to="/" className="flex items-center gap-2">
+            <Logo size={22} />
             <span className="font-semibold tracking-tight">hippo</span>
             <span className="hidden text-xs text-muted-foreground sm:inline">
               a chatbot that remembers you, and the memory is yours

@@ -1,0 +1,10 @@
+<!-- 3. Revoke. A ring of keys with one leaving it. The only promise here that
+     cannot be faked: take the key off the ring and the bot is out. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+     stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="9" cy="12" r="5.5" />
+  <path d="M14.5 12h3.5" />
+  <path d="M16.5 12v2.2" />
+  <path d="M19.5 8.2l2.6-2.6M22.1 5.6l-1.1-1.1M20.6 7.1l-1-1" opacity="0.5" />
+  <circle cx="9" cy="12" r="1.6" fill="currentColor" stroke="none" />
+</svg>

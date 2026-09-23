@@ -12,8 +12,8 @@
     <!--
       The submission is shared on X, cross-posted outside the ecosystem and
       linked from an article. Every one of those renders a link card, and
-      without these it renders a bare URL. No og:image yet, so the card is the
-      small variety; a 1200x630 png would upgrade it to the large one.
+      without these it renders a bare URL. The image is generated from
+      docs/brand/banner.html; see docs/brand/README.md to regenerate it.
     -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="hippo" />
@@ -23,7 +23,11 @@
       content="Your memory is an encrypted blob on Walrus, indexed by an account on Sui. hippo reaches it with a delegate key you can revoke on chain at any time."
     />
     <meta property="og:url" content="https://hippo-web-ten-nu.vercel.app/" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="https://hippo-web-ten-nu.vercel.app/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://hippo-web-ten-nu.vercel.app/og.png" />
     <meta name="twitter:title" content="A chatbot that remembers you, on memory you own" />
     <meta
       name="twitter:description"
