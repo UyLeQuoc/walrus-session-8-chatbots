@@ -316,10 +316,15 @@ back to a serif that is not the one the layout was tuned for.
 
 The headline is set **twice, in the same place**. One copy is clipped to
 everything above the waterline and left crisp; the other is clipped to
-everything below, nudged 9px right, scaled 1.035 vertically, blurred and dropped
-to 40% — so the submerged half of *remember* reads as the same word seen through
-water. The waterline crosses the word rather than sitting under it, which is the
-whole idea: held below, surfaced on ask.
+everything below, nudged 4px right, scaled 1.012 vertically, blurred by half a
+pixel and dropped to 55% — so the submerged half of *remember* reads as the same
+word seen through water. The waterline crosses the word rather than sitting under
+it, which is the whole idea: held below, surfaced on ask.
+
+Those numbers are deliberately small. The first pass used 9px, 1.035 and 40%
+opacity with a 1.1px blur, which distorted the word past reading — the effect
+announced itself instead of doing its job. If it is ever tuned again, the test is
+whether *remember* still reads as one word at a glance.
 
 Two things that will break it if edited carelessly. The clip values are
 **absolute pixels**, because `clip-path` percentages resolve against the element
