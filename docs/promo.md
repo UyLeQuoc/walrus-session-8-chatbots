@@ -119,8 +119,9 @@ to own the account, not a balance in it.
 
 **[FIGURE 2 — `article-images/fig2-revoke.png`]**
 
-> *Caption: Measured on Sui mainnet. The removed key still authenticated 15
-> seconds after it left the chain, and was refused by 32.*
+> *Caption: Measured on Sui mainnet. The dashed segment is the part the
+> measurement does not pin down — the removed key still authenticated at 15
+> seconds and was refused by 32, and I do not know where in between it flipped.*
 
 This is the claim the whole idea rests on, so I measured it rather than assuming
 it: create an account, register a delegate key, write a memory with it, remove
@@ -179,17 +180,21 @@ first commit.
 
 **3. Cheap models recall fine and stop being changed by what they recall.**
 
-**[FIGURE 4 — `article-images/fig3-models.png`]**
-
-> *Caption: Two runs per model, reported as the small sample it is. Cost is the
-> OpenRouter balance before and after each run, so it includes retries.*
-
 My eval teaches five things, throws the conversation away, and asks four
 questions in a fresh session. The fifth thing is not a fact, it is the stored
-instruction from figure 3. DeepSeek and Qwen both recalled the facts perfectly,
-pulled the instruction into context, and answered in English anyway — DeepSeek in
-both runs, Qwen in one of two. They are a third of the price and no worse at
-retrieval. They are worse at letting retrieval change their behaviour.
+instruction from figure 3 — *answers in Vietnamese*. DeepSeek and Qwen both
+recalled the facts perfectly, pulled that instruction into context, and answered
+in English anyway.
+
+**[FIGURE 4 — `article-images/fig3-models.png`]**
+
+> *Caption: Two runs per model, reported as the small sample it is. "Stored
+> instruction obeyed" is whether the answer actually came back in Vietnamese.
+> Cost is the OpenRouter balance before and after each run, so it includes
+> retries.*
+
+They are a third of the price and no worse at retrieval. They are worse at
+letting retrieval change their behaviour.
 
 If your eval only asks *did it quote the right fact*, every model passes and you
 learn nothing. Include one item that has to change **how** the answer is written.
@@ -272,10 +277,18 @@ github.com/UyLeQuoc/walrus-session-8-chatbots.
 | File | Size | Used as |
 |---|---|---|
 | `article-images/cover.png` | 1920×1080 | Article cover |
-| `article-images/fig1-how-it-works.png` | 1600×900 | Figure 1, the write and read paths |
-| `article-images/fig2-revoke.png` | 1600×770 | Figure 2, ownership and the measured revocation |
+| `article-images/fig1-how-it-works.png` | 1600×720 | Figure 1, the write and read paths |
+| `article-images/fig2-revoke.png` | 1600×440 | Figure 2, the measured revocation timeline |
 | `article-images/fig4-recall.png` | 1536×548 | Figure 3, the real recall, from production |
-| `article-images/fig3-models.png` | 1600×820 | Figure 4, the model comparison |
+| `article-images/fig3-models.png` | 1600×480 | Figure 4, the model comparison |
+
+**The figures carry no prose, on purpose.** The first versions restated the
+paragraphs around them, which is the most common way an illustrated article gets
+worse: the reader meets the same sentence twice and starts skimming both. Each
+figure now shows only what the text is bad at — a flow, a timeline, a table — and
+everything explanatory lives in the caption or the body. If one of these ever
+needs a sentence inside it to make sense, the sentence belongs in the caption
+instead.
 
 The figure numbering in the article does not match the file numbering, because
 the recall screenshot earned a better position than the slot it was built for.
