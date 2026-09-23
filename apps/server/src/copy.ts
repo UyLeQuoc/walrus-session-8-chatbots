@@ -72,3 +72,38 @@ export const HELP = `hippo remembers what you tell it, and the memory belongs to
 /connect           own your memory in your own Walrus account
 /disconnect        revoke my access on-chain
 /help              this message`;
+
+/**
+ * What a person is told when a turn fails.
+ *
+ * Every channel used to say "something went wrong on my side, try again in a
+ * moment" for everything. That is fine advice for a blip and actively wrong for
+ * an exhausted model budget, where trying again in a moment will fail in
+ * exactly the same way for hours. Someone testing this during the real-use week
+ * deserves to know which kind of wrong it is.
+ *
+ * Three buckets, because three is what we can honestly distinguish from the
+ * outside. Anything unrecognised falls through to the generic line rather than
+ * being guessed at.
+ */
+export function describeFailure(err: unknown): string {
+  const status =
+    (err as { status?: number; statusCode?: number } | null)?.status ??
+    (err as { statusCode?: number } | null)?.statusCode;
+  const text = err instanceof Error ? `${err.name} ${err.message}` : String(err ?? "");
+  const says = (re: RegExp) => re.test(text);
+
+  // Out of credit, or the key is not allowed to spend. Retrying does not help,
+  // and pretending otherwise wastes the person's time.
+  if (status === 402 || says(/insufficient|credit|quota|billing|payment required/i)) {
+    return "I have run out of model credit, so I cannot answer until that is topped up. This is on my side and waiting will not fix it. Your memory is untouched.";
+  }
+
+  if (status === 429 || says(/rate.?limit|too many requests/i)) {
+    return "I am being rate limited right now. Give me a minute and ask again.";
+  }
+
+  // A stream that died, a provider outage, a database that is not answering.
+  // Distinguishing further from here would be guessing.
+  return "I could not get an answer out just now. Nothing you have told me before is lost, but this message may not have been remembered, so say it again once I am back.";
+}

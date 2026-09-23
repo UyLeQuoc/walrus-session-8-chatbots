@@ -8,6 +8,7 @@ import type { ModelMessage } from "ai";
 import { model } from "./app-context.ts";
 import { type CommandContext, handleCommand } from "./commands.ts";
 import { startConnect, startDisconnect } from "./connect.ts";
+import { describeFailure } from "./copy.ts";
 import { logTurn, portFor, resolvePerson } from "./persons.ts";
 import { checkRate, noteCommand } from "./ratelimit.ts";
 
@@ -79,6 +80,8 @@ export async function handleIncoming(msg: IncomingMessage): Promise<TurnReply> {
     }
   } catch (err) {
     console.error(`[${msg.channel}] command failed`, err);
+    // Deliberately not describeFailure: a command never reaches the model and
+    // never writes a memory, so its reassurances would be about the wrong thing.
     return { text: "That command failed on my side. Try again in a moment.", command: true };
   }
 
@@ -89,19 +92,31 @@ export async function handleIncoming(msg: IncomingMessage): Promise<TurnReply> {
   messages.push({ role: "user", content: msg.text });
 
   const port = await portFor(person, msg.channel);
-  const {
-    text,
-    ctx: turnCtx,
-    writes,
-  } = await completeTurn({
-    model,
-    port,
-    messages,
-    channel: msg.channel,
-    userHandle: handle,
-    memoryEnabled: person.memoryEnabled,
-    sessionStart,
-  });
+  let text: string;
+  let turnCtx: Awaited<ReturnType<typeof completeTurn>>["ctx"];
+  let writes: number;
+  try {
+    ({
+      text,
+      ctx: turnCtx,
+      writes,
+    } = await completeTurn({
+      model,
+      port,
+      messages,
+      channel: msg.channel,
+      userHandle: handle,
+      memoryEnabled: person.memoryEnabled,
+      sessionStart,
+    }));
+  } catch (err) {
+    // The adapter would otherwise say the same sentence for a dead provider and
+    // an exhausted budget. Recall failures never reach here; they are swallowed
+    // per query in gatherContext so memory being down costs context, not the
+    // answer.
+    console.error(`[${msg.channel}] turn failed`, err);
+    return { text: describeFailure(err), command: true };
+  }
 
   messages.push({ role: "assistant", content: text });
   history.set(msg.threadKey, { messages: messages.slice(-MAX_HISTORY), last: now });

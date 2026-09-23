@@ -7,7 +7,7 @@
  * said is on a public network for seven months.
  */
 import { describe, expect, it } from "vitest";
-import { HELP, PRIVACY, welcome } from "./copy.ts";
+import { describeFailure, HELP, PRIVACY, welcome } from "./copy.ts";
 
 describe("first contact", () => {
   it("tells a new user their words go to a public network, before they speak", () => {
@@ -73,6 +73,42 @@ describe("/help", () => {
       "/disconnect",
     ]) {
       expect(HELP).toContain(cmd);
+    }
+  });
+});
+
+describe("what a person is told when a turn fails", () => {
+  it("does not tell someone to wait when waiting cannot help", () => {
+    const outOfCredit = describeFailure(
+      Object.assign(new Error("Insufficient credits"), { status: 402 }),
+    );
+    expect(outOfCredit).toMatch(/run out of model credit/i);
+    expect(outOfCredit).not.toMatch(/try again in a moment|give me a minute/i);
+    // And it should say the thing the person actually cares about.
+    expect(outOfCredit).toMatch(/memory is untouched/i);
+  });
+
+  it("does tell someone to wait when waiting is exactly right", () => {
+    for (const err of [
+      Object.assign(new Error("boom"), { status: 429 }),
+      new Error("429 Too Many Requests"),
+    ]) {
+      expect(describeFailure(err)).toMatch(/minute/i);
+    }
+  });
+
+  it("falls back rather than guessing, and is honest about what may be lost", () => {
+    const generic = describeFailure(new Error("socket hang up"));
+    expect(generic).toMatch(/could not get an answer out/i);
+    // Earlier memories are safe; this one may not have been written. Claiming
+    // either more or less than that would be wrong.
+    expect(generic).toMatch(/nothing you have told me before is lost/i);
+    expect(generic).toMatch(/may not have been remembered/i);
+  });
+
+  it("survives being handed something that is not an Error", () => {
+    for (const junk of [null, undefined, "boom", 42, {}]) {
+      expect(typeof describeFailure(junk)).toBe("string");
     }
   });
 });

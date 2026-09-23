@@ -1,4 +1,5 @@
 import { App } from "@slack/bolt";
+import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { handleIncoming } from "../turn.ts";
 import type { ChannelAdapter } from "./types.ts";
@@ -31,7 +32,7 @@ export function slackAdapter(): ChannelAdapter | null {
       await say(reply.text);
     } catch (err) {
       console.error("[slack] turn failed", err);
-      await say("Something went wrong on my side. Try again in a moment.");
+      await say(describeFailure(err));
     }
   };
 

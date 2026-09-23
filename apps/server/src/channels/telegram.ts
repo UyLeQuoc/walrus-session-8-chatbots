@@ -1,4 +1,5 @@
 import { Bot } from "grammy";
+import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { handleIncoming } from "../turn.ts";
 import type { ChannelAdapter } from "./types.ts";
@@ -46,7 +47,7 @@ export function telegramAdapter(): ChannelAdapter | null {
       }
     } catch (err) {
       console.error("[telegram] turn failed", err);
-      await ctx.reply("Something went wrong on my side. Try again in a moment.");
+      await ctx.reply(describeFailure(err));
     } finally {
       clearInterval(typing);
     }

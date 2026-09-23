@@ -8,6 +8,7 @@ import { db, model } from "../app-context.ts";
 import { personFromSession } from "../auth.ts";
 import { type CommandContext, handleCommand } from "../commands.ts";
 import { startConnect, startDisconnect } from "../connect.ts";
+import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { logTurn, type Person, portFor, resolvePerson } from "../persons.ts";
 import { checkRate, noteCommand } from "../ratelimit.ts";
@@ -138,6 +139,15 @@ export const chatRoutes = new Hono()
     const turnCtx = await gatherContext(input);
     const result = runTurn(input, turnCtx);
     return result.toUIMessageStreamResponse({
+      /**
+       * The page shows this in a toast. Without it the AI SDK sends its own
+       * default, which is the word "error", and a person watching a chat go
+       * quiet learns nothing from that. Same sentences as every other channel.
+       */
+      onError: (err) => {
+        console.error("[web] stream failed", err);
+        return describeFailure(err);
+      },
       /**
        * Tell the page what this answer was built from. Judging criterion one is
        * whether memory is doing real work, and a user cannot see that from the

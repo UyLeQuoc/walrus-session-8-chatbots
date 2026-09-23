@@ -1,4 +1,5 @@
 import { ChannelType, Client, Events, GatewayIntentBits, Partials } from "discord.js";
+import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { handleIncoming } from "../turn.ts";
 import type { ChannelAdapter } from "./types.ts";
@@ -40,7 +41,7 @@ export function discordAdapter(): ChannelAdapter | null {
       }
     } catch (err) {
       console.error("[discord] turn failed", err);
-      await msg.reply("Something went wrong on my side. Try again in a moment.");
+      await msg.reply(describeFailure(err));
     }
   });
 
