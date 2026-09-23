@@ -11,6 +11,7 @@ import { startConnect, startDisconnect } from "../connect.ts";
 import { env } from "../env.ts";
 import { logTurn, type Person, portFor, resolvePerson } from "../persons.ts";
 import { checkRate, noteCommand } from "../ratelimit.ts";
+import { tooLong } from "../turn.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
 const CHANNEL = "web";
@@ -100,6 +101,9 @@ export const chatRoutes = new Hono()
     );
 
     const text = lastUserText(body.messages);
+    const oversize = tooLong(text);
+    if (oversize) return c.json({ command: true, text: oversize });
+
     const ctx: CommandContext = {
       person,
       channel,

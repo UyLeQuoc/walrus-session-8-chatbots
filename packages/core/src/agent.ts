@@ -42,7 +42,16 @@ function lastUserText(messages: ModelMessage[]): string | null {
 /** Recall policy from docs/ARCHITECTURE.md §5: per-turn recall on the user message, plus session-start profile pulls. */
 export async function gatherContext(input: TurnInput): Promise<TurnContext> {
   if (!input.memoryEnabled) return { injected: [], styleHints: [] };
-  const query = lastUserText(input.messages);
+  /**
+   * The search string, not the message. A long paste is a legitimate thing to
+   * send a bot, but sending all of it to the relayer as an embedding query is
+   * slow, spends shared budget, and searches worse than the first couple of
+   * sentences would. The model still sees the whole message.
+   *
+   * 300 characters is the same ceiling the `recall` tool's own schema enforces,
+   * so the two paths cannot disagree.
+   */
+  const query = lastUserText(input.messages)?.slice(0, 300) ?? null;
   const seen = new Map<string, RecalledMemory>();
   const add = (list: RecalledMemory[]) => {
     for (const m of list) if (!seen.has(m.blob_id)) seen.set(m.blob_id, m);
