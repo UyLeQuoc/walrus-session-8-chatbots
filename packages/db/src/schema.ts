@@ -143,3 +143,55 @@ export const memoryIndex = pgTable(
   },
   (t) => [index("memory_index_person_idx").on(t.personId, t.createdAt)],
 );
+
+/**
+ * Shared memory for a handful of people.
+ *
+ * A team's memory lives in hippo's own account under `hippo-team:<id>`, exactly
+ * as a guest's does. The team does not own it, and that is said out loud in
+ * `/team` and `/privacy` rather than implied otherwise: owning shared memory
+ * needs an account somebody holds the keys to, and deciding who that is between
+ * colleagues is a product question this does not answer yet.
+ */
+export const teams = pgTable("teams", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  createdBy: uuid("created_by").references(() => people.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const teamMembers = pgTable(
+  "team_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Leaving stops reads and writes; it does not remove what the person
+     * contributed, because a memory on Walrus cannot be deleted (docs/issues/09).
+     * Kept as a row rather than a delete so `/team` can say that truthfully.
+     */
+    leftAt: timestamp("left_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("team_members_person_idx").on(t.personId, t.leftAt),
+    uniqueIndex("team_members_unique").on(t.teamId, t.personId),
+  ],
+);
+
+/** Six characters, ten minutes, single use. Same shape as a channel link code. */
+export const teamInvites = pgTable("team_invites", {
+  code: text("code").primaryKey(),
+  teamId: uuid("team_id")
+    .notNull()
+    .references(() => teams.id, { onDelete: "cascade" }),
+  createdBy: uuid("created_by").references(() => people.id, { onDelete: "set null" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

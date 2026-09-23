@@ -10,7 +10,8 @@ import { db } from "./app-context.ts";
 import { HELP, PRIVACY, welcome } from "./copy.ts";
 import { env } from "./env.ts";
 import { createLinkCode, redeemLinkCode } from "./link.ts";
-import { type Person, portFor } from "./persons.ts";
+import { type Person, portFor, teamPortFor } from "./persons.ts";
+import { createTeam, currentTeam, inviteToTeam, joinTeam, leaveTeam } from "./teams.ts";
 
 export interface CommandContext {
   person: Person;
@@ -21,6 +22,100 @@ export interface CommandContext {
 
 export interface CommandResult {
   text: string;
+}
+
+/**
+ * Shared memory for a few people, with the awkward parts said out loud.
+ *
+ * Two of these matter more than the feature: the team does not own its memory,
+ * and leaving does not take back what you put in. Both are true of every other
+ * shared-memory product too; the difference is whether they are in the help
+ * text or discovered later.
+ */
+async function team(ctx: CommandContext, arg: string): Promise<CommandResult> {
+  const [sub = "", ...rest] = arg.split(/\s+/);
+  const value = rest.join(" ");
+  const mine = await currentTeam(ctx.person.id);
+
+  switch (sub.toLowerCase()) {
+    case "": {
+      if (!mine) {
+        return {
+          text: "You are not in a team.\n\n/team new <name>  start one\n/team join <code>  join one somebody else started\n\nA team shares memory that anyone in it can recall. What you say normally stays yours; only /team remember puts something in the shared pile.",
+        };
+      }
+      return {
+        text: `Team: ${mine.name} (${mine.memberCount} ${mine.memberCount === 1 ? "member" : "members"}).\n\nEveryone in it recalls the shared memory. Your own memory is still yours and is not shared.\n\n/team remember <fact>  add to the shared memory\n/team invite           a code for somebody else\n/team leave            stop reading and writing it\n\nThe shared memory lives in my account, not yours, so nobody in the team owns it yet. /privacy has the detail.`,
+      };
+    }
+
+    case "new": {
+      const outcome = await createTeam(ctx.person, value);
+      if (!outcome.ok) {
+        return {
+          text:
+            outcome.reason === "bad-name"
+              ? "Give it a name: /team new Platform"
+              : "You are already in a team. /team leave first.",
+        };
+      }
+      return {
+        text: `Started "${outcome.team.name}".\n\nShare this code, it works once and lasts ${outcome.expiresInMinutes} minutes:\n\n${outcome.code}\n\nThey run /team join ${outcome.code} on any channel. Add facts with /team remember <fact>; ordinary conversation stays private to you.`,
+      };
+    }
+
+    case "invite": {
+      if (!mine) return { text: "You are not in a team. /team new <name> starts one." };
+      const invite = await inviteToTeam(ctx.person, mine.teamId);
+      return {
+        text: `${invite.code}\n\nWorks once, for ${invite.expiresInMinutes} minutes. They run /team join ${invite.code}.`,
+      };
+    }
+
+    case "join": {
+      const outcome = await joinTeam(ctx.person, value);
+      if (!outcome.ok) {
+        const why: Record<string, string> = {
+          unknown: "That is not a code. They look like ABC234.",
+          expired: "That code has been used or has expired. Ask for another.",
+          "already-in-a-team": "You are already in a team. /team leave first.",
+          "already-member": "You are already in that team.",
+          full: "That team is full.",
+        };
+        return { text: why[outcome.reason] ?? (why.unknown as string) };
+      }
+      return {
+        text: `Joined "${outcome.team.name}". You will now recall what the team has put in, and /team remember adds to it.\n\nYour own memory stays yours and is not shared.`,
+      };
+    }
+
+    case "remember": {
+      if (!mine) return { text: "You are not in a team. /team new <name> starts one." };
+      if (value.trim().length < 3) return { text: "Usage: /team remember <fact>" };
+      const port = await teamPortFor(ctx.person, ctx.channel, mine.teamId);
+      const result = await port.remember({ type: "decision", text: value, channel: ctx.channel });
+      if (!result.saved) return { text: `"${mine.name}" already knows that.` };
+      const redacted = result.redacted.length
+        ? ` I stripped ${result.redacted.join(", ")} out of it first.`
+        : "";
+      return {
+        text: `Added to "${mine.name}". Everyone in the team can recall it from now on.${redacted}`,
+      };
+    }
+
+    case "leave": {
+      const left = await leaveTeam(ctx.person.id);
+      if (!left) return { text: "You are not in a team." };
+      return {
+        text: `Left "${left.name}". I will not read or write its memory for you any more.\n\nWhat you already put in stays: a memory on Walrus cannot be deleted, so the team keeps it. Only add things to a team you are willing to leave behind.`,
+      };
+    }
+
+    default:
+      return {
+        text: "Try /team, /team new <name>, /team join <code>, /team invite, /team remember <fact>, or /team leave.",
+      };
+  }
 }
 
 /**
@@ -192,6 +287,8 @@ export async function handleCommand(
       return { text: HELP };
     case "privacy":
       return { text: PRIVACY };
+    case "team":
+      return team(ctx, arg);
     case "whoami":
       return whoami(ctx);
     case "link":

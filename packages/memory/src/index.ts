@@ -1,4 +1,11 @@
-export { createClient, guestScope, type MemoryScope, NAMESPACE, ownedScope } from "./client.ts";
+export {
+  createClient,
+  guestScope,
+  type MemoryScope,
+  NAMESPACE,
+  ownedScope,
+  teamScope,
+} from "./client.ts";
 export { decryptSecret, encryptSecret } from "./crypto.ts";
 export { type GeneratedDelegate, generateDelegate } from "./delegate.ts";
 export { loadEnv, type OperatorEnv, operatorEnvSchema, readOperatorEnv } from "./env.ts";

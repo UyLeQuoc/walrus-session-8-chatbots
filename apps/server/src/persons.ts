@@ -6,10 +6,12 @@ import {
   guestScope,
   type MemoryPort,
   ownedScope,
+  teamScope,
   type WriteEvent,
 } from "@hippo/memory";
 import { db, operator } from "./app-context.ts";
 import { env } from "./env.ts";
+import { currentTeam } from "./teams.ts";
 
 export type Person = typeof people.$inferSelect;
 
@@ -40,6 +42,14 @@ export async function resolvePerson(
 }
 
 /** Guest or owned MemoryPort for a person, recording every write in memory_index. */
+/**
+ * Reads a person's own memory, plus their team's if they are in one.
+ *
+ * Team memory is a read-only companion here on purpose: being in a team must
+ * never turn an ordinary sentence into something colleagues can read. Putting a
+ * fact into the team is an explicit act, `/team remember`, and that path builds
+ * its own port through `teamPortFor` below.
+ */
 export async function portFor(person: Person, channel: string): Promise<MemoryPort> {
   const by = person.displayName ?? person.id.slice(0, 8);
   const onWrite = async (e: WriteEvent) => {
@@ -95,11 +105,36 @@ export async function portFor(person: Person, channel: string): Promise<MemoryPo
         by,
         channel,
         onWrite,
-        alsoRead: [guestScope(operator, person.id)],
+        alsoRead: [guestScope(operator, person.id), ...(await teamScopes(person))],
       });
     }
   }
-  return createMemoryPort({ scope: guestScope(operator, person.id), by, channel, onWrite });
+  return createMemoryPort({
+    scope: guestScope(operator, person.id),
+    by,
+    channel,
+    onWrite,
+    alsoRead: await teamScopes(person),
+  });
+}
+
+/** Empty unless the person is in a team, which keeps the common path unchanged. */
+async function teamScopes(person: Person) {
+  const team = await currentTeam(person.id);
+  return team ? [teamScope(operator, team.teamId)] : [];
+}
+
+/**
+ * A port that writes into the team. Only `/team remember` builds one, and the
+ * command says which team the fact is going to before it writes.
+ */
+export async function teamPortFor(
+  person: Person,
+  channel: string,
+  teamId: string,
+): Promise<MemoryPort> {
+  const by = person.displayName ?? person.id.slice(0, 8);
+  return createMemoryPort({ scope: teamScope(operator, teamId), by, channel });
 }
 
 export async function logTurn(

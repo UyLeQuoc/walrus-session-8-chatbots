@@ -56,6 +56,14 @@ describe("/privacy", () => {
     expect(PRIVACY).toMatch(/\/memory off/);
   });
 
+  it("warns that a team sees what the team is told, and that leaving does not undo it", () => {
+    // Somebody joining a shared memory has to know both halves before they
+    // join, not after a colleague reads something back to them.
+    expect(PRIVACY).toMatch(/everyone in it can recall/i);
+    expect(PRIVACY).toMatch(/Your own memory is not shared/i);
+    expect(PRIVACY).toMatch(/leaving does not take it back out/i);
+  });
+
   it("says that memories from before connecting stay in hippo's account", () => {
     // They cannot be moved and cannot be deleted, so hippo can still read them
     // after a revoke. Discovering that afterwards would feel like a betrayal of

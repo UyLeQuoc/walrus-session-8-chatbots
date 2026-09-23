@@ -22,6 +22,21 @@ export function guestScope(
   return { mode: "guest", ...operator, namespace: NAMESPACE.guest(personId) };
 }
 
+/**
+ * A team's shared namespace, inside hippo's own account.
+ *
+ * The team does not own this, exactly as a guest does not own theirs. Shared
+ * memory that the members owned would need an account somebody holds the keys
+ * to, and choosing who that is between colleagues is a question this does not
+ * answer yet. `/team` says so rather than letting the name imply otherwise.
+ */
+export function teamScope(
+  operator: { key: string; accountId: string; serverUrl: string },
+  teamId: string,
+): MemoryScope {
+  return { mode: "guest", ...operator, namespace: NAMESPACE.team(teamId) };
+}
+
 export function ownedScope(user: {
   key: string;
   accountId: string;
