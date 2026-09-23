@@ -42,7 +42,7 @@ Never edit files inside `memwal/`. Never import from it; depend on the published
 
 - Mainnet only. Relayer `https://relayer.memory.walrus.xyz`. Package and registry IDs are in `docs/ARCHITECTURE.md` §8.
 - Delegate private keys never leave the server and never appear in logs, chat messages, or the browser. Users' keys are stored encrypted (AES-256-GCM with `KEY_ENCRYPTION_KEY`).
-- Namespace names are public on-chain. Only `hippo` (owned), `hippo-guest:<personId>` (guest), `hippo-team:<id>` (stretch) are allowed.
+- Namespace names are public on-chain. Only `hippo` (owned), `hippo-guest:<personId>` (guest), `hippo-team:<id>` (shared, one per person, written only by `/team remember`) are allowed.
 - Do not use `withMemWal` autoSave. Memory writes go through the `remember` tool with dedupe.
 - Memory text is never stored in Postgres. `memory_index` holds blob IDs, types, hashes and dates only. Text comes from Walrus.
 - Strip credentials (API keys, private keys, tokens) from any text before `remember`.

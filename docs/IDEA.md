@@ -61,7 +61,11 @@ The bot writes proactively using the four-part policy from the official prompt t
 
 ## Scope guardrails
 
-- Order: core, web and Telegram first, then Discord, then Slack. Core, web and the CLI are done and Telegram is live; Discord and Slack are written and need tokens. Team and shared scope remains stretch, and has not been started.
+- Order: core, web and Telegram first, then Discord, then Slack. Core, web and the CLI are done and Telegram is live; Discord and Slack are written and need tokens. Team memory shipped on 2026-09-24 and is verified on production
+(`docs/evidence/team-memory-2026-09-24.md`): a shared namespace several people
+recall from, written only by `/team remember` so ordinary conversation never
+leaks to colleagues, and honest that the team does not own it and that leaving
+cannot take back what you put in.
 - The bot holds users' delegate private keys encrypted at rest. This is the standard delegate model (the MCP plugin does the same on the user's machine). Ownership means the user can revoke, not that the bot never sees a key. Say this plainly in the article.
 - No self-hosted relayer. Managed mainnet relayer only.
 
