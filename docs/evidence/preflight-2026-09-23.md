@@ -54,3 +54,35 @@ raising before anyone is invited**; it is the first item in `docs/RUNBOOK.md`.
 Failure messages under real outages. The classifier is unit tested against the
 error shapes, but nobody has taken OpenRouter down to watch it. The generic
 branch is what runs when it cannot tell, which is the safe default.
+
+---
+
+## Update 2026-09-24: a limit the caller could opt out of
+
+`checkRate` throttles per person, and a person is whoever the request claims to
+be: `x-hippo-guest` is a UUID the browser generates, and any well-formed one
+that has not been seen creates a new person with its own budget. Confirmed
+against production by inventing two ids and watching both get working sessions.
+
+With roughly 2,300 turns of model credit left, a loop sending a fresh UUID each
+time empties it in minutes, and the symptom is not an outage: hippo starts
+telling everybody it is out of credit, midway through the week meant to prove
+it works.
+
+A per-address ceiling now sits above the per-person limit. Verified on
+production:
+
+```
+30 requests from one address   200 ×30
+31st onward                    429, retry-after: 60
+/api/config while limited      200   (exempt)
+/api/stats while limited       200   (exempt)
+same address after 62s         200   (recovers)
+```
+
+The exemptions matter: the landing reads config and stats on every visit, and an
+uptime check hits health on a schedule. None of them spend anything.
+
+The counter is in memory, which is correct for exactly one replica and wrong for
+two. The service runs one on purpose, because Telegram long polling must not run
+twice, and the module says so where somebody changing that would read it.

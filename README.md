@@ -62,6 +62,14 @@ that a second channel recalls the same facts.
 counting only memories that actually landed on Walrus. `pnpm restore` checks the
 relayer's index against what we wrote.
 
+Three more exist and are easy to miss. `pnpm evidence:daily` is the one to use
+during the real-use week: it points at production explicitly and writes a dated
+file, where plain `pnpm evidence` reads whichever database `.env` names and would
+quietly record your own test chatter instead. `pnpm capacity` reads the model
+budget, the database size and the relayer against a week of real use, and says
+whether it fits. `pnpm prune:people` clears rows for people who never said
+anything.
+
 `pnpm smoke`, `pnpm db:push`, `pnpm typecheck` and `pnpm test` need only the
 Walrus Memory credentials. `pnpm demo`, `pnpm hippo` and the chat itself also
 need `OPENROUTER_API_KEY`. The whole sequence above was run from a fresh clone on
