@@ -7,6 +7,9 @@ mainnet and hippo is a delegate you can revoke in one transaction.
 Built for Walrus Session 8, "Chatbots That Remember".
 Primary model: `google/gemini-2.5-flash` through OpenRouter on the Vercel AI SDK.
 
+Live: **[hippo-web-ten-nu.vercel.app](https://hippo-web-ten-nu.vercel.app)** and
+**[@walrussession8_bot](https://t.me/walrussession8_bot)** on Telegram.
+
 ## Why this is different
 
 Most memory bots keep your memory in the vendor's account. hippo starts that way
@@ -14,11 +17,20 @@ too, in guest mode, because asking for a wallet before the first message is a ba
 trade. Then `/connect` moves it: one sponsored transaction registers hippo's
 delegate key on a Walrus Memory account that belongs to your wallet. From then on
 
-- `/disconnect` removes that key on chain and hippo immediately cannot read or
-  write anything of yours,
+- `/disconnect` removes that key on chain, and within about a minute hippo
+  cannot read or write anything of yours. Measured, not assumed: the relayer
+  refused a removed key after 32 seconds and still accepted it at 15
+  (`docs/evidence/revocation-2026-09-22.md`). hippo also destroys its own copy
+  of the key, which closes that window immediately,
 - the same memory is readable from Claude Code, Cursor or any other Walrus Memory
   client you sign in with the same wallet,
 - `/proof` shows the Walrus blobs behind any answer.
+
+The web app makes that concrete rather than claiming it. `/me` reads your
+`MemWalAccount` straight off Sui and shows the account, its owner and every
+delegate key the contract will honour, with hippo's own marked, next to a button
+that revokes it. The memory list filters by type, and searching reads the words
+back from Walrus, because the text is never stored in Postgres.
 
 ## Run it
 
@@ -96,12 +108,37 @@ bug reports we are filing against Walrus Memory, and
 `docs/evidence/security-review-2026-09-21.md` is an adversarial review of this
 repo with its findings fixed.
 
-Two limits worth knowing before you rely on this: a memory can be made
-unrecallable but not deleted, and the relayer's `restore()` does not currently
+Three limits worth knowing before you rely on this. A memory can be made
+unrecallable but not deleted. The relayer's `restore()` does not currently
 re-index this account, so treat the search index as the fragile part and Walrus
-as the durable one. Both are written up in `docs/issues/`.
+as the durable one. And an owner cannot yet decrypt their own memory without the
+relayer: mainnet ciphertext is sealed by a committee SEAL key server whose
+aggregator requires an API key. Access control is genuinely on chain, and we
+measured that revoking a delegate key stops the relayer within about 32 seconds
+(`docs/evidence/revocation-2026-09-22.md`), but reading the bytes yourself still
+goes through a service. All three are written up in `docs/issues/`.
 
 ## Troubleshooting
+
+**Read this one before anything else: there are two Walrus Memory deployments
+live on mainnet.** They are separate packages, not one upgraded in place. The
+documentation names one; `GET /config` serves the other. Take the package id
+from `/config`, because the documented one is stale, and it is very easy to take
+the registry id from the documentation at the same time and end up straddling
+both. `/config` does not return a registry id, so nothing stops you.
+
+Two failures come out of that and neither of them mentions a registry. Sponsored
+transactions return `502 {"code":"sponsor_upstream_error"}`, which looks exactly
+like an outage on their side. And resolving an owner returns a real, active
+account with real delegate keys that simply is not yours, so a config that
+verifies cleanly can still be wrong. We lost a week to the second one and drafted
+a bug report accusing the relayer of ignoring on-chain access control before
+finding the cause.
+
+`pnpm diagnose` now fails when the chain and the relayer disagree, which is what
+catches this. If you configure an object id by hand, check its Move **type**, not
+just that it resolves: the registry for the current package is typed under the
+current package. Written up in `docs/issues/11`.
 
 **`401` from the relayer.** Almost always one of four things, and `pnpm diagnose`
 tells you which: the delegate private key is wrong, the key is not registered on
