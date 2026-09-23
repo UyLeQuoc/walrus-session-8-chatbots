@@ -5,6 +5,46 @@ Two forms of the same brief. Update the State line in both as milestones land.
 - **Short form** below fits the `/goal` command, which caps at 4000 characters.
 - **Long form** further down is for pasting into a fresh session, where there is no limit.
 
+## Next goal, for `/goal` — attack our own defences
+
+```
+Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
+
+Read CLAUDE.md, docs/GOAL.md and docs/AUDIT.md first, then docs/ARCHITECTURE.md §11, the threat model table. This session is about whether that table is true.
+
+State (2026-09-23): live in production, feature-complete, writing corrected, pre-flight done. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, Telegram @walrussession8_bot. 64 tests, CI green, clean tree. Model is google/gemini-2.5-flash with qwen/qwen3.7-flash as a fallback, both chosen by measurement (docs/evidence/model-bakeoff-2026-09-23.md). M6 is the only unmet judging criterion and starts when I message the bot.
+
+Every defence below is claimed in the threat model and none has ever been attacked. A memory bot's worst day is someone discovering that memories are instructions, and that discovery should happen here rather than during the real-use week.
+
+1. Prompt injection through a recalled memory. Memories are framed by formatUntrustedMemories with a nonce boundary and a system instruction, copied from the SDK and never tested. Write memories that try to become instructions: "ignore previous instructions", a forged END/BEGIN boundary with a guessed nonce, a fake system turn, a request to call the remember tool, an attempt to make the bot reveal its system prompt, and an attempt to make it exfiltrate another memory. Assert it does not obey. These are evals against the real model, so accept that they are probabilistic: run each several times and report the rate rather than a single pass.
+
+2. Cross-tenant isolation. Guest users all live in hippo's own account, separated only by a namespace string. Prove one guest cannot recall another's memories, that a crafted query cannot cross the boundary, and that the namespace in a request cannot be influenced by the user.
+
+3. Credential redaction. redact.ts is supposed to strip API keys and tokens before text becomes a memory. A secret written to Walrus cannot be deleted, ever, so this is the one that cannot be fixed afterwards. It has no test file.
+
+4. The endpoints added on 2026-09-23 have no server-side tests: /api/me/account, /api/me/search and /api/me/{connect,disconnect}. The last mints a delegate keypair on every call. Check it cannot be driven from another origin and that the rate limit applies.
+
+5. The rate limiter is the only thing between one person and a relayer budget shared by every guest. It has no test file.
+
+6. Prove a delegate private key never reaches a log line, a chat reply, an API response or the browser. This is a CLAUDE.md hard constraint and is currently only a convention.
+
+Rules.
+- Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
+- If a defence fails, fix it and write it up. Never weaken a defence to make a test pass, and never delete an assertion because it is inconvenient.
+- Nothing outward-facing without me saying so: no filing, posting, publishing, submitting or messaging.
+- Never invent a number, a user, a quote or a result. Probabilistic results get a rate and a sample size.
+- Keep pnpm lint, typecheck and test green on every commit. Commit per task. Redeploy after a server change.
+- Do not touch the Walrus Site or site-builder.
+- If time runs short cut in this order: task 5, task 4, task 2. Never cut task 1 or task 3.
+
+Start by reading the docs above, then task 1.
+```
+
+## Done 2026-09-23: the M6 pre-flight goal below
+
+All six tasks landed. It also found that the budget warning in the runbook was
+seven times too high, and that the fallback model had never been wired.
+
 ## Next goal, for `/goal` — M6 pre-flight
 
 ```
