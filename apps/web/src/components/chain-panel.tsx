@@ -132,13 +132,13 @@ export function ChainPanel({ owned, onError }: { owned: boolean; onError: (m: st
             {(account.delegates ?? []).map((d) => (
               <li
                 key={d.publicKeyHex}
-                className="flex items-center justify-between gap-3 px-3 py-2"
+                className="group flex items-center justify-between gap-3 px-3 py-2"
               >
                 <span className="flex items-center gap-2">
                   <span>{d.label || "unlabelled"}</span>
                   {d.isHippo && <Badge variant="accent">hippo</Badge>}
                 </span>
-                <Hash value={d.publicKeyHex} label="public key" head={12} />
+                <Hash value={d.publicKeyHex} label="public key" head={12} subtle />
               </li>
             ))}
             {(account.delegates?.length ?? 0) === 0 && (
