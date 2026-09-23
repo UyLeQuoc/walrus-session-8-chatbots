@@ -5,6 +5,40 @@ Two forms of the same brief. Update the State line in both as milestones land.
 - **Short form** below fits the `/goal` command, which caps at 4000 characters.
 - **Long form** further down is for pasting into a fresh session, where there is no limit.
 
+## Next goal, for `/goal` — M7, the writing
+
+```
+Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
+
+Read CLAUDE.md, docs/GOAL.md and docs/AUDIT.md first. Then read docs/SPIKES.md §I and §J and docs/issues/11 and 12, because everything below depends on what they record.
+
+State (2026-09-23): live in production and feature-complete for a submission. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, Neon, Telegram @walrussession8_bot polling. 42 tests, CI green, clean tree. The web UI landed on 2026-09-22 and was checked in a browser (docs/evidence/web-ui-2026-09-22.md).
+
+This session is M7, the writing. It matters more than it sounds, because the drafts are now wrong in a way that would damage the submission.
+
+1. docs/article.md carries a section headed "The ownership model did not hold for my own key". That finding was RETRACTED. The delegate key was on chain the whole time; we were reading an account in a second, superseded mainnet deployment. Publishing that paragraph would accuse Walrus Memory of a security failure that we ourselves disproved. Rewrite it. The true story is better: two deployments are live, GET /config publishes a package id but no registry id, following the docs for one and the relayer for the other silently resolves owners to a real but wrong account, and the same mismatch made every sponsored transaction fail with an opaque 502. Say plainly that we drew the wrong conclusion, filed it, and retracted it, and what it cost. docs/issues/08 keeps the original text under its retraction; use it.
+
+2. The article must now carry the measurement it was always missing: remove a delegate key on chain and the relayer refuses it after about 32 seconds, still accepting at 15. Numbers and method in docs/evidence/revocation-2026-09-22.md. Say "within about a minute", never "instantly".
+
+3. Add the honest limit from docs/issues/12: an owner cannot decrypt their own memory without the relayer, because mainnet memories are sealed by a committee key server whose aggregator wants an API key. Access control is real and revocation works; independent readability does not follow yet. Do not soften this and do not let it swallow the good result either.
+
+4. docs/submission.md: eleven issues are filable, 08 is retracted and must not be listed, 12 is new. Check every identifier in it against `pnpm diagnose`, especially MEMWAL_AGENT_ID and the account id, which changed when the registry was corrected.
+
+5. README.md and docs/promo.md and docs/video.md: same corrections, plus the two-deployment trap and that `pnpm diagnose` catches it. Mention the web UI as it now is.
+
+6. Refresh docs/AUDIT.md against the codebase. It drifts every session and has been wrong twice.
+
+Rules.
+- Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
+- Nothing outward-facing without me saying so in this session: do not run scripts/file-issues.sh for real, do not post, publish or submit anything. Dry runs are fine and welcome.
+- Never invent a number, a user, a quote or a result. If the evidence is not in docs/evidence/ or a command output, do not write it.
+- Keep pnpm lint, typecheck and test green on every commit. Commit per task.
+- Do not touch the Walrus Site or site-builder.
+- If time runs short cut in this order: promo, video, README. Never cut the article correction or the submission form check.
+
+Start by reading the docs above, then task 1.
+```
+
 ## Done 2026-09-22: the web UI goal below
 
 All six tasks landed and were checked in a browser against production
