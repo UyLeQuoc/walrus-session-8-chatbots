@@ -45,16 +45,28 @@ if (!key) {
     .from(turnLog);
   const logged = turns?.n ?? 0;
 
-  if (logged > 0 && key.usage > 0 && remaining !== null) {
+  if (remaining !== null) {
     /**
-     * An upper bound, deliberately. `pnpm demo` and the spikes spend credit
-     * without writing a turn_log row, so the real denominator is larger than
-     * this and the real cost per turn is lower. Better to plan against the
-     * pessimistic number than to run out mid-week.
+     * Measured, not derived from spend over logged turns.
+     *
+     * That earlier arithmetic was wrong by about seven times and said a
+     * realistic week would not fit. It divided every dollar ever spent by the
+     * production turn_log rows alone, while most of those dollars went on
+     * `pnpm demo` runs and mainnet spikes, none of which write a turn row. A
+     * wrong number that says "you cannot afford this" is not a safe default;
+     * it nearly bought a worse model.
+     *
+     * This figure comes from scripts/model-bakeoff.sh: one `pnpm demo` is nine
+     * model turns and cost $0.0033 to $0.0037 on the current model. Re-run the
+     * bakeoff if LLM_MODEL changes; the number is per model, not universal.
+     * docs/evidence/model-bakeoff-2026-09-23.md has the table.
      */
-    const perTurn = key.usage / logged;
+    const MEASURED_COST_PER_TURN = 0.0037 / 9;
+    const perTurn = MEASURED_COST_PER_TURN;
     console.log(`\n  turns logged in this database   ${logged}`);
-    console.log(`  cost per turn, upper bound      ${money(perTurn)}`);
+    console.log(
+      `  cost per turn, measured         ${money(perTurn)}  (model-bakeoff, ${env.LLM_MODEL})`,
+    );
     console.log(`  turns left at that rate         ~${Math.floor(remaining / perTurn)}`);
     for (const [people, perDay] of [
       [3, 10],

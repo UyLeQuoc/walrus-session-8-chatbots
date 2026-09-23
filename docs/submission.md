@@ -44,7 +44,7 @@ DeepSurge: https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608
 
 **Where is it deployed and how can judges access it?** Web: https://hippo-web-ten-nu.vercel.app. Telegram: `@walrussession8_bot`. API health: https://hippo-server-production.up.railway.app/api/health/deep. The web app is also published as a Walrus Site; `[HUMAN]` a SuiNS name still needs pointing at the site object for `wal.app` to serve it. Judges can also clone and run it: five commands in the README, and `pnpm demo` proves cross-session recall on mainnet without any setup beyond credentials.
 
-**Which LLM did you build with?** Google Gemini 2.5 Flash, accessed through OpenRouter, driven by the Vercel AI SDK. Chosen deliberately so the submission qualifies for the Beyond the Big Two track. Fallback configured: Qwen3 235B, also via OpenRouter.
+**Which LLM did you build with?** Google Gemini 2.5 Flash, accessed through OpenRouter, driven by the Vercel AI SDK. Chosen deliberately so the submission qualifies for the Beyond the Big Two track, and kept after measuring the alternatives rather than on faith: `deepseek/deepseek-v4-flash` and `qwen/qwen3.7-flash` cost a third as much and recall just as well, but drop the style adaptation that makes memory visibly change behaviour (`docs/evidence/model-bakeoff-2026-09-23.md`). Fallback: `qwen/qwen3.7-flash`, which takes over on the non-streaming channels if the primary fails outright.
 
 **Model name and version.** `google/gemini-2.5-flash` (OpenRouter), `ai` v7, Node 20.
 

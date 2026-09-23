@@ -99,7 +99,7 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
   return { injected, styleHints };
 }
 
-export function runTurn(input: TurnInput, ctx: TurnContext) {
+export function runTurn(input: TurnInput, ctx: TurnContext, useFallback = false) {
   const system = buildSystemPrompt({
     channel: input.channel,
     mode: input.port.scope.mode,
@@ -114,8 +114,10 @@ export function runTurn(input: TurnInput, ctx: TurnContext) {
     const idx = messages.map((m) => m.role).lastIndexOf("user");
     messages.splice(Math.max(idx, 0), 0, { role: "user", content: block });
   }
+  const model = useFallback ? input.model.fallback : input.model.primary;
+  if (!model) throw new Error("No fallback model configured.");
   return streamText({
-    model: input.model.primary,
+    model,
     system,
     messages,
     tools: input.memoryEnabled ? createTools(input.port, input.channel) : undefined,
@@ -123,14 +125,37 @@ export function runTurn(input: TurnInput, ctx: TurnContext) {
   });
 }
 
-/** Convenience for non-streaming channels: gather, run, collect text. */
+/**
+ * Convenience for non-streaming channels: gather, run, collect text.
+ *
+ * Falls back to the second model once if the first fails outright. A
+ * `fallbackModel` had been constructed and wired to nothing since the beginning,
+ * so the submission's claim that one was configured was true of the config and
+ * false of the behaviour.
+ *
+ * Only this path falls back, which covers Telegram, Discord, Slack and the CLI.
+ * The web chat streams, and by the time a stream fails its first bytes may
+ * already be on the page, so it reports the failure instead. That asymmetry is
+ * deliberate and is the reason this lives here rather than in `runTurn`.
+ */
 export async function completeTurn(
   input: TurnInput,
 ): Promise<{ text: string; ctx: TurnContext; writes: number }> {
   const ctx = await gatherContext(input);
-  const result = runTurn(input, ctx);
-  const text = await result.text;
-  const steps = await result.steps;
-  const writes = steps.flatMap((s) => s.toolCalls).filter((c) => c.toolName === "remember").length;
-  return { text, ctx, writes };
+  const collect = async (useFallback: boolean) => {
+    const result = runTurn(input, ctx, useFallback);
+    const text = await result.text;
+    const steps = await result.steps;
+    const writes = steps
+      .flatMap((s) => s.toolCalls)
+      .filter((c) => c.toolName === "remember").length;
+    return { text, ctx, writes };
+  };
+  try {
+    return await collect(false);
+  } catch (err) {
+    if (!input.model.fallback) throw err;
+    console.warn("[model] primary failed, trying the fallback", err);
+    return await collect(true);
+  }
 }

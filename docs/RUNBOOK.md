@@ -4,43 +4,46 @@ Everything here is ready to execute the day a Telegram token arrives. Written no
 so the baseline day is not spent improvising, because the baseline is the half of
 the before/after that cannot be recreated later.
 
-## Raise the model budget first
+## The model budget fits, and here is the number
 
-**The OpenRouter key is capped at $1, not metered, so it stops dead rather than
-costing more.** Measured 2026-09-23 with `pnpm capacity` against production:
+**The OpenRouter key is capped at $1 rather than metered, so it stops dead
+rather than costing more.** That is worth knowing, and it is not a problem.
+
+Measured 2026-09-23 with `scripts/model-bakeoff.sh`, which runs `pnpm demo` and
+reads the key's spend before and after:
 
 | | |
 |---|---|
 | spent so far | $0.0393 |
-| limit | $1.0000 |
 | remaining | $0.9607 |
-| cost per turn, upper bound | $0.0026 |
-| turns left at that rate | about 366 |
+| cost per turn, measured | $0.0004 |
 
 | week | turns | cost | |
 |---|---|---|---|
-| 3 people x 10/day x 7 days | 210 | $0.55 | fits |
-| 5 people x 15/day x 7 days | 525 | $1.38 | **does not fit** |
-| 8 people x 20/day x 7 days | 1,120 | $2.94 | **does not fit** |
+| 3 people x 10/day x 7 days | 210 | $0.09 | fits |
+| 5 people x 15/day x 7 days | 525 | $0.22 | fits |
+| 8 people x 20/day x 7 days | 1,120 | $0.46 | fits |
 
-So the session minimum just fits and the target week does not. The per-turn
-figure is an upper bound, because `pnpm demo` and the spikes spend credit
-without writing a `turn_log` row, so the true cost is lower. Planning against
-the pessimistic number is the point.
+An earlier version of this page said the five-person week cost $1.38 and did not
+fit, and told you to raise the limit before inviting anyone. That was wrong by
+about seven times. It divided every dollar ever spent by the production
+`turn_log` rows alone, while most of those dollars went on demo runs and mainnet
+spikes that write no turn row. Corrected, there is roughly five times the
+headroom, and no action is needed before the week starts.
 
-`[HUMAN]` Raise the key's limit to at least $5 at openrouter.ai before inviting
-anyone. Running out mid-week does not announce itself: hippo will say it has run
-out of model credit and that waiting will not help, which is honest and still
-the end of M6.
+Switching to a cheaper model was measured rather than assumed and is not worth
+it: `deepseek/deepseek-v4-flash` and `qwen/qwen3.7-flash` cost a third as much,
+recall just as well, and drop the style adaptation that makes the demo
+interesting. Table in `docs/evidence/model-bakeoff-2026-09-23.md`.
 
-Re-run `pnpm capacity` on the daily checklist. Neon and the relayer are not the
-risk: the database is 8 MB against a 500 MB free tier and stores no memory text,
-and the relayer's 60 writes a minute is far above anything five people can
-produce by typing.
+`pnpm capacity` re-checks the balance against the same arithmetic. Neon and the
+relayer are not the risk: the database is 8 MB against a 500 MB free tier and
+stores no memory text, and the relayer's 60 writes a minute is far above
+anything five people can produce by typing.
 
 ## Before inviting anyone
 
-- [ ] `pnpm capacity` shows the target week fits. If not, raise the key limit.
+- [ ] `pnpm capacity` shows the target week fits. It should; if it does not, raise the key's limit at openrouter.ai.
 - [ ] `pnpm evidence` prints `NOT YET MET`, so the starting point is on record.
 - [ ] `pnpm demo` passes, so the bot is known good on the day.
 - [ ] `pnpm diagnose` is clean. It catches a wrong account id, a stale package id, and a delegate the chain does not list.
