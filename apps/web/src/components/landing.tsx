@@ -8,6 +8,7 @@
  * bot. So the section links the real account on Sui rather than asserting it,
  * and it disappears the moment there is a conversation to read instead.
  */
+import DecryptedText from "@/components/DecryptedText";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -35,8 +36,25 @@ export function Landing({ operatorAccountId }: { operatorAccountId?: string }) {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
+        {/*
+          The headline resolves out of noise on first view. It is the one effect
+          on the page and it is here because it is literally what the project
+          does: every memory is ciphertext on Walrus that only the owning
+          account can turn back into words. Decoration that says nothing would
+          not be worth the dependency.
+        */}
         <h1 className="text-lg font-semibold tracking-tight">
-          A chatbot that remembers you, on memory you own
+          <DecryptedText
+            text="A chatbot that remembers you, on memory you own"
+            animateOn="view"
+            sequential
+            revealDirection="start"
+            speed={28}
+            maxIterations={12}
+            characters="01?#$%&*+=/\<>abcdef"
+            parentClassName="tracking-tight"
+            encryptedClassName="text-muted-foreground"
+          />
         </h1>
         <p className="text-sm text-muted-foreground">
           Every chatbot remembers. The difference here is where the memory lives. Yours is an

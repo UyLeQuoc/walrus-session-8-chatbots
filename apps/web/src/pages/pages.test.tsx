@@ -110,6 +110,20 @@ beforeEach(() => {
       disconnect() {}
     },
   );
+  // The landing headline animates on view. Never firing is the right default
+  // here: it leaves the text in its scrambled state, which is exactly the case
+  // where the assertions below must still find the real words.
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    },
+  );
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -146,6 +160,21 @@ describe("chat page", () => {
     expect(seen).toMatch(/\/memory off/);
     // Forgetting is not deleting, and that has to be said here too.
     expect(seen).toMatch(/cannot delete the bytes early/i);
+  });
+
+  it("keeps the headline readable while it is still scrambled", () => {
+    // The effect resolves the headline out of noise on first view. The vendored
+    // component put the scrambled characters in the screen-reader span, so
+    // anyone not watching the animation got gibberish. IntersectionObserver
+    // never fires in this environment, so this asserts the worst case: the
+    // animation has not run and the real words must still be there.
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    const heading = container.querySelector("h1");
+    expect(heading?.textContent ?? "").toContain("A chatbot that remembers you, on memory you own");
   });
 
   it("links hippo's own account on chain once the config arrives", async () => {
