@@ -9,6 +9,12 @@
  * have dwarfed the page's own h1, hardcoded neutral colours, and a marketing
  * CTA. This landing lives inside a scrolling chat panel, so density matters
  * more than presence.
+ *
+ * The reveal is on mount, not on scroll. The block used `whileInView`, which is
+ * right for a section a reader scrolls down to and wrong here: this landing is
+ * entirely above the fold inside a chat panel, so every step is already visible
+ * when the page paints. Watched on production, the third step took several
+ * seconds to settle waiting for an intersection that had already happened.
  */
 import { motion, useReducedMotion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
@@ -40,8 +46,7 @@ export default function HowItWorks() {
         <motion.li
           key={s.title}
           initial={reduced ? false : { opacity: 0, y: 8 }}
-          whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
+          animate={reduced ? undefined : { opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: Math.min(i, 5) * 0.06 }}
           className="flex items-start gap-3"
         >
