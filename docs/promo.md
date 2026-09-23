@@ -49,6 +49,61 @@ Do both. They are two entries, not one.
 - **Title field** is separate from the body. Keep it under about 100 characters
   so it does not truncate in the feed.
 
+## The feed post that links to the article
+
+Publishing the article creates a feed post with the article's card below it —
+cover, title, and your name. This is the line above that card, and it is the only
+thing most people will read. Its whole job is to give a reason to click, so it
+must **not** restate the title the card already shows.
+
+The first ~140 characters are what shows on mobile before "see more". Everything
+that matters goes there.
+
+**Primary:**
+
+> The cheapest models I tested recalled every stored fact perfectly — and ignored
+> the one that said *how* to answer.
+>
+> That turned out to be the most useful thing I learned in two weeks of building
+> for Walrus Session 8, an open hackathon on chatbots that remember their users,
+> with the memory stored on Walrus instead of in your own database. It runs to
+> October 9.
+>
+> I wrote up what it is actually like inside: the 24-second write that decided my
+> architecture before I wrote a line of it, the recall failure that returns
+> HTTP 200, and the security report I filed that turned out to be my own
+> misconfiguration.
+>
+> Not affiliated. Just building in it like everyone else.
+>
+> #AI #LLM #SoftwareEngineering #Hackathon
+
+**One-sentence version**, if you would rather let the cover do the work:
+
+> Two weeks inside an open hackathon on chatbot memory, and the thing I did not
+> expect was that the cheap models recall your facts perfectly and stop letting
+> those facts change how they answer.
+
+**Vietnamese variant**, if your network is mostly Vietnamese:
+
+> Model rẻ nhất trong bài test của mình recall đúng từng fact một — rồi bỏ qua
+> đúng cái memory nói *phải trả lời thế nào*.
+>
+> Đó là thứ hữu ích nhất mình học được sau hai tuần build cho Walrus Session 8,
+> một hackathon đang mở về chatbot nhớ được người dùng, bộ nhớ lưu trên Walrus
+> thay vì trong database của mình. Hạn 9/10.
+>
+> Mình viết lại đầy đủ: con số 24 giây quyết định kiến trúc trước khi viết dòng
+> code đầu, lỗi recall trả về HTTP 200, và cái báo cáo bảo mật mình nộp mà hoá ra
+> là do mình cấu hình sai.
+>
+> Không liên quan gì tới Walrus, chỉ đang dự thi.
+>
+> #AI #LLM #Hackathon
+
+**Do not put a second link in this post.** The article card is already the link.
+A bare URL in the text on top of it looks like a bot and splits the click.
+
 ---
 
 # Article
