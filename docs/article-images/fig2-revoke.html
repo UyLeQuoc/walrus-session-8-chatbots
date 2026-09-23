@@ -1,0 +1,88 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#fff}
+  .fig{width:1600px;height:770px;background:#fff;color:#09090b;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:58px 64px;display:flex;flex-direction:column}
+  h2{font-size:38px;letter-spacing:-.03em;font-weight:660;margin-bottom:8px}
+  .sub{font-size:21px;color:#71717a;margin-bottom:42px;max-width:92ch;line-height:1.45}
+  .cols{display:flex;gap:56px;flex:1}
+  .col{flex:1;display:flex;flex-direction:column}
+  .h3{font-size:17px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+    color:#a1a1aa;margin-bottom:18px}
+  .acct{border:1.5px solid #0d9488;border-radius:16px;background:#f0fdfa;padding:24px 26px}
+  .acct .own{font-size:16px;color:#0f766e;letter-spacing:.06em;text-transform:uppercase;
+    font-weight:700;margin-bottom:6px}
+  .acct .nm{font-size:25px;font-weight:660;letter-spacing:-.02em;margin-bottom:4px}
+  .acct .id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:16px;
+    color:#71717a}
+  .keys{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+  .key{display:flex;align-items:center;gap:13px;border:1.5px solid #e4e4e7;border-radius:12px;
+    padding:14px 18px;background:#fff}
+  .key .dot{width:9px;height:9px;border-radius:50%;background:#0d9488;flex:0 0 auto}
+  .key.off .dot{background:#d4d4d8}
+  .key .nm{font-size:19px;font-weight:600;letter-spacing:-.01em}
+  .key .sub2{font-size:16px;color:#a1a1aa;margin-left:auto}
+  .key.off .nm{color:#a1a1aa}
+  .caption{font-size:17px;color:#71717a;line-height:1.5;margin-top:18px;
+    border-left:2px solid #e4e4e7;padding-left:14px}
+  .caption b{color:#09090b;font-weight:620}
+  /* The measured revocation timeline. */
+  .tl{display:flex;flex-direction:column;gap:0;margin-top:2px}
+  .step{display:flex;gap:18px;align-items:flex-start}
+  .gut{flex:0 0 92px;text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:20px;font-weight:620;color:#09090b;padding-top:15px}
+  .line{flex:0 0 auto;width:2px;background:#e4e4e7;position:relative;align-self:stretch;margin:0 4px}
+  .step .card{flex:1;border:1.5px solid #e4e4e7;border-radius:12px;padding:15px 20px;
+    margin-bottom:12px;background:#fafafa}
+  .step .card .k{font-size:19px;font-weight:620;letter-spacing:-.01em}
+  .step .card .v{font-size:16px;color:#71717a;margin-top:3px;line-height:1.4}
+  .step.warn .card{border-color:#f59e0b;background:#fffbeb}
+  .step.warn .gut{color:#b45309}
+  .step.good .card{border-color:#0d9488;background:#f0fdfa}
+  .step.good .gut{color:#0f766e}
+</style>
+<div class="fig">
+  <h2>The bot is a delegate, and a delegate can be fired</h2>
+  <div class="sub">The account belongs to the user's wallet. The bot never holds the owner key — only a
+    delegate key the owner registered on chain and can remove without asking anyone.</div>
+
+  <div class="cols">
+    <div class="col">
+      <div class="h3">The account, on Sui</div>
+      <div class="acct">
+        <div class="own">Owned by your wallet</div>
+        <div class="nm">MemWalAccount</div>
+        <div class="id">0x5a25…a07aa · a public object anyone can read</div>
+        <div class="keys">
+          <div class="key"><span class="dot"></span><span class="nm">hippo (the chatbot)</span><span class="sub2">server-side only</span></div>
+          <div class="key"><span class="dot"></span><span class="nm">Walrus Memory MCP</span><span class="sub2">same memory, other agent</span></div>
+          <div class="key off"><span class="dot"></span><span class="nm">whatever you build next</span><span class="sub2">not yet added</span></div>
+        </div>
+      </div>
+      <div class="caption">The memory is not portable because it is exported. It is portable because a
+        <b>second delegate key on the same account</b> reads exactly what the first one wrote.</div>
+    </div>
+
+    <div class="col">
+      <div class="h3">Removing the key — measured on mainnet</div>
+      <div class="tl">
+        <div class="step"><div class="gut">0s</div><div class="line"></div>
+          <div class="card"><div class="k">You remove the key on chain</div>
+            <div class="v">One transaction from your wallet. The bot is not asked and cannot object.</div></div></div>
+        <div class="step"><div class="gut">3s</div><div class="line"></div>
+          <div class="card"><div class="k">The chain stops listing it</div>
+            <div class="v">The account now shows one delegate instead of two.</div></div></div>
+        <div class="step warn"><div class="gut">15s</div><div class="line"></div>
+          <div class="card"><div class="k">The relayer still accepts it</div>
+            <div class="v">Authentication succeeds. Reads return nothing, but the window is real.</div></div></div>
+        <div class="step good"><div class="gut">32s</div><div class="line"></div>
+          <div class="card"><div class="k">Refused — 401 AUTH_REJECTED</div>
+            <div class="v">Access is over. The memories stay; the reader is gone.</div></div></div>
+      </div>
+      <div class="caption">So: <b>about half a minute, not instantly.</b> That gap is the kind of thing a
+        marketing page rounds away, which is exactly why it is worth measuring rather than claiming.</div>
+    </div>
+  </div>
+</div>

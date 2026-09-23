@@ -1,0 +1,77 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#fff}
+  .fig{width:1600px;height:900px;background:#fff;color:#09090b;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:58px 64px;display:flex;flex-direction:column}
+  h2{font-size:38px;letter-spacing:-.03em;font-weight:660;margin-bottom:8px}
+  .sub{font-size:21px;color:#71717a;margin-bottom:44px;max-width:88ch;line-height:1.45}
+  .row{display:flex;align-items:center;gap:0;margin-bottom:14px}
+  .tag{flex:0 0 118px;font-size:17px;letter-spacing:.12em;text-transform:uppercase;
+    font-weight:700;color:#0d9488}
+  .tag.read{color:#7c3aed}
+  .box{border:1.5px solid #e4e4e7;border-radius:14px;padding:18px 22px;background:#fafafa;
+    min-width:0}
+  .box .k{font-size:21px;font-weight:620;letter-spacing:-.01em;white-space:nowrap}
+  .box .v{font-size:16px;color:#71717a;margin-top:4px;line-height:1.35}
+  .box.mono .k{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:19px}
+  .box.accent{border-color:#0d9488;background:#f0fdfa}
+  .box.accent2{border-color:#7c3aed;background:#faf5ff}
+  .arrow{flex:0 0 auto;padding:0 16px;color:#a1a1aa;font-size:27px;line-height:1}
+  .stack{display:flex;flex-direction:column;gap:11px}
+  .split{display:flex;flex-direction:column;gap:11px}
+  .measure{margin-left:118px;font-size:17px;color:#a1a1aa;margin-bottom:34px;
+    border-left:2px solid #e4e4e7;padding-left:14px;line-height:1.45}
+  .measure b{color:#0d9488;font-weight:620}
+  .rule{height:1px;background:#e4e4e7;margin:12px 0 34px}
+  .own{display:flex;gap:18px;align-items:stretch;margin-top:auto}
+  .own .cell{flex:1;border:1.5px solid #e4e4e7;border-radius:14px;padding:20px 22px;background:#fff}
+  .own .cell .t{font-size:17px;letter-spacing:.1em;text-transform:uppercase;color:#a1a1aa;
+    font-weight:700;margin-bottom:7px}
+  .own .cell .b{font-size:19px;line-height:1.4;color:#3f3f46}
+  .own .cell .b b{color:#09090b;font-weight:620}
+</style>
+<div class="fig">
+  <h2>What Walrus Memory does with a sentence</h2>
+  <div class="sub">A memory layer for agents. You hand it text; it embeds, encrypts and stores the
+    bytes on Walrus, and keeps a searchable vector pointing back at them. Recall is semantic search,
+    not a key lookup.</div>
+
+  <div class="row">
+    <div class="tag">Write</div>
+    <div class="box mono"><div class="k">remember("prefers Vietnamese")</div></div>
+    <div class="arrow">→</div>
+    <div class="box accent"><div class="k">Relayer</div><div class="v">embeds the text,<br>then SEAL-encrypts it</div></div>
+    <div class="arrow">→</div>
+    <div class="split">
+      <div class="box"><div class="k">Encrypted blob on Walrus</div><div class="v">the bytes; public to fetch, sealed to read</div></div>
+      <div class="box"><div class="k">Vector in the relayer index</div><div class="v">what makes it findable later</div></div>
+    </div>
+  </div>
+  <div class="measure">Measured end to end: <b>23.7 seconds</b>. Too slow to await inside a chat turn,
+    so writes are fire-and-forget with a pending state the user can see.</div>
+
+  <div class="row">
+    <div class="tag read">Read</div>
+    <div class="box mono"><div class="k">recall("what language?")</div></div>
+    <div class="arrow">→</div>
+    <div class="box accent2"><div class="k">Semantic search</div><div class="v">nearest vectors in this namespace</div></div>
+    <div class="arrow">→</div>
+    <div class="box"><div class="k">text + distance, ranked</div><div class="v">injected into the prompt as untrusted data</div></div>
+  </div>
+  <div class="measure">Nothing is keyed by id. You ask in the words the user just used,
+    and the store decides what is close enough.</div>
+
+  <div class="rule"></div>
+  <div class="own">
+    <div class="cell"><div class="t">Who owns it</div>
+      <div class="b">A <b>MemWalAccount</b> object on Sui. It belongs to a wallet, not to the app.</div></div>
+    <div class="cell"><div class="t">Who can reach it</div>
+      <div class="b">Holders of a <b>delegate key</b> the owner registers — and can remove.</div></div>
+    <div class="cell"><div class="t">What separates users</div>
+      <div class="b">The pair <b>owner + namespace</b>. That is the whole isolation boundary.</div></div>
+    <div class="cell"><div class="t">What it costs</div>
+      <div class="b">The managed relayer <b>pays storage</b> from its own wallet. No token to hold.</div></div>
+  </div>
+</div>
