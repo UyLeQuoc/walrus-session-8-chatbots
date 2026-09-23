@@ -8,9 +8,10 @@
  * been easier and would have proved nothing.
  */
 import { useCallback, useEffect, useState } from "react";
+import { Hash } from "@/components/hash";
+import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_URL, identityHeaders } from "@/lib/api";
 
@@ -78,121 +79,98 @@ export function ChainPanel({ owned, onError }: { owned: boolean; onError: (m: st
 
   if (account === undefined) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>On chain</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Skeleton className="h-4 w-64" />
-          <Skeleton className="h-4 w-48" />
-        </CardContent>
-      </Card>
+      <Section title="On chain" description="Reading the account from Sui.">
+        <Skeleton className="h-4 w-64" />
+        <Skeleton className="h-4 w-48" />
+      </Section>
     );
   }
 
   if (account === null) return null;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>On chain</CardTitle>
-        <CardDescription>
-          {account.yours
-            ? "This account is yours. hippo appears below as one delegate key, and nothing it does can remove itself from that list."
-            : "Your memory currently lives in hippo's own account. Connecting a wallet moves it into one you own."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <dl className="space-y-2 text-sm">
+    <Section
+      title="On chain"
+      description={
+        account.yours
+          ? "This account is yours. hippo appears below as one delegate key, and nothing it does can remove itself from that list."
+          : "Your memory currently lives in hippo's own account. Connecting a wallet moves it into one you own."
+      }
+    >
+      <dl className="space-y-2 text-sm">
+        <div className="flex items-baseline justify-between gap-4">
+          <dt className="text-muted-foreground">Account</dt>
+          <dd>
+            <Hash
+              value={account.accountId}
+              href={account.explorerUrl}
+              label="account id"
+              head={18}
+            />
+          </dd>
+        </div>
+        {account.owner && (
           <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-muted-foreground">Account</dt>
+            <dt className="text-muted-foreground">Owner</dt>
             <dd>
-              <a
-                className="font-mono text-xs underline"
-                href={account.explorerUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {account.accountId.slice(0, 18)}…
-              </a>
+              <Hash value={account.owner} href={account.ownerUrl} label="owner" head={18} />
             </dd>
           </div>
-          {account.owner && (
-            <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-muted-foreground">Owner</dt>
-              <dd>
-                {account.ownerUrl ? (
-                  <a
-                    className="font-mono text-xs underline"
-                    href={account.ownerUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {account.owner.slice(0, 18)}…
-                  </a>
-                ) : (
-                  <span className="font-mono text-xs">{account.owner.slice(0, 18)}…</span>
-                )}
-              </dd>
-            </div>
-          )}
-        </dl>
+        )}
+      </dl>
 
-        {account.unreadable ? (
-          <p className="text-sm text-muted-foreground">
-            The object could not be read from the chain just now. The link above still resolves.
+      {account.unreadable ? (
+        <p className="text-sm text-muted-foreground">
+          The object could not be read from the chain just now. The link above still resolves.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">
+            Keys that can read this memory ({account.delegates?.length ?? 0})
           </p>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">
-              Keys that can read this memory ({account.delegates?.length ?? 0})
-            </p>
-            <ul className="divide-y rounded-md border text-sm">
-              {(account.delegates ?? []).map((d) => (
-                <li
-                  key={d.publicKeyHex}
-                  className="flex items-center justify-between gap-3 px-3 py-2"
-                >
-                  <span className="flex items-center gap-2">
-                    <span>{d.label || "unlabelled"}</span>
-                    {d.isHippo && <Badge variant="accent">hippo</Badge>}
-                  </span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {d.publicKeyHex.slice(0, 12)}…
-                  </span>
-                </li>
-              ))}
-              {(account.delegates?.length ?? 0) === 0 && (
-                <li className="px-3 py-2 text-muted-foreground">
-                  No delegate keys. Nothing but the owner can read this account.
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
+          <ul className="divide-y rounded-md border text-sm">
+            {(account.delegates ?? []).map((d) => (
+              <li
+                key={d.publicKeyHex}
+                className="flex items-center justify-between gap-3 px-3 py-2"
+              >
+                <span className="flex items-center gap-2">
+                  <span>{d.label || "unlabelled"}</span>
+                  {d.isHippo && <Badge variant="accent">hippo</Badge>}
+                </span>
+                <Hash value={d.publicKeyHex} label="public key" head={12} />
+              </li>
+            ))}
+            {(account.delegates?.length ?? 0) === 0 && (
+              <li className="px-3 py-2 text-muted-foreground">
+                No delegate keys. Nothing but the owner can read this account.
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
 
-        {owned ? (
-          <div className="space-y-1">
-            <Button variant="destructive" disabled={busy} onClick={() => void start("disconnect")}>
-              {busy ? "Opening…" : "Revoke hippo's access"}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Removes hippo's key from the list above, on chain. Takes effect within about a minute.
-              Nothing is deleted, and you can grant access again later.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            <Button disabled={busy} onClick={() => void start("connect")}>
-              {busy ? "Opening…" : "Own this memory"}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Signs one transaction to create your own Walrus Memory account and give hippo a
-              delegate key. Gas is normally sponsored.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {owned ? (
+        <div className="space-y-1">
+          <Button variant="destructive" disabled={busy} onClick={() => void start("disconnect")}>
+            {busy ? "Opening…" : "Revoke hippo's access"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Removes hippo's key from the list above, on chain. Takes effect within about a minute.
+            Nothing is deleted, and you can grant access again later.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <Button disabled={busy} onClick={() => void start("connect")}>
+            {busy ? "Opening…" : "Own this memory"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Signs one transaction to create your own Walrus Memory account and give hippo a delegate
+            key. Gas is normally sponsored.
+          </p>
+        </div>
+      )}
+    </Section>
   );
 }

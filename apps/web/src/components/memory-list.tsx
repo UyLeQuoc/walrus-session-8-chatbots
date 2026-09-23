@@ -8,9 +8,12 @@
  * and it costs relayer budget, so it happens on submit rather than on keystroke.
  */
 import { type FormEvent, useCallback, useMemo, useState } from "react";
+import { Hash } from "@/components/hash";
+import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_URL, identityHeaders } from "@/lib/api";
 
@@ -36,6 +39,22 @@ interface Hit {
 
 function daysUntil(iso: string): number {
   return Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000);
+}
+
+/**
+ * "2 days ago", not the same date five times.
+ *
+ * Every row on this page carried an identical absolute date, which told a
+ * reader nothing and made the rows indistinguishable from each other.
+ */
+function ago(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "yesterday" : `${days}d ago`;
 }
 
 export function MemoryList({
@@ -83,15 +102,16 @@ export function MemoryList({
   );
 
   return (
-    <section className="space-y-3">
-      <div>
-        <h2 className="font-medium">What hippo wrote</h2>
-        <p className="text-sm text-muted-foreground">
-          Each one is an encrypted blob on Walrus. Anyone can download the ciphertext; only your
-          account can read it.
-        </p>
-      </div>
-
+    <Section
+      title="What hippo wrote"
+      description="Each one is an encrypted blob on Walrus. Anyone can download the ciphertext; only your account can read it."
+    >
+      {/*
+        Search leads, because it is the only way to read a memory. The text is
+        never stored in Postgres, so the list below can show when and where a
+        memory was written and nothing of what it says. Putting the list first
+        and the search underneath had that backwards.
+      */}
       <form className="flex gap-2" onSubmit={(e) => void search(e)}>
         <Input
           value={query}
@@ -130,7 +150,7 @@ export function MemoryList({
               {hits.map((h) => (
                 <li key={h.blobId} className="space-y-1 px-3 py-2">
                   <p>{h.text}</p>
-                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     {h.type && <Badge>{h.type}</Badge>}
                     <span>relevance {h.relevance.toFixed(2)}</span>
                     <a className="underline" href={h.explorerUrl} target="_blank" rel="noreferrer">
@@ -146,6 +166,7 @@ export function MemoryList({
 
       {hits === null && (
         <>
+          <Separator />
           {types.length > 1 && (
             <div className="flex flex-wrap gap-1.5">
               <FilterChip label="all" active={type === null} onClick={() => setType(null)} />
@@ -167,47 +188,48 @@ export function MemoryList({
           ) : (
             <ul className="divide-y rounded-lg border text-sm">
               {shown.map((m) => (
-                <li key={m.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                  <span className="flex items-center gap-2">
+                <li
+                  key={m.id}
+                  className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
                     <Badge>{m.type}</Badge>
-                    <span className="text-muted-foreground text-xs">
-                      {new Date(m.createdAt).toISOString().slice(0, 10)} · {m.channel}
-                      {m.expiresAt ? ` · storage ends in ${daysUntil(m.expiresAt)} days` : ""}
-                    </span>
+                    {/* The blob id is the only thing that differs between rows. */}
+                    {m.blobId ? (
+                      <Hash value={m.blobId} href={m.explorerUrl} label="blob id" head={8} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">not written yet</span>
+                    )}
                   </span>
-                  {m.status === "stored" && m.explorerUrl ? (
-                    <span className="flex gap-3 text-xs">
-                      <a
-                        className="underline"
-                        href={m.explorerUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        blob
-                      </a>
-                      {m.ciphertextUrl && (
-                        <a
-                          className="underline"
-                          href={m.ciphertextUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          ciphertext
-                        </a>
-                      )}
+                  <span className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>
+                      {ago(m.createdAt)} · {m.channel}
                     </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      {m.status === "pending" ? "writing to Walrus…" : "write failed"}
-                    </span>
-                  )}
+                    {m.status === "stored" ? (
+                      <>
+                        {m.expiresAt && <span>expires in {daysUntil(m.expiresAt)}d</span>}
+                        {m.ciphertextUrl && (
+                          <a
+                            className="underline"
+                            href={m.ciphertextUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            ciphertext
+                          </a>
+                        )}
+                      </>
+                    ) : (
+                      <span>{m.status === "pending" ? "writing to Walrus…" : "write failed"}</span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
           )}
         </>
       )}
-    </section>
+    </Section>
   );
 }
 

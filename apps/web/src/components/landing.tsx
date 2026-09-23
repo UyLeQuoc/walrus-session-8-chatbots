@@ -16,6 +16,7 @@
 import HowItWorks from "@/components/blocks/how-it-works-5";
 import DecryptedText from "@/components/DecryptedText";
 import { LiveStats } from "@/components/live-stats";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const SUISCAN = "https://suiscan.xyz/mainnet/object/";
 
@@ -53,16 +54,16 @@ export function Landing({ operatorAccountId }: { operatorAccountId?: string }) {
 
       <LiveStats />
 
-      <div className="rounded-lg border p-3 text-xs text-muted-foreground">
-        <p className="text-foreground">Before you start</p>
-        <p className="mt-1">
+      <Alert>
+        <AlertTitle>Before you start</AlertTitle>
+        <AlertDescription className="text-xs">
           What hippo remembers is written to Walrus, a public storage network, encrypted. Anyone can
           download the encrypted bytes, only the owning account can read them, and they last about
           seven months. Forgetting removes a memory from search but cannot delete the bytes early.
           Type <code>/privacy</code> for the detail, or <code>/memory off</code> to stop hippo
           remembering anything at all.
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
 
       <p className="text-xs text-muted-foreground">
         Until you connect a wallet, your memory lives under hippo's own account

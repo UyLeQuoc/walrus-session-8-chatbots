@@ -312,8 +312,14 @@ describe("me page", () => {
     );
     await waitFor(() => expect(container.textContent ?? "").toMatch(/profile/));
     const seen = container.textContent ?? "";
-    expect(seen).toMatch(/storage ends in 200 days/i);
-    expect(screen.getByRole("link", { name: "blob" })).toBeDefined();
+    expect(seen).toMatch(/expires in 200d/i);
+    // The blob id is what makes one row different from the next; without it
+    // every profile memory written on the same day rendered identically.
+    expect(seen).toMatch(/blob123/);
+    expect(screen.getAllByRole("button", { name: /copy/i }).length).toBeGreaterThan(0);
+    // The explorer link is now the blob id itself rather than the word "blob",
+    // so the link names the thing it points at.
+    expect(screen.getByRole("link", { name: /blob123/ }).getAttribute("href")).toContain("blob123");
     // Guests are told the memory is not theirs yet, which is the whole pitch.
     expect(seen).toMatch(/under its own account/i);
   });

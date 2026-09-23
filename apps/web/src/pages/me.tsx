@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { ChainPanel } from "@/components/chain-panel";
+import { CopyButton } from "@/components/copy-button";
+import { Hash } from "@/components/hash";
 import { type Memory, MemoryList } from "@/components/memory-list";
+import { Section } from "@/components/section";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WalletSignIn } from "@/components/wallet-signin";
 import { API_URL, forgetSession, identityHeaders } from "@/lib/api";
@@ -17,6 +21,18 @@ interface Me {
   namespace?: string;
   surveyUrl?: string | null;
 }
+
+/** Six commands as a list. They were a paragraph of inline code, unscannable. */
+const COMMANDS: Array<[string, string]> = [
+  ["/memory", "what hippo remembers about you"],
+  ["/memory search", "read those memories back from Walrus"],
+  ["/memory forget", "make everything unrecallable"],
+  ["/proof", "the blobs behind the last answer"],
+  ["/link", "use the same memory on another channel"],
+  ["/connect", "own the memory in your own account"],
+  ["/disconnect", "revoke hippo's access on chain"],
+  ["/privacy", "what is stored, where, and for how long"],
+];
 
 const CLAUDE_CODE_STEPS = [
   "/plugin marketplace add MystenLabs/MemWal",
@@ -78,60 +94,63 @@ export function MePage() {
   const stored = memories.filter((m) => m.status === "stored").length;
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold">My memory</h1>
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h1 className="text-xl font-semibold tracking-tight">My memory</h1>
         <p className="text-sm text-muted-foreground">
           {owned
             ? "This memory lives in a Walrus Memory account you own on Sui. hippo holds a delegate key you can take away."
-            : "Right now hippo keeps your memory under its own account. Type /connect in the chat to move it into an account you own."}
+            : "Right now hippo keeps your memory under its own account. Move it into one you own whenever you like."}
         </p>
       </div>
 
-      <dl className="rounded-lg border divide-y text-sm">
-        <Row label="Mode" value={owned ? "owned by you" : "guest"} />
-        <Row
-          label="This page"
-          value={
-            me.signedIn ? (
-              <span className="flex items-center gap-3">
-                signed in with your wallet
-                <Button variant="ghost" size="sm" onClick={() => void signOut()}>
-                  sign out
-                </Button>
-              </span>
-            ) : (
-              "this browser only"
-            )
-          }
-        />
-        <Row label="Memory" value={me.memoryEnabled ? "on" : "paused"} />
-        <Row label="Stored on Walrus" value={`${stored} of ${memories.length}`} />
-        <Row label="Namespace" value={me.namespace ?? "—"} mono />
-        {me.walletAddress && (
-          <Row label="Wallet" value={`${me.walletAddress.slice(0, 14)}…`} mono />
+      {/*
+        A row, not a five-line table. The old version gave the namespace, which
+        a reader can do nothing with, more visual weight than the number of
+        memories that actually reached Walrus.
+      */}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <Badge variant={owned ? "accent" : "outline"}>{owned ? "you own this" : "guest"}</Badge>
+        <Badge variant="outline">{me.memoryEnabled ? "remembering" : "paused"}</Badge>
+        <span className="text-muted-foreground">
+          <span className="font-medium text-foreground">{stored}</span> of {memories.length} written
+          to Walrus
+        </span>
+        {me.namespace && (
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            in <Hash value={me.namespace} label="namespace" head={16} />
+          </span>
         )}
-      </dl>
+        {me.signedIn ? (
+          <Button variant="ghost" size="sm" onClick={() => void signOut()}>
+            sign out
+          </Button>
+        ) : (
+          <span className="text-muted-foreground">this browser only</span>
+        )}
+      </div>
 
       <ChainPanel owned={owned} onError={(m) => toast.error(m)} />
 
       <MemoryList memories={memories} onError={(m) => toast.error(m)} />
 
-      <section className="space-y-2">
-        <h2 className="font-medium">Read the same memory in Claude Code</h2>
-        <p className="text-sm text-muted-foreground">
-          {owned
+      <Section
+        title="Read the same memory in Claude Code"
+        description={
+          owned
             ? "Your memory is not locked inside hippo. Sign in to Walrus Memory from another client with the same wallet and it recalls the same facts."
-            : "Once you own the memory, any Walrus Memory client signed in with your wallet reads the same facts."}
-        </p>
-        <ol className="space-y-1">
-          {CLAUDE_CODE_STEPS.map((s) => (
-            <li key={s} className="rounded bg-muted px-2 py-1 font-mono text-xs">
-              {s}
+            : "Once you own the memory, any Walrus Memory client signed in with your wallet reads the same facts."
+        }
+      >
+        <ol className="space-y-1.5">
+          {CLAUDE_CODE_STEPS.map((step) => (
+            <li key={step} className="flex items-center gap-2 rounded bg-muted px-2 py-1">
+              <code className="min-w-0 flex-1 break-all font-mono text-xs">{step}</code>
+              <CopyButton value={step} label="step" />
             </li>
           ))}
         </ol>
-      </section>
+      </Section>
 
       {!me.signedIn && <WalletSignIn onSignedIn={load} />}
 
@@ -145,24 +164,18 @@ export function MePage() {
         </p>
       )}
 
-      <section className="space-y-1 text-sm text-muted-foreground">
-        <h2 className="font-medium text-foreground">Commands</h2>
-        <p>
-          In the chat: <code>/memory</code> lists what hippo remembers, <code>/memory search</code>{" "}
-          reads it back, <code>/memory forget</code> makes it unrecallable, <code>/proof</code>{" "}
-          shows the blobs behind the last answer, <code>/link</code> shares this memory with another
-          channel, <code>/disconnect</code> revokes hippo on chain.
-        </p>
-      </section>
-    </div>
-  );
-}
-
-function Row({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-4 px-3 py-2">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className={mono ? "font-mono text-xs" : ""}>{value}</dd>
+      <Section title="Commands" description="Type these in the chat on any channel.">
+        <dl className="grid gap-x-4 gap-y-1.5 sm:grid-cols-[10rem_1fr]">
+          {COMMANDS.map(([cmd, what]) => (
+            <div key={cmd} className="contents">
+              <dt>
+                <code className="font-mono text-xs">{cmd}</code>
+              </dt>
+              <dd className="text-sm text-muted-foreground">{what}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
     </div>
   );
 }
