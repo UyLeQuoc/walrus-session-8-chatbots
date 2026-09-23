@@ -70,6 +70,11 @@ export function MemoryList({
   const [searching, setSearching] = useState(false);
 
   const types = useMemo(() => [...new Set(memories.map((m) => m.type))].sort(), [memories]);
+  /** The one expiry figure worth stating, said once rather than on every row. */
+  const soonest = useMemo(() => {
+    const days = memories.filter((m) => m.expiresAt).map((m) => daysUntil(m.expiresAt as string));
+    return days.length ? Math.min(...days) : null;
+  }, [memories]);
   const shown = useMemo(
     () => (type ? memories.filter((m) => m.type === type) : memories),
     [memories, type],
@@ -104,7 +109,13 @@ export function MemoryList({
   return (
     <Section
       title="What hippo wrote"
-      description="Each one is an encrypted blob on Walrus. Anyone can download the ciphertext; only your account can read it."
+      description={
+        <>
+          Each one is an encrypted blob on Walrus. Anyone can download the ciphertext; only your
+          account can read it.
+          {soonest !== null && <> Storage runs out in about {soonest} days.</>}
+        </>
+      }
     >
       {/*
         Search leads, because it is the only way to read a memory. The text is
@@ -190,13 +201,13 @@ export function MemoryList({
               {shown.map((m) => (
                 <li
                   key={m.id}
-                  className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2"
+                  className="group flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2"
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <Badge>{m.type}</Badge>
                     {/* The blob id is the only thing that differs between rows. */}
                     {m.blobId ? (
-                      <Hash value={m.blobId} href={m.explorerUrl} label="blob id" head={8} />
+                      <Hash value={m.blobId} href={m.explorerUrl} label="blob id" head={8} subtle />
                     ) : (
                       <span className="text-xs text-muted-foreground">not written yet</span>
                     )}
@@ -207,7 +218,16 @@ export function MemoryList({
                     </span>
                     {m.status === "stored" ? (
                       <>
-                        {m.expiresAt && <span>expires in {daysUntil(m.expiresAt)}d</span>}
+                        {/*
+                          Only when it is close. Every row carried the same
+                          "expires in 209d", which is five repetitions of one
+                          fact; the section heading states it once instead.
+                        */}
+                        {m.expiresAt && daysUntil(m.expiresAt) <= 30 && (
+                          <span className="text-destructive">
+                            expires in {daysUntil(m.expiresAt)}d
+                          </span>
+                        )}
                         {m.ciphertextUrl && (
                           <a
                             className="underline"

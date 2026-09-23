@@ -7,7 +7,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
-export function CopyButton({ value, label }: { value: string; label?: string }) {
+export function CopyButton({
+  value,
+  label,
+  subtle,
+}: {
+  value: string;
+  label?: string;
+  /**
+   * Hide until the row is hovered or the button is focused.
+   *
+   * A list of six delegate keys and five memories put fifteen "copy" chips on
+   * one page, all competing with the content they belong to. Keyboard users
+   * still reach it: opacity does not remove it from the tab order, and focus
+   * brings it back.
+   */
+  subtle?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -31,10 +47,11 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
       onClick={copy}
       aria-label={label ? `Copy ${label}` : "Copy"}
       className={cn(
-        "shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+        "shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium transition-all",
         copied
           ? "border-transparent bg-primary text-primary-foreground"
           : "text-muted-foreground hover:text-foreground",
+        subtle && !copied && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
       )}
     >
       {copied ? "copied" : "copy"}

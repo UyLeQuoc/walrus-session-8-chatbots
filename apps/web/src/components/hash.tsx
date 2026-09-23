@@ -12,11 +12,13 @@ export function Hash({
   href,
   label,
   head = 10,
+  subtle,
 }: {
   value: string;
   href?: string | null;
   label?: string;
   head?: number;
+  subtle?: boolean;
 }) {
   const short = value.length > head + 2 ? `${value.slice(0, head)}…` : value;
 
@@ -48,7 +50,7 @@ export function Hash({
             {value}
           </TooltipContent>
         </Tooltip>
-        <CopyButton value={value} label={label ?? "value"} />
+        <CopyButton value={value} label={label ?? "value"} subtle={subtle} />
       </span>
     </TooltipProvider>
   );

@@ -312,7 +312,10 @@ describe("me page", () => {
     );
     await waitFor(() => expect(container.textContent ?? "").toMatch(/profile/));
     const seen = container.textContent ?? "";
-    expect(seen).toMatch(/expires in 200d/i);
+    // Said once, not on every row: five identical "expires in 209d" was five
+    // repetitions of one fact.
+    expect(seen).toMatch(/Storage runs out in about 200 days/i);
+    expect(seen).not.toMatch(/expires in 200d/i);
     // The blob id is what makes one row different from the next; without it
     // every profile memory written on the same day rendered identically.
     expect(seen).toMatch(/blob123/);
@@ -322,6 +325,37 @@ describe("me page", () => {
     expect(screen.getByRole("link", { name: /blob123/ }).getAttribute("href")).toContain("blob123");
     // Guests are told the memory is not theirs yet, which is the whole pitch.
     expect(seen).toMatch(/under its own account/i);
+  });
+
+  it("warns on a memory that is nearly gone, where the row is the right place", async () => {
+    const soon = new Date(Date.now() + 9 * 86_400_000).toISOString();
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", signedIn: false, memoryEnabled: true, namespace: "ns" },
+        "/api/me/memories": {
+          memories: [
+            {
+              id: "1",
+              type: "profile",
+              status: "stored",
+              channel: "web",
+              createdAt: new Date().toISOString(),
+              blobId: "blobSoon",
+              expiresAt: soon,
+              ciphertextUrl: "https://aggregator.example/v1/blobs/blobSoon",
+              explorerUrl: "https://walruscan.com/mainnet/blob/blobSoon",
+            },
+          ],
+        },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/expires in 9d/i));
   });
 
   it("offers wallet sign-in when the browser is not signed in", async () => {
