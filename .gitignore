@@ -7,3 +7,9 @@ node_modules/
 .next/
 dist/
 .turbo/
+
+# React Bits Pro ships its registry documentation as a skill, licensed
+# Proprietary. This repo is public because the hackathon requires it, so the
+# vendor's paid material stays out of it. Reinstall locally with:
+#   pnpm --filter @hippo/web exec shadcn add @reactbits-starter/skill
+.claude/skills/react-bits-pro/

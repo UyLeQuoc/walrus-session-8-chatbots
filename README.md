@@ -118,6 +118,22 @@ measured that revoking a delegate key stops the relayer within about 32 seconds
 (`docs/evidence/revocation-2026-09-22.md`), but reading the bytes yourself still
 goes through a service. All three are written up in `docs/issues/`.
 
+## Optional: React Bits Pro
+
+`apps/web/components.json` registers two paid shadcn registries. They are inert
+unless you run `shadcn add`, so a clean clone builds and runs without them: every
+component in use is already vendored into `src/`.
+
+To add more, put your own licence in `apps/web/.env.local`, which is gitignored:
+
+```
+REACTBITS_LICENSE_KEY=...
+```
+
+The registry's own documentation installs as a skill, and it is licensed
+Proprietary, so it is gitignored rather than committed to this public repo:
+`pnpm --filter @hippo/web exec shadcn add @reactbits-starter/skill`.
+
 ## Troubleshooting
 
 **Read this one before anything else: there are two Walrus Memory deployments
