@@ -70,13 +70,17 @@ export default function DecryptedText({
   const [displayText, setDisplayText] = useState<string>(text);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
-  const [hasAnimated, setHasAnimated] = useState<boolean>(false);
   const [isDecrypted, setIsDecrypted] = useState<boolean>(animateOn !== "click");
   const [direction, setDirection] = useState<Direction>("forward");
 
   const containerRef = useRef<HTMLSpanElement>(null);
-  // hippo: a synchronous latch. State cannot guard this, because the effect can
-  // re-run before a setState has committed.
+  /**
+   * hippo: replaces the component's `hasAnimated` state.
+   *
+   * Nothing renders from this flag, it only guards a replay, and state was the
+   * wrong tool: the observer effect can re-run before a setState has committed,
+   * so the guard let the animation fire twice.
+   */
   const hasAnimatedRef = useRef<boolean>(false);
   const orderRef = useRef<number[]>([]);
   const pointerRef = useRef<number>(0);
@@ -163,7 +167,7 @@ export default function DecryptedText({
       matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       setIsDecrypted(true);
-      setHasAnimated(true);
+      hasAnimatedRef.current = true;
       return;
     }
     if (sequential) {
@@ -365,7 +369,6 @@ export default function DecryptedText({
         if (entry.isIntersecting && !hasAnimatedRef.current) {
           hasAnimatedRef.current = true;
           triggerDecrypt();
-          setHasAnimated(true);
         }
       });
     };
