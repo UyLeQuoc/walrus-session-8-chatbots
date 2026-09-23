@@ -5,6 +5,13 @@
  * 1. The screen-reader span rendered the scrambled text, so anyone using a
  *    screen reader heard noise instead of the headline.
  * 2. It animated regardless of prefers-reduced-motion.
+ * 3. It could replay. The observer effect lists `triggerDecrypt` in its
+ *    dependencies, and that callback is rebuilt whenever `isAnimating` flips,
+ *    so the effect re-subscribes and a fresh observer fires immediately on an
+ *    element that is already on screen. `hasAnimated` is state, so it has not
+ *    committed yet in that window and the guard lets it through. Watched live,
+ *    the headline resolved and then scrambled itself again a second later when
+ *    an unrelated fetch re-rendered the page.
  *
  * Re-apply both if this component is ever updated from the registry.
  */
@@ -68,6 +75,9 @@ export default function DecryptedText({
   const [direction, setDirection] = useState<Direction>("forward");
 
   const containerRef = useRef<HTMLSpanElement>(null);
+  // hippo: a synchronous latch. State cannot guard this, because the effect can
+  // re-run before a setState has committed.
+  const hasAnimatedRef = useRef<boolean>(false);
   const orderRef = useRef<number[]>([]);
   const pointerRef = useRef<number>(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -352,7 +362,8 @@ export default function DecryptedText({
 
     const observerCallback = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting && !hasAnimated) {
+        if (entry.isIntersecting && !hasAnimatedRef.current) {
+          hasAnimatedRef.current = true;
           triggerDecrypt();
           setHasAnimated(true);
         }
@@ -374,7 +385,10 @@ export default function DecryptedText({
     return () => {
       if (currentRef) observer.unobserve(currentRef);
     };
-  }, [animateOn, hasAnimated, triggerDecrypt]);
+    // hippo: `hasAnimated` deliberately absent. The latch above is a ref, so
+    // listing the state here only made the effect re-subscribe every time it
+    // flipped, which is half of why the animation replayed.
+  }, [animateOn, triggerDecrypt]);
 
   useEffect(() => {
     if (animateOn === "click") {
