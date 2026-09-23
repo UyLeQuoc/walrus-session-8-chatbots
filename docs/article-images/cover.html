@@ -1,67 +1,111 @@
 <!doctype html><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:#0a0a0a}
-  /* A size is required in the `font` shorthand. Without one the declaration is
-     invalid and the whole page silently falls back to a serif. */
-  .cover{width:1920px;height:1080px;background:#0a0a0a;color:#fafafa;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    display:flex;align-items:center;gap:96px;padding:0 110px;position:relative;overflow:hidden}
-  /* The waterline the logo is built on, carried across the whole cover. */
-  .waterline{position:absolute;left:0;right:0;bottom:0;height:290px;
-    background:linear-gradient(180deg,rgba(45,212,191,0) 0%,rgba(45,212,191,.07) 100%);
-    border-top:1px solid rgba(45,212,191,.2)}
-  .left{position:relative;display:flex;flex-direction:column;gap:38px;flex:1 1 0;min-width:0}
-  .eyebrow{display:flex;align-items:center;gap:16px;font-size:24px;letter-spacing:.13em;
-    text-transform:uppercase;color:#2dd4bf;font-weight:600}
-  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#3f3f46}
-  .eyebrow .when{color:#71717a;letter-spacing:.09em}
-  h1{font-size:114px;line-height:.99;letter-spacing:-.045em;font-weight:660}
-  p{font-size:34px;line-height:1.42;color:#a1a1aa;max-width:23ch;font-weight:420}
-  .foot{display:flex;gap:14px;align-items:center;margin-top:10px;flex-wrap:wrap}
-  .chip{border:1px solid #27272a;border-radius:999px;padding:11px 24px;font-size:22px;color:#d4d4d8}
-  /* Right: what a memory actually looks like, in the format the bot writes. */
-  .right{position:relative;flex:0 0 620px;display:flex;flex-direction:column;gap:18px}
-  .label{font-size:19px;letter-spacing:.11em;text-transform:uppercase;color:#52525b;
-    font-weight:600;margin-bottom:6px}
-  .card{border:1px solid #27272a;border-radius:16px;padding:22px 26px;background:#111113;
-    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:21px;
-    line-height:1.5;color:#d4d4d8}
-  .card .t{color:#2dd4bf}
-  .card .d{color:#52525b}
-  .card.faded{opacity:.5}
-  .card.faded2{opacity:.26}
-  .note{display:flex;align-items:center;gap:12px;margin-top:8px;color:#71717a;font-size:21px}
-  .by{position:absolute;right:110px;bottom:56px;display:flex;align-items:center;gap:15px;
-    color:#52525b;font-size:24px;font-weight:600;letter-spacing:-.02em}
+  html,body{background:#06100F}
+  /* Deep water, warm paper ink. Not #0a0a0a on #fafafa — the warmth is the
+     point, a cold neutral is what every generated banner already looks like. */
+  :root{
+    --water:#06100F; --deep:#030807; --paper:#F2EDE3; --muted:#6F8C86; --glow:#7FD8C4;
+    --line:52.5%;   /* where the waterline sits */
+  }
+  .cover{width:1920px;height:1080px;background:linear-gradient(180deg,#0C1C19 0%,#081512 52.5%);color:var(--paper);
+    position:relative;overflow:hidden}
+
+  /* Everything below the line is darker and cooler, like looking into water. */
+  .below{position:absolute;left:0;right:0;top:var(--line);bottom:0;
+    background:linear-gradient(180deg,rgba(2,6,5,.82) 0%,#020605 55%)}
+  .rule{position:absolute;left:0;right:0;top:var(--line);height:1px;
+    background:linear-gradient(90deg,transparent,rgba(127,216,196,.55) 12%,rgba(127,216,196,.55) 88%,transparent)}
+  .rule::after{content:"";position:absolute;left:0;right:0;top:1px;height:26px;
+    background:linear-gradient(180deg,rgba(127,216,196,.07),transparent)}
+
+  /* Ripples: hand-placed, uneven lengths and gaps. An even row reads as generated. */
+  .ripple{position:absolute;height:1px;background:rgba(127,216,196,.22)}
+
+  .type{position:absolute;left:118px;top:0;width:1500px;height:100%}
+  .head{position:absolute;left:0;top:224px;width:100%;height:420px;
+    font-family:"Instrument Serif",Georgia,serif;font-size:224px;line-height:.92;
+    letter-spacing:-.022em;font-weight:400}
+  .head em{font-style:italic;letter-spacing:-.03em}
+  /* The submerged copy of the same words: offset, dimmed, softened. */
+  .head.dry{clip-path:inset(0 0 77px 0)}
+  .head.wet{clip-path:inset(343px 0 0 0);
+    transform:translateX(9px) scaleY(1.035);transform-origin:top left;
+    opacity:.4;filter:blur(1.1px);color:#BFE8DC}
+
+  .meta{position:absolute;left:118px;top:96px;right:118px;display:flex;
+    justify-content:space-between;align-items:baseline;
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:20px;
+    letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+  .meta .a{color:var(--glow)}
+
+  .deck{position:absolute;left:118px;top:772px;width:760px;
+    font-family:"Instrument Serif",Georgia,serif;font-size:37px;line-height:1.36;
+    color:#A8C4BD}
+
+  /* Sunken records: what the bot is holding, down where it is held. */
+  .sunk{position:absolute;right:118px;top:676px;width:620px;text-align:right;
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:20px;line-height:2.5;
+    color:#5E837B}
+  .sunk div:nth-child(1){opacity:.95}
+  .sunk div:nth-child(2){opacity:.62}
+  .sunk div:nth-child(3){opacity:.38}
+  .sunk div:nth-child(4){opacity:.2}
+  .sunk b{color:#7FD8C4;font-weight:500}
+
+  .foot{position:absolute;left:118px;right:118px;bottom:78px;display:flex;
+    justify-content:space-between;align-items:center;
+    font-family:"JetBrains Mono",ui-monospace,monospace;font-size:19px;
+    letter-spacing:.14em;text-transform:uppercase;color:#4E6D67}
+  .foot .brand{display:flex;align-items:center;gap:14px;color:#8FA9A3}
+
+  /* Grain. Flat vector fields are the other half of the generated look. */
+  .grain{position:absolute;inset:0;opacity:.17;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='260' height='260' filter='url(%23n)'/></svg>")}
 </style>
 <div class="cover">
-  <div class="waterline"></div>
-  <div class="left">
-    <div class="eyebrow">Walrus Session 8<span class="dot"></span><span class="when">Open until Oct 9, 2026</span></div>
-    <h1>Chatbots<br>That Remember</h1>
-    <p>An introduction to Walrus Memory, and five things two weeks of building on it actually measured.</p>
-    <div class="foot">
-      <span class="chip">Memory your users own</span>
-      <span class="chip">Sui mainnet</span>
-      <span class="chip">$2,500 · five tracks</span>
-    </div>
+  <div class="below"></div>
+  <div class="rule"></div>
+
+  <div class="ripple" style="left:178px;  top:60.5%; width:132px"></div>
+  <div class="ripple" style="left:352px;  top:60.5%; width:58px;  opacity:.6"></div>
+  <div class="ripple" style="left:462px;  top:64.8%; width:206px; opacity:.45"></div>
+  <div class="ripple" style="left:1256px; top:58.9%; width:94px;  opacity:.5"></div>
+  <div class="ripple" style="left:1402px; top:63.2%; width:171px; opacity:.32"></div>
+  <div class="ripple" style="left:820px;  top:67.4%; width:76px;  opacity:.28"></div>
+
+  <div class="meta"><span class="a">Walrus Session 8</span><span>Open until Oct 9, 2026</span></div>
+
+  <div class="type">
+    <div class="head dry">Chatbots that<br><em>remember</em></div>
+    <div class="head wet" aria-hidden="true">Chatbots that<br><em>remember</em></div>
   </div>
-  <div class="right">
-    <div class="label">What the bot stores</div>
-    <div class="card"><span class="t">[preference]</span> <span class="d">[2026-09-22]</span><br>Answers in Vietnamese</div>
-    <div class="card faded"><span class="t">[fact]</span> <span class="d">[2026-09-21]</span><br>Works in TypeScript, not Go</div>
-    <div class="card faded2"><span class="t">[project]</span> <span class="d">[2026-09-19]</span><br>Shipping before Oct 9</div>
-    <div class="note">↓ encrypted, stored on Walrus, owned by the user</div>
+
+  <div class="deck">The memory is encrypted, stored on Walrus, and owned by the
+    person it is about — not by the bot.</div>
+
+  <div class="sunk">
+    <div><b>style</b> &nbsp;answers in Vietnamese</div>
+    <div><b>profile</b> &nbsp;deploys with Railway</div>
+    <div><b>profile</b> &nbsp;cat is called Banh Mi</div>
+    <div><b>decision</b> &nbsp;Drizzle, not Prisma</div>
   </div>
-  <div class="by">
-    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6 9.5a2 2 0 1 1 1.6-3.2"/><path d="M18 9.5a2 2 0 1 0-1.6-3.2"/>
-      <path d="M4.5 14c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/>
-      <circle cx="9.3" cy="11.6" r=".9" fill="currentColor" stroke="none"/>
-      <circle cx="14.7" cy="11.6" r=".9" fill="currentColor" stroke="none"/>
-      <path d="M2 14h20"/><path d="M5 17.5h3M10.5 17.5h3M16 17.5h3" opacity=".45"/>
-    </svg>built with hippo
+
+  <div class="foot">
+    <span class="brand">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9.5a2 2 0 1 1 1.6-3.2"/><path d="M18 9.5a2 2 0 1 0-1.6-3.2"/>
+        <path d="M4.5 14c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/>
+        <circle cx="9.3" cy="11.6" r=".9" fill="currentColor" stroke="none"/>
+        <circle cx="14.7" cy="11.6" r=".9" fill="currentColor" stroke="none"/>
+        <path d="M2 14h20"/><path d="M5 17.5h3M10.5 17.5h3M16 17.5h3" opacity=".45"/>
+      </svg>hippo</span>
+    <span>Measured on Sui mainnet</span>
   </div>
+
+  <div class="grain"></div>
 </div>

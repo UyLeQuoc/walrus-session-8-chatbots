@@ -300,9 +300,34 @@ Sources are the `.html` next to each `.png`. Re-render any of them with:
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
   --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
-  --window-size=1600,900 --screenshot=fig1-how-it-works.png \
-  "file://$PWD/fig1-how-it-works.html"
+  --virtual-time-budget=6000 --window-size=1600,720 \
+  --screenshot=fig1-how-it-works.png "file://$PWD/fig1-how-it-works.html"
 ```
+
+Match `--window-size` to the `.fig` size in each file, or the render is cropped
+or padded.
+
+**The cover needs a network connection and `--virtual-time-budget`.** It loads
+Instrument Serif and JetBrains Mono from Google Fonts, and without the time
+budget Chrome screenshots the page before the fonts arrive and silently falls
+back to a serif that is not the one the layout was tuned for.
+
+### How the cover works, since it is not obvious from the source
+
+The headline is set **twice, in the same place**. One copy is clipped to
+everything above the waterline and left crisp; the other is clipped to
+everything below, nudged 9px right, scaled 1.035 vertically, blurred and dropped
+to 40% — so the submerged half of *remember* reads as the same word seen through
+water. The waterline crosses the word rather than sitting under it, which is the
+whole idea: held below, surfaced on ask.
+
+Two things that will break it if edited carelessly. The clip values are
+**absolute pixels**, because `clip-path` percentages resolve against the element
+box and not the page — the first version used page-relative maths and clipped
+the entire above-water copy away, leaving only the ghost. And `.head` has an
+explicit `height`, which those pixel values depend on. Move the headline and all
+three numbers have to move together: `top`, the `dry` bottom inset, and the `wet`
+top inset.
 
 `fig4-recall.png` is a real screenshot of production, not a mock. If it is ever
 retaken, it must stay a real one.
