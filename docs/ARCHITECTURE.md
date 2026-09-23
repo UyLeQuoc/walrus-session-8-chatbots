@@ -202,7 +202,11 @@ than papering over it.
   returns metadata only. So `/memory` lists
   from the local index and reads text back through recall, and `/proof` links the
   public ciphertext rather than showing plaintext. Guest to owned migration is
-  dual-read rather than a copy, for the same reason.
+  dual-read rather than a copy, for the same reason: on `/connect` the guest
+  scope is passed to the port as a read-only companion, so recall queries both
+  accounts sequentially and merges by distance. Writes only ever go to the
+  account the user owns. This was documented as done for days before it was
+  built; see the note in `docs/AUDIT.md`.
 - **Memory text is never in Postgres.** `memory_index` holds blob IDs, types,
   hashes, channels and dates. Text lives only on Walrus.
 - **`forget` is index-only, and there is no way to delete a memory at all.**

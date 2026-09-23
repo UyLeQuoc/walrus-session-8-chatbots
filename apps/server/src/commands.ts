@@ -204,12 +204,12 @@ export async function handleCommand(
             text: "You already own this memory. /whoami shows the account, /disconnect revokes me.",
           }
         : {
-            text: `Own your memory in your own Walrus Memory account:\n${await ctx.connectUrl("connect")}\n\nYou sign one transaction, gas is sponsored, and you can revoke me at any time.`,
+            text: `Own your memory in your own Walrus Memory account:\n${await ctx.connectUrl("connect")}\n\nYou sign one transaction, gas is normally sponsored, and you can revoke me at any time. Everything I already know stays readable: it sits in my account and cannot be moved, so I read both from then on. New memories go only to yours.`,
           };
     case "disconnect":
       return ctx.person.mode === "owned"
         ? {
-            text: `Revoke my access on-chain:\n${await ctx.connectUrl("disconnect")}\n\nAfter that I cannot read or write your memory until you grant it again.`,
+            text: `Revoke my access on-chain:\n${await ctx.connectUrl("disconnect")}\n\nAfter it lands I cannot read or write anything in your account, within about a minute. What you told me before you connected is the exception: that lives in my account, not yours, and I can still read it. /memory forget makes it unrecallable.`,
           }
         : { text: "Nothing to revoke: you are in guest mode." };
     case "memory": {

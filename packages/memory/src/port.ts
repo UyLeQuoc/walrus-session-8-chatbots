@@ -61,12 +61,34 @@ export interface CreatePortOptions {
   by: string;
   channel: string;
   onWrite?: (e: WriteEvent) => void | Promise<void>;
+  /**
+   * Extra scopes to read from and never write to.
+   *
+   * This is what stops `/connect` erasing someone. Guest memories live in
+   * hippo's own account under `hippo-guest:<personId>`; taking ownership moves
+   * writes to the user's own account under `hippo`, a different account and a
+   * different namespace. Without reading the old scope too, the moment a person
+   * takes ownership of their memory is the moment it all disappears.
+   */
+  alsoRead?: MemoryScope[];
 }
 
-export function createMemoryPort({ scope, by, channel, onWrite }: CreatePortOptions): MemoryPort {
+export function createMemoryPort({
+  scope,
+  by,
+  channel,
+  onWrite,
+  alsoRead = [],
+}: CreatePortOptions): MemoryPort {
   const client = createClient(scope);
   const limiter = limiterFor(scope.key);
   const pending = new Set<Promise<unknown>>();
+  /** Read-only companions, each with its own client and its own key's limiter. */
+  const secondary = alsoRead.map((s) => ({
+    scope: s,
+    client: createClient(s),
+    limiter: limiterFor(s.key),
+  }));
 
   const track = (p: Promise<unknown>) => {
     pending.add(p);
@@ -144,8 +166,41 @@ export function createMemoryPort({ scope, by, channel, onWrite }: CreatePortOpti
       };
     },
 
-    recall(input) {
-      return recallRelevant(client, { ...input, namespace: scope.namespace, limiter });
+    async recall(input) {
+      const primary = await recallRelevant(client, {
+        ...input,
+        namespace: scope.namespace,
+        limiter,
+      });
+      if (!secondary.length) return primary;
+
+      /**
+       * Sequential, deliberately. Concurrent recalls make the relayer answer
+       * with an empty result and a non-zero `dropped_count` (docs/SPIKES.md
+       * §H), which is why the agent stopped issuing its own in parallel. Doing
+       * it here in parallel would reintroduce exactly that.
+       */
+      const seen = new Map(primary.map((m) => [m.blob_id, m]));
+      for (const extra of secondary) {
+        try {
+          const more = await recallRelevant(extra.client, {
+            ...input,
+            namespace: extra.scope.namespace,
+            limiter: extra.limiter,
+          });
+          for (const m of more) if (!seen.has(m.blob_id)) seen.set(m.blob_id, m);
+        } catch (err) {
+          // Old memories are a bonus; failing to reach them must never cost the
+          // user the ones in the account they actually own.
+          console.warn("[memory] secondary recall failed", err);
+        }
+      }
+      const merged = [...seen.values()].sort((a, b) => a.distance - b.distance);
+      // Only truncate when the caller asked for a size. Defaulting to the
+      // primary's length silently discarded every older memory whenever the
+      // owned account happened to return fewer, which is the exact failure
+      // this whole path exists to prevent.
+      return input.limit ? merged.slice(0, input.limit) : merged;
     },
 
     async flush() {

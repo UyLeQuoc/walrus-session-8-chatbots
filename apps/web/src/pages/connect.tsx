@@ -175,8 +175,8 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
         </h1>
         <p className="text-sm text-muted-foreground">
           {kind === "connect"
-            ? "hippo now writes into your own Walrus Memory account. You can revoke it at any time with /disconnect, and the same memory is readable from Claude Code or any other Walrus Memory client you sign in."
-            : "hippo can no longer read or write your memory. Nothing was deleted; run /connect to grant access again."}
+            ? "hippo now writes into your own Walrus Memory account, and the same memory is readable from Claude Code or any other Walrus Memory client you sign in. Anything you told it before this stays in hippo's own account, where it cannot be moved from, so hippo reads both. You can revoke its access to yours at any time with /disconnect."
+            : "hippo can no longer read or write anything in your account, within about a minute. What you told it before you connected lives in hippo's account rather than yours, so that part it can still read; /memory forget makes it unrecallable. Nothing was deleted, and /connect grants access again."}
         </p>
         {selfPaid && (
           <p className="text-xs text-muted-foreground">

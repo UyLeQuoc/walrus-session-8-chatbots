@@ -81,7 +81,22 @@ export async function portFor(person: Person, channel: string): Promise<MemoryPo
         accountId: person.accountId,
         serverUrl: env.MEMWAL_SERVER_URL,
       });
-      return createMemoryPort({ scope, by, channel, onWrite });
+      /**
+       * Keep reading what this person told hippo before they owned anything.
+       *
+       * Those memories are in hippo's account under `hippo-guest:<id>` and
+       * cannot be moved: a write is append-only, costs ~25 s each, and the
+       * originals could never be deleted afterwards (docs/issues/09). So they
+       * stay where they are and are read alongside the owned account. New
+       * writes only ever go to the account the user owns.
+       */
+      return createMemoryPort({
+        scope,
+        by,
+        channel,
+        onWrite,
+        alsoRead: [guestScope(operator, person.id)],
+      });
     }
   }
   return createMemoryPort({ scope: guestScope(operator, person.id), by, channel, onWrite });

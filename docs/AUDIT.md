@@ -44,7 +44,7 @@ only the account owner can provide; **n/a** superseded by a finding.
 | 1 | `POST /api/connect/start` | done |
 | 2 | Wallet page with sponsored calls | done, untested against a wallet |
 | 3 | Server verification of the grant | done, and the object's Move type is checked; five mainnet tests |
-| 4 | Migration or dual-read | done, dual-read |
+| 4 | Migration or dual-read | **done 2026-09-23**, dual-read. It was marked done here, in ARCHITECTURE and in IDEA while nothing implemented it: `portFor` returned an owned-only scope, so `/connect` silently orphaned every guest memory at the exact moment a person took ownership. Found by auditing the claims against the code rather than re-reading the claims |
 | 5 | `/disconnect` | done, and it destroys hippo's copy of the key |
 | 6 | `/me` page | done, and rebuilt 2026-09-22: an on-chain panel reading the `MemWalAccount` off Sui with every delegate key and a revoke button, type filter, search that reads text back from Walrus, memory list with storage expiry and blob and ciphertext links, wallet sign-in, Claude Code steps, survey link when configured. No permanent delete, because none exists (`issues/09`) |
 | 7 | `/whoami` | done |

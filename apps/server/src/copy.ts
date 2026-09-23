@@ -23,7 +23,8 @@ export const PRIVACY = `What happens to what you tell me:
 • I decide what is worth keeping and write it to Walrus, a public storage network. Each memory is encrypted. Anyone can download the encrypted bytes; only the account that owns them can read them.
 • Storage is paid per period. A memory written today lasts about seven months, then the bytes expire.
 • Your memory lives in a space named after a random id, not your name or your handle. That name is visible on Sui.
-• Until you run /connect, that space sits inside my own Walrus Memory account. After /connect it is in an account your wallet owns, and /disconnect takes my access away on chain.
+• Until you run /connect, that space sits inside my own Walrus Memory account. After /connect new memories go into an account your wallet owns, and /disconnect takes my access to it away on chain.
+• What you told me before connecting stays in my account. It cannot be moved there and it cannot be deleted, so I keep reading it alongside yours, and I can still read it after you revoke me. /memory forget makes it unrecallable.
 
 What you can do:
 

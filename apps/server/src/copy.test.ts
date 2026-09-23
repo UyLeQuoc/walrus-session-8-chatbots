@@ -55,6 +55,14 @@ describe("/privacy", () => {
   it("offers a way out in the same breath", () => {
     expect(PRIVACY).toMatch(/\/memory off/);
   });
+
+  it("says that memories from before connecting stay in hippo's account", () => {
+    // They cannot be moved and cannot be deleted, so hippo can still read them
+    // after a revoke. Discovering that afterwards would feel like a betrayal of
+    // the whole pitch; saying it up front costs nothing.
+    expect(PRIVACY).toMatch(/before connecting stays in my account/i);
+    expect(PRIVACY).toMatch(/after you revoke me/i);
+  });
 });
 
 describe("/help", () => {
