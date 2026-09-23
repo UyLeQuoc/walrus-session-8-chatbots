@@ -23,7 +23,8 @@
     "restore": "pnpm --filter @hippo/server restore",
     "diagnose": "pnpm --filter @hippo/memory diagnose",
     "prune:people": "pnpm --filter @hippo/server prune:people",
-    "capacity": "pnpm --filter @hippo/server capacity"
+    "capacity": "pnpm --filter @hippo/server capacity",
+    "evidence:daily": "bash scripts/evidence-daily.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

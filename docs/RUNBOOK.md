@@ -89,8 +89,12 @@ consent line.
 
 ## Daily, about ten minutes
 
-- [ ] `pnpm evidence > docs/evidence/day-N.txt` and commit. A daily series is
+- [ ] `pnpm evidence:daily` and commit the file it writes. A daily series is
       worth more than one final number, and it shows growth in the article.
+      Use this rather than `pnpm evidence`, which reads the local database and
+      would quietly record your own test chatter as the result. It snapshots
+      capacity in the same file, so a budget running low is visible the day it
+      starts rather than the day it ends.
 - [ ] Skim the server log for `[memory] recall … dropped` and `write failed`.
       Every new failure shape becomes a `docs/issues/` draft the same day.
 - [ ] Collect any "it remembered" moment while it is fresh. Ask users to forward
