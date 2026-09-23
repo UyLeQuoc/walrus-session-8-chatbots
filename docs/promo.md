@@ -283,6 +283,114 @@ you get muted.
 > https://thewalrussessions.wal.app/chatbots — happy to answer questions about
 > the memory layer, that's the part I have numbers for.
 
+## C2. LinkedIn
+
+**Read this before counting it as the entry.** LinkedIn is not on the excluded
+list, so it is not disqualified — but every example the rules give is a
+*community* (subreddit, forum, Discord, newsletter, dev.to, Hacker News), and a
+personal LinkedIn feed is structurally what X is: a broadcast to your own
+followers. X is excluded by name. A feed post is therefore a defensible entry
+and not a safe one.
+
+Two ways to remove the doubt, both of which map onto something the rules name
+explicitly:
+
+1. **Post it into a relevant LinkedIn Group** — a group is a community, and the
+   screenshot shows which one.
+2. **Publish it as a LinkedIn Newsletter or Article** — "newsletter" is on the
+   list verbatim.
+
+Either way, pair it with one unambiguous community post. LinkedIn is worth
+doing on its own merits regardless of the prize; it is just not the one to
+stake the prize on.
+
+**Format notes.** LinkedIn renders no markdown: no `**bold**`, no `#` headings,
+no markdown links. Use plain text, blank lines and a unicode arrow or bullet.
+Only the first ~140 characters show on mobile before "see more", so the first
+two lines carry the whole post. Keep the link out of the body and put it in
+your own first comment.
+
+**Post (English, ~1,800 characters):**
+
+> Most chatbots forget you. The ones that don't usually own the remembering.
+>
+> There is an open hackathon on exactly that problem. Walrus Session 8,
+> "Chatbots That Remember", runs until October 9: build a chatbot that
+> remembers its users, with the memory stored on Walrus rather than in your own
+> database. $2,500 across five tracks.
+>
+> I am two weeks into building in it. Three things I measured that I would like
+> to have known on day one:
+>
+> → A memory write takes about 24 seconds end to end. You cannot await that
+> inside a chat turn, so persistence has to be fire-and-forget with a visible
+> pending state. One latency measurement decided the entire architecture.
+>
+> → Cheaper models recall stored facts perfectly and still ignore stored
+> instructions. In my eval, a memory saying "this user prefers Vietnamese" was
+> pulled into context and then answered in English anyway — by DeepSeek in both
+> runs, by Qwen in one of two. Retrieval is the easy half of memory.
+>
+> → The most expensive failure returned HTTP 200. Recall intermittently answers
+> with an empty result set while the same response body reports that it found
+> and discarded matches. Nothing throws, nothing retries, and the bot simply
+> does not know you for one turn. I spent a day on prompts before I thought to
+> log the raw response.
+>
+> Two things worth knowing if you are on the fence. You do not need to hold any
+> token — the Walrus Foundation runs the relayer and pays the storage fees. And
+> two of the five tracks do not require you to build anything at all: a
+> reproducible bug report is $100, and so is a promo post.
+>
+> I am not affiliated with Walrus. I am just building in it, and the deadline
+> is October 9, 14:00 UTC.
+>
+> Details in the comments.
+>
+> #AI #LLM #SoftwareEngineering #Hackathon #OpenSource
+
+**First comment:**
+
+> Session details and rules: https://thewalrussessions.wal.app/chatbots
+>
+> My own entry, with the eval and the raw measurements: [repo link]
+
+**Vietnamese variant**, if your network is mostly Vietnamese. Shorter, because
+a bilingual feed rewards brevity.
+
+> Hầu hết chatbot quên sạch bạn sau mỗi phiên. Số ít nhớ được thì bộ nhớ đó là
+> của họ, không phải của bạn.
+>
+> Walrus Session 8 — "Chatbots That Remember" — đang mở tới 9/10. Đề bài: làm
+> một con chatbot nhớ được người dùng, và bộ nhớ lưu trên Walrus thay vì trong
+> database của mình. Tổng giải $2,500, chia 5 hạng mục.
+>
+> Mình build trong đó hai tuần. Ba thứ đo được, đáng nói kể cả khi bạn không
+> thi:
+>
+> → Ghi một memory mất khoảng 24 giây. Không thể await trong một lượt chat, nên
+> phải fire-and-forget kèm trạng thái pending. Một phép đo độ trễ quyết định
+> toàn bộ kiến trúc.
+>
+> → Model rẻ recall fact rất tốt nhưng bỏ qua chỉ dẫn đã lưu. Trong eval của
+> mình, memory ghi "user này thích trả lời bằng tiếng Việt" được kéo vào context
+> rồi model vẫn trả lời tiếng Anh — DeepSeek cả 2 lần chạy, Qwen 1 trên 2.
+> Retrieval mới là nửa dễ.
+>
+> → Lỗi đắt nhất trả về HTTP 200. Recall thỉnh thoảng trả mảng rỗng, trong khi
+> chính response đó ghi là đã tìm thấy và loại bỏ kết quả. Không throw, không
+> retry — bot chỉ đơn giản là quên bạn đúng một lượt.
+>
+> Hai điểm đáng chú ý: không cần giữ token nào (Walrus Foundation chạy relayer
+> và trả phí lưu trữ), và 2 trong 5 hạng mục thắng được mà không cần build gì —
+> một bug report có repro là $100.
+>
+> Mình không liên quan gì tới Walrus, chỉ đang dự thi. Hạn 9/10, 14:00 UTC.
+>
+> Link ở comment.
+>
+> #AI #LLM #Hackathon #OpenSource
+
 ## D. Viblo, or a Vietnamese developer Discord
 
 Outside both ecosystems, and an audience that will mostly not have heard of
