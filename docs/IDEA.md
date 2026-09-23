@@ -75,9 +75,10 @@ answer looks like it has amnesia. Handling it is the difference between an eval
 that passes repeatably and one that passes sometimes, and it is the most
 concrete answer to "is memory doing real work here".
 
-**The ownership model did not hold for our own key.** Our delegate key is not in
-the account's on-chain `delegate_keys`, yet the relayer accepts it. That is
-That is what we believed for most of a week, and it was wrong. The key was on
+**We accused the relayer of ignoring on-chain access control, and we were
+wrong.** Our delegate key was absent from the account's on-chain
+`delegate_keys` while the relayer accepted it, and we wrote that up as the
+largest finding of the week. The key was on
 chain the whole time, on an account in a second mainnet deployment that the
 documentation does not mention. We were reading the account from the superseded
 one. Chasing it is still the most useful thing the project did, because the
