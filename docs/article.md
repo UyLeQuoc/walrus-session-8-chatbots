@@ -1,7 +1,13 @@
 # Draft article — Medium + Inkray
 
-Target 500 to 800 words. Honest over polished. Sections marked `[M6]` need the
-real-user numbers from `pnpm evidence` before publishing.
+Honest over polished. Sections marked `[M6]` need the real-user numbers from
+`pnpm evidence` before publishing.
+
+**Length.** The draft body is now about 1,950 words, well past the 500 to 800 I first aimed
+at. The retraction section is the reason and it earns its space, so if this needs
+to be cut, cut the prefix-versus-bare table and the Vietnamese paragraph first:
+both are interesting and neither is load-bearing. Never cut the retraction or the
+revocation measurement.
 
 Working titles, written for the person searching rather than for us:
 
@@ -94,8 +100,8 @@ mattered.
 
 ### What broke
 
-Three things, and the third is the reason I would not ship this without reading
-the rest of this section.
+Four things. The third is the one I would most like to have skipped, and it is
+the reason the fourth could finally be measured.
 
 **Writes take 24 seconds.** `rememberAndWait` on mainnet, measured. Blocking a
 chat reply on that is unusable, so hippo accepts the job, replies immediately,
@@ -122,16 +128,99 @@ retrying, and the only reason every run still passed is that a session start
 fires several overlapping queries, so the redundancy covers a loss. A bot that
 asked once would just have forgotten.
 
-**The ownership model did not hold for my own key.** The delegate key I built
-with does not appear in my account's on-chain `delegate_keys`. I read the object
-directly. Four keys on chain; the relayer honours six, including mine, and
-decrypts with it happily. A randomly generated key is properly rejected, so it is
-not an open door, but it means an owner auditing their account on chain sees
-fewer clients than can actually read their memories. It also means I cannot yet
-prove that revoking on chain stops access, which is the whole promise.
+**I filed a security bug against Walrus Memory, and it was mine.** This is the
+one I would most like to skip and the one most worth writing down.
 
-So hippo does the honest thing: when you revoke, it deletes its copy of your key.
-Whatever the relayer decides, hippo no longer has the credential.
+I read my account off chain and counted four delegate keys. The key hippo was
+built with was not among them, yet the relayer accepted it for every route,
+including decryption. A randomly generated key was properly rejected, so the
+relayer clearly knew this specific key. I concluded that on-chain access control
+was not what governed access, wrote it up with a repro, and said so in my notes
+as the largest finding of the week. It also meant I could not prove that revoking
+on chain stops access, which is the entire promise of the project.
+
+Every observation in that report was accurate. The conclusion was wrong.
+
+There are **two Walrus Memory deployments live on mainnet**, and they are
+separate packages rather than one upgraded in place. I know that because a Move
+upgrade keeps its original type address, and the newer registry's type carries
+the newer package. The documentation names one deployment. `GET /config` serves
+the other. I had taken the package id from `/config`, as the docs tell you to
+since the published id is stale, and the registry id from the documentation. So
+I had been resolving my owner against the wrong registry and reading a real,
+active, delegate-bearing account that simply was not mine. My key was on chain
+the whole time, on the other account, labelled and correct.
+
+The same mismatch had been breaking something far more visible. Every sponsored
+transaction, which is the entire onboarding path, came back:
+
+```
+502 {"code":"sponsor_upstream_error","error":"Sponsor service error"}
+```
+
+For a working session I treated that as an outage on their side. I even measured
+against mainnet to show the sponsor was healthy for everybody else, which it
+was. What finally named it was giving up on the relayer and executing the
+transaction myself, which printed the simulation error the 502 had swallowed:
+
+```
+CommandArgumentError { arg_idx: 0, kind: TypeMismatch } in command 0
+```
+
+Argument zero is the registry. One wrong object id, two failures that looked like
+completely different problems, and one retracted accusation against somebody
+else's security model.
+
+Three habits would have saved the week. Check the Move **type** of every object
+id you configure, not just that it resolves. Treat "the vendor's access control
+is broken" as needing far more evidence than "the vendor's endpoint is down".
+And when a service masks an error, reproduce the operation without that service
+in the path.
+
+The fix upstream is one line of JSON: `GET /config` should return `registryId`
+beside `packageId`, so a client cannot mix deployments. That is filed. The
+retracted report stays in my repo under its correction, because the mistake is
+more instructive than the finding would have been.
+
+### What revoking actually does
+
+With the account id corrected, the test that had been blocked since day one ran
+in about a minute and needed nobody's permission. A throwaway wallet, a fresh
+account, a delegate key registered on chain, a memory written and recalled with
+it, then the key removed on chain:
+
+```
+add delegate key      on chain after 3s
+write and recall      blob written, recall returned 1
+remove delegate key   gone from chain after 3s
+recall at +0s         accepted
+recall at +15s        accepted
+recall at +32s        refused, 401
+```
+
+**Revocation works, and it is not instant.** Roughly half a minute passed before
+the relayer stopped honouring a key the chain had already dropped. So hippo says
+"within about a minute", and on `/disconnect` it also destroys its own copy of
+the key, which closes that window immediately and costs nothing to keep.
+
+Every transaction there was sponsored. The wallet never held any SUI, which is
+what makes one-click onboarding possible in the first place.
+
+**You cannot read your own memory without the relayer.** I wanted to end the
+demo by downloading the ciphertext from a public Walrus aggregator and decrypting
+it locally with the account's own key: anyone can fetch the bytes, only you can
+read them. The bytes download fine. The decryption does not, and not because of
+permissions. Mainnet memories are sealed by a committee key server that the SDK
+does not list among its mainnet defaults, so the obvious attempt fails as "Not
+enough shares", which reads like an access problem and is not one. Take the key
+servers from the ciphertext, which names them, and you get told the server needs
+an aggregator. Point at the aggregator and you finally get the truth: `No API key
+found in request`.
+
+So ownership here is real about permission and not yet real about possession.
+The chain decides who may read, and I measured that it does. Reading the bytes
+yourself still goes through somebody's service. That is worth saying plainly in
+an article whose title is about giving memory back to users.
 
 There is one more limit worth stating, because I built a UI for it before I read
 carefully enough. You cannot delete a memory. `forget` removes the search index,
@@ -150,7 +239,9 @@ like completeness. The address does own the blobs, 197 of them. So the memory is
 genuinely on Walrus and I currently have no working way to rebuild an index from
 it.
 
-All of these are filed: github.com/MystenLabs/MemWal/issues.
+These are written up with repros and filed at
+github.com/MystenLabs/MemWal/issues. Eleven of them. A twelfth is the one I
+retracted, which stays in my repo rather than theirs.
 
 ### Run it
 
