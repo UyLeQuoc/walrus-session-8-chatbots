@@ -12,6 +12,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Layout } from "../components/layout.tsx";
 import { ChatPage } from "./chat.tsx";
+import { ConnectPage } from "./connect.tsx";
 import { MePage } from "./me.tsx";
 
 /**
@@ -39,14 +40,25 @@ vi.mock("sonner", () => ({
   Toaster: () => null,
 }));
 
-/** dapp-kit reaches for wallet APIs that jsdom has no notion of. */
+/**
+ * dapp-kit reaches for wallet APIs that jsdom has no notion of.
+ *
+ * `wallet` stands in for a connected one. Registering a real wallet-standard
+ * wallet would additionally exercise dapp-kit's discovery, which is not our
+ * code; what has never run is the connect page's own orchestration, and that is
+ * what these stand-ins let us drive.
+ */
+let wallet: { address: string } | null = null;
+const signAndExecute = vi.fn(async () => ({ digest: "0xdigest" }));
+const suiClientStub: { core: Record<string, unknown>; getBalance?: unknown } = { core: {} };
+
 vi.mock("@mysten/dapp-kit", () => ({
   ConnectModal: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
-  useCurrentAccount: () => null,
-  useSignAndExecuteTransaction: () => ({ mutateAsync: vi.fn() }),
-  useSignPersonalMessage: () => ({ mutateAsync: vi.fn() }),
-  useSignTransaction: () => ({ mutateAsync: vi.fn() }),
-  useSuiClient: () => ({}),
+  useCurrentAccount: () => wallet,
+  useSignAndExecuteTransaction: () => ({ mutateAsync: signAndExecute }),
+  useSignPersonalMessage: () => ({ mutateAsync: vi.fn(async () => ({ signature: "sig" })) }),
+  useSignTransaction: () => ({ mutateAsync: vi.fn(async () => ({ signature: "sig" })) }),
+  useSuiClient: () => suiClientStub,
 }));
 
 /**
@@ -72,6 +84,10 @@ function stubFetch(routes: Record<string, unknown>) {
 
 beforeEach(() => {
   chatMessages = [];
+  wallet = null;
+  signAndExecute.mockClear();
+  suiClientStub.core = {};
+  suiClientStub.getBalance = undefined;
   toastError.mockClear();
   vi.stubGlobal("fetch", stubFetch({}));
   // jsdom has neither of these, and both the toaster and the theme toggle read
@@ -512,6 +528,201 @@ describe("theme", () => {
     mount();
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
+});
+
+describe("connect flow, driven end to end with a stand-in wallet", () => {
+  const OWNER = `0x${"11".repeat(32)}`;
+  const ACCOUNT = `0x${"22".repeat(32)}`;
+  const REGISTRY = `0x${"33".repeat(32)}`;
+  const TABLE = `0x${"44".repeat(32)}`;
+
+  /** A registry whose table resolves to ACCOUNT only after `appearsAfter` looks. */
+  function chainWith({ appearsAfter }: { appearsAfter: number }) {
+    let looks = 0;
+    return {
+      getObject: async () => ({ object: { json: { accounts: { id: TABLE } } } }),
+      getDynamicField: async () => {
+        looks += 1;
+        if (looks <= appearsAfter) return null;
+        return {
+          dynamicField: {
+            value: { bcs: btoa(String.fromCharCode(...new Uint8Array(32).fill(0x22))) },
+          },
+        };
+      },
+    };
+  }
+
+  const token = {
+    kind: "connect" as const,
+    publicKey: "ab".repeat(32),
+    label: "hippo (web:uy)",
+    accountId: null,
+  };
+  const config = {
+    network: "mainnet",
+    relayerUrl: "https://relayer.example",
+    packageId: `0x${"55".repeat(32)}`,
+    registryId: REGISTRY,
+  };
+
+  function stub(routes: Record<string, unknown>, onDone?: (body: unknown) => Response) {
+    const inner = stubFetch({ "/api/connect/": token, "/api/config": config, ...routes });
+    return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/done")) {
+        return onDone
+          ? onDone(init?.body)
+          : ({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response);
+      }
+      // No sponsor service in a test, so every sponsorship attempt fails and the
+      // user-paid fallback runs. That fallback is the path that has never
+      // executed anywhere, which makes it the one worth driving.
+      if (url.includes("/sponsor")) {
+        return {
+          ok: false,
+          status: 502,
+          text: async () => '{"error":"no sponsor here"}',
+        } as unknown as Response;
+      }
+      return inner(input);
+    });
+  }
+
+  function renderConnect(kind: "connect" | "disconnect" = "connect") {
+    return render(
+      <MemoryRouter initialEntries={[`/${kind}/tok`]}>
+        <Routes>
+          <Route path={`/${kind}/:token`} element={<ConnectPage kind={kind} />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it("creates the account, registers the key, and confirms, when the wallet pays", async () => {
+    wallet = { address: OWNER };
+    suiClientStub.core = chainWith({ appearsAfter: 1 });
+    suiClientStub.getBalance = async () => ({ balance: { balance: "100000000" } });
+    const done: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      stub({}, (body) => {
+        done.push(body);
+        return { ok: true, status: 200, json: async () => ({ ok: true }) } as Response;
+      }),
+    );
+
+    const { container } = renderConnect();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /grant access/i })).toBeDefined(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /grant access/i }));
+
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/Your memory is yours/i), {
+      timeout: 15_000,
+    });
+    // create_account then add_delegate_key, both signed by the wallet.
+    expect(signAndExecute).toHaveBeenCalledTimes(2);
+    // The server is told which account, and never told the wallet address,
+    // because it reads the owner off chain instead.
+    expect(String(done[0])).toContain(ACCOUNT);
+    // Gas came from the user, so the page has to say so.
+    expect(container.textContent ?? "").toMatch(/your wallet paid/i);
+  }, 20_000);
+
+  it("skips creation when the wallet already owns an account", async () => {
+    wallet = { address: OWNER };
+    suiClientStub.core = chainWith({ appearsAfter: 0 });
+    suiClientStub.getBalance = async () => ({ balance: { balance: "100000000" } });
+    vi.stubGlobal("fetch", stub({}));
+
+    renderConnect();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /grant access/i })).toBeDefined(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /grant access/i }));
+    await waitFor(() => expect(signAndExecute).toHaveBeenCalled(), { timeout: 15_000 });
+    // One transaction, not two: the contract allows one account per address.
+    expect(signAndExecute).toHaveBeenCalledTimes(1);
+  }, 20_000);
+
+  it("refuses to spend a wallet that cannot pay, and says why", async () => {
+    wallet = { address: OWNER };
+    suiClientStub.core = chainWith({ appearsAfter: 0 });
+    suiClientStub.getBalance = async () => ({ balance: { balance: "0" } });
+    vi.stubGlobal("fetch", stub({}));
+
+    const { container } = renderConnect();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /grant access/i })).toBeDefined(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /grant access/i }));
+
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/holds no SUI/i), {
+      timeout: 15_000,
+    });
+    // Never ask a wallet to sign something that will fail on chain.
+    expect(signAndExecute).not.toHaveBeenCalled();
+  }, 20_000);
+
+  it("keeps retrying confirmation while the node catches up", async () => {
+    wallet = { address: OWNER };
+    suiClientStub.core = chainWith({ appearsAfter: 0 });
+    suiClientStub.getBalance = async () => ({ balance: { balance: "100000000" } });
+    let attempts = 0;
+    vi.stubGlobal(
+      "fetch",
+      stub({}, () => {
+        attempts += 1;
+        // The server reads the account off chain and will not see the new key at
+        // once, so it answers 409 until it does. Giving up here would leave a
+        // user who paid gas in guest mode.
+        return attempts < 2
+          ? ({ ok: false, status: 409, json: async () => ({ error: "not yet" }) } as Response)
+          : ({ ok: true, status: 200, json: async () => ({ ok: true }) } as Response);
+      }),
+    );
+
+    const { container } = renderConnect();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /grant access/i })).toBeDefined(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /grant access/i }));
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/Your memory is yours/i), {
+      timeout: 15_000,
+    });
+    expect(attempts).toBeGreaterThan(1);
+  }, 20_000);
+
+  it("revokes, and will not try when the wallet owns nothing to revoke", async () => {
+    wallet = { address: OWNER };
+    suiClientStub.getBalance = async () => ({ balance: { balance: "100000000" } });
+
+    suiClientStub.core = chainWith({ appearsAfter: 99 });
+    vi.stubGlobal("fetch", stub({}));
+    const { container, unmount } = renderConnect("disconnect");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /revoke access/i })).toBeDefined(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /revoke access/i }));
+    await waitFor(() =>
+      expect(container.textContent ?? "").toMatch(/does not own a Walrus Memory account/i),
+    );
+    expect(signAndExecute).not.toHaveBeenCalled();
+    unmount();
+
+    suiClientStub.core = chainWith({ appearsAfter: 0 });
+    vi.stubGlobal("fetch", stub({}));
+    const second = renderConnect("disconnect");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /revoke access/i })).toBeDefined(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /revoke access/i }));
+    await waitFor(() => expect(second.container.textContent ?? "").toMatch(/Access revoked/i), {
+      timeout: 15_000,
+    });
+    expect(signAndExecute).toHaveBeenCalledTimes(1);
+  }, 25_000);
 });
 
 describe("connect page", () => {
