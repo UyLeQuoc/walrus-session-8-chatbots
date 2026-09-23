@@ -21,6 +21,16 @@ Why 1 and not 4: the blob scales best and says the least. It reads as generic
 security, where the waterline is specific to this project and to its name. If a
 sharper mark is ever wanted at very small sizes, 4 is the fallback.
 
+## Raster versions
+
+`logo-512-dark.png` and `logo-512-light.png` are 512×512 for the places that
+take no SVG: a Telegram bot avatar set through BotFather, a GitHub organisation
+picture, a submission form. Both are cropped around the ink rather than around
+the viewBox, because the waterline sits below the middle of the drawing and a
+circle crop would otherwise cut the ripples and leave dead space above.
+
+`apps/web/public/og.png` is the 1200×630 social card.
+
 ## Changing the mark
 
 Three places, all hand-edited:
@@ -28,7 +38,8 @@ Three places, all hand-edited:
 1. `apps/web/src/components/logo.tsx` — the header, in `currentColor`
 2. `apps/web/public/favicon.svg` — carries both themes itself, since a favicon
    cannot inherit one
-3. `docs/brand/banner.html` — the social card
+3. `docs/brand/banner.html` — the social card, then regenerate `og.png`
+4. The two 512×512 pngs, regenerated the same way as the card
 
 ## Regenerating the social card
 
