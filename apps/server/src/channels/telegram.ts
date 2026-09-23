@@ -63,6 +63,7 @@ export function telegramAdapter(): ChannelAdapter | null {
         { command: "link", description: "use the same memory on another channel" },
         { command: "connect", description: "own your memory on-chain" },
         { command: "disconnect", description: "revoke my access" },
+        { command: "privacy", description: "what is stored, where, and for how long" },
         { command: "help", description: "all commands" },
       ]);
       void bot.start({ onStart: (me) => console.log(`[telegram] @${me.username} polling`) });

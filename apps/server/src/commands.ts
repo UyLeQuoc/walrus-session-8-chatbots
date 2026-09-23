@@ -7,6 +7,7 @@
 import { and, desc, eq, memoryIndex, people, sql, turnLog } from "@hippo/db";
 import { explorer, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
 import { db } from "./app-context.ts";
+import { HELP, PRIVACY, welcome } from "./copy.ts";
 import { env } from "./env.ts";
 import { createLinkCode, redeemLinkCode } from "./link.ts";
 import { type Person, portFor } from "./persons.ts";
@@ -21,40 +22,6 @@ export interface CommandContext {
 export interface CommandResult {
   text: string;
 }
-
-/**
- * `/start` is the only copy most people will read, so it says the one thing that
- * makes hippo different rather than listing commands. `/help` does the listing.
- */
-function welcome(surveyUrl?: string): string {
-  const lines = [
-    "I remember what you tell me, across conversations and across channels.",
-    "",
-    "The part that is unusual: that memory can belong to you, not to me. Run /connect and it moves into a Walrus Memory account owned by your own wallet, where /disconnect takes my access away on-chain whenever you want.",
-    "",
-    "Just talk to me and I will start remembering. /memory shows what I have, /help lists everything.",
-  ];
-  if (surveyUrl) {
-    lines.push(
-      "",
-      `If you have a minute afterwards, telling me how it went helps a lot: ${surveyUrl}`,
-    );
-  }
-  return lines.join("\n");
-}
-
-const HELP = `hippo remembers what you tell it, and the memory belongs to you.
-
-/memory            what I remember about you
-/memory search <q> search your memory
-/memory off | on   pause or resume remembering
-/memory forget     make everything unrecallable
-/link              use the same memory on another channel
-/whoami            your account and where the memory lives
-/proof             the memories behind my last answer
-/connect           own your memory in your own Walrus account
-/disconnect        revoke my access on-chain
-/help              this message`;
 
 /**
  * Metadata routes must be signed with the *same* credential the memory port
@@ -223,6 +190,8 @@ export async function handleCommand(
       return { text: welcome(env.SURVEY_URL) };
     case "help":
       return { text: HELP };
+    case "privacy":
+      return { text: PRIVACY };
     case "whoami":
       return whoami(ctx);
     case "link":

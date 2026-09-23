@@ -115,6 +115,23 @@ describe("chat page", () => {
     expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
   });
 
+  it("discloses that memories go to a public network before inviting a message", () => {
+    // The same promise the /start message makes on Telegram. A visitor should
+    // not have to run a command to find out what happens to what they type.
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    const seen = container.textContent ?? "";
+    expect(seen).toMatch(/public storage network/i);
+    expect(seen).toMatch(/anyone can download/i);
+    expect(seen).toMatch(/seven months/i);
+    expect(seen).toMatch(/\/memory off/);
+    // Forgetting is not deleting, and that has to be said here too.
+    expect(seen).toMatch(/cannot delete the bytes early/i);
+  });
+
   it("links hippo's own account on chain once the config arrives", async () => {
     const account = `0x${"ab".repeat(32)}`;
     vi.stubGlobal("fetch", stubFetch({ "/api/config": { operatorAccountId: account } }));
