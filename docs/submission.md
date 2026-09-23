@@ -42,7 +42,7 @@ DeepSurge: https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608
 
 **Chatbot use case.** Personal and developer assistant, with portable, user-owned memory.
 
-**Where is it deployed and how can judges access it?** `[HUMAN]` live URL and Telegram handle, once deployed. Judges can also clone and run it: five commands in the README, and `pnpm demo` proves cross-session recall on mainnet without any setup beyond credentials.
+**Where is it deployed and how can judges access it?** Web: https://hippo-web-ten-nu.vercel.app. Telegram: `@walrussession8_bot`. API health: https://hippo-server-production.up.railway.app/api/health/deep. The web app is also published as a Walrus Site; `[HUMAN]` a SuiNS name still needs pointing at the site object for `wal.app` to serve it. Judges can also clone and run it: five commands in the README, and `pnpm demo` proves cross-session recall on mainnet without any setup beyond credentials.
 
 **Which LLM did you build with?** Google Gemini 2.5 Flash, accessed through OpenRouter, driven by the Vercel AI SDK. Chosen deliberately so the submission qualifies for the Beyond the Big Two track. Fallback configured: Qwen3 235B, also via OpenRouter.
 
@@ -52,10 +52,17 @@ DeepSurge: https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608
 
 **MEMWAL_AGENT_ID.** `f07169b63a377f86902696bf295997e3b2183043edd6024b4fc86907dfb85fa2`
 
-**Account ID (MemWalAccount object on Sui).** `0x4926f26b7a166e146161c517723c50762988f2772024cc5de7504f7350d9b7a5`
+**Account ID (MemWalAccount object on Sui).** `0x5a257802b4881641b49ea3ad3e460a4387f9262b4f96fd68cd4be3928e5a07aa`
 
 **Explorer link to the MemWalAccount holding the memories.**
-https://suiscan.xyz/mainnet/object/0x4926f26b7a166e146161c517723c50762988f2772024cc5de7504f7350d9b7a5
+https://suiscan.xyz/mainnet/object/0x5a257802b4881641b49ea3ad3e460a4387f9262b4f96fd68cd4be3928e5a07aa
+
+> Note for anyone checking this against an earlier draft: it used to name
+> `0x4926f26b…`. That is this owner's account in the **superseded** mainnet
+> deployment, which is a real object and the wrong one. The id above is the
+> account in the deployment `GET /config` serves, and the one the relayer
+> actually writes to. `pnpm diagnose` verifies the pair and fails if the chain
+> and the relayer disagree. See `docs/issues/11`.
 
 **Confirm the agent has written blobs on mainnet.** Yes. Example blob written during development: `sSON47uP-NTVEGXMuhx_tSCVaQTpSGls2lsYPor5U5k` — https://walruscan.com/mainnet/blob/sSON47uP-NTVEGXMuhx_tSCVaQTpSGls2lsYPor5U5k
 
@@ -72,9 +79,16 @@ https://suiscan.xyz/mainnet/object/0x4926f26b7a166e146161c517723c50762988f277202
 | 5 | A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet |
 | 6 | Write rate limit is 60/min, not the documented 30/min, weights unpublished |
 | 7 | `GET /api/whoami` 404s; `GET /v1/owners/:owner/agents` is flaky and miscounts |
-| 8 | The relayer authorizes a delegate key that is not in the on-chain `delegate_keys` |
 | 9 | No way to permanently delete a memory, even as the owner |
 | 10 | `restore()` reports `total: 0` and `truncated: false` for a namespace that has memories |
+| 11 | `GET /config` names a package but not its registry, and the mismatch surfaces as `502 Sponsor service error` |
+| 12 | Mainnet memories are sealed by a committee key server the SDK does not default to, and its aggregator needs an API key |
+
+Draft 8 is deliberately absent. It claimed the relayer authorizes delegate keys
+the chain does not list. It does not; we were reading an account in the
+superseded deployment. The draft stays in our repo under a retraction because
+the mistake is instructive, and `scripts/file-issues.sh` refuses to post any
+draft whose heading begins with RETRACTED.
 
 **One bug or friction point you hit.**
 
@@ -90,22 +104,31 @@ https://suiscan.xyz/mainnet/object/0x4926f26b7a166e146161c517723c50762988f277202
 
 > `restore()` is the documented answer to "what happens if the relayer loses its
 > index", and on our account it reports `total: 0` with `truncated: false` for
-> namespaces whose memories recall returns right now. The owner address does own
-> the blobs, 197 of them, so this looks like the owner-wide candidate fetch being
-> capped below the account's blob count, which your own notes flag as an
-> unreported case (WALM-451). A recovery tool that silently sees nothing is worse
-> than one that errors.
+> namespaces whose memories recall returns right now. Re-measured on 2026-09-23
+> against the corrected account id: the read API lists 149 memories for this
+> owner while `restore()` sees zero, at limits of 10, 50 and 100. Those two
+> relayer endpoints cannot both be describing this account. A recovery tool that
+> silently sees nothing is worse than one that errors.
 
 **One improvement idea.**
 
-> Make the on-chain delegate list the single source of truth for authorization,
-> and make the tooling prove it. Our own delegate key is not in the account's
-> on-chain `delegate_keys`, yet the relayer accepts it and decrypts with it,
-> while SEAL's `seal_approve` correctly refuses it. Two enforcement points gave
-> two different answers for one credential. A `memwal doctor` command that
-> printed what the chain says, what the relayer says and where they disagree
-> would have saved us a day, and would let any user audit who can actually read
-> their memories.
+> Return `registryId` from `GET /config`, beside `packageId`. One line of JSON.
+> Two deployments are live on mainnet and they are separate packages rather than
+> one upgraded in place, so a client that takes the package from `/config`, as
+> the docs instruct because the published id is stale, and the registry from the
+> docs will silently mix them. That cost us a week in two disguises: every
+> sponsored transaction failed as an opaque `502 sponsor_upstream_error`, and an
+> owner lookup returned a real, active, delegate-bearing account that was not
+> ours. The second one led us to draft a bug report accusing the relayer of
+> authorizing keys the chain does not list, which we then had to retract.
+>
+> Two smaller things in the same spirit. Pass the upstream simulation error
+> through instead of collapsing every sponsor failure into one code: ours was
+> `CommandArgumentError { arg_idx: 0, kind: TypeMismatch }` and would have named
+> the problem immediately. And ship something like the `pnpm diagnose` we ended
+> up writing, which prints what the chain says, what the relayer says, and where
+> they disagree. Every hour we lost was an hour spent not knowing that those two
+> disagreed.
 
 **X account / SUI address for rewards.** `[HUMAN]`
 
