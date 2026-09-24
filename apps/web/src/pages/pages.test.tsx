@@ -806,11 +806,20 @@ describe("me page, finding a memory", () => {
         "/api/me/search": {
           results: [
             {
+              mine: true,
               text: "Uy deploys with Railway.",
               type: "profile",
               relevance: 0.72,
               blobId: "blobX",
               explorerUrl: "https://walruscan.com/mainnet/blob/blobX",
+            },
+            {
+              mine: false,
+              text: "Staging deploys freeze every Friday at 16:00.",
+              type: "decision",
+              relevance: 0.6,
+              blobId: "teamBlob",
+              explorerUrl: "https://walruscan.com/mainnet/blob/teamBlob",
             },
           ],
         },
@@ -828,6 +837,16 @@ describe("me page, finding a memory", () => {
     // The text is the whole point: it cannot come from Postgres, only Walrus.
     await waitFor(() => expect(container.textContent ?? "").toMatch(/Uy deploys with Railway\./));
     expect(container.textContent ?? "").toMatch(/relevance 0\.72/);
+    // A team memory comes back from recall too. It is marked, and only the
+    // person's own memory offers to be hidden: hiding a team fact 404'd.
+    const rows = [...container.querySelectorAll("li")].filter((li) =>
+      li.textContent?.includes("relevance"),
+    );
+    const teamRow = rows.find((li) => li.textContent?.includes("Staging deploys"));
+    const ownRow = rows.find((li) => li.textContent?.includes("Railway"));
+    expect(teamRow?.textContent).toMatch(/team/);
+    expect(teamRow?.textContent).not.toMatch(/stop using this/);
+    expect(ownRow?.textContent).toMatch(/stop using this/);
   });
 
   it("surfaces a failed search as a toast instead of a stale red line", async () => {
@@ -1190,5 +1209,34 @@ describe("connect page", () => {
     await waitFor(() => expect(container.textContent ?? "").toMatch(/sponsors the gas/i));
     expect(container.textContent ?? "").toMatch(/your wallet pays instead/i);
     expect(screen.getByRole("button", { name: /connect your sui wallet/i })).toBeDefined();
+  });
+
+  it("on a dead disconnect link, names /disconnect and offers no wallet", async () => {
+    // Seen in the browser pass: "Run /connect again" on the revoke page, and a
+    // wallet button under it for a transaction that could not happen.
+    const { ConnectPage } = await import("./connect.tsx");
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/config": {
+          network: "mainnet",
+          relayerUrl: "https://r",
+          packageId: "0x1",
+          registryId: "0x2",
+        },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter initialEntries={["/disconnect/gone"]}>
+        <Routes>
+          <Route path="/disconnect/:token" element={<ConnectPage kind="disconnect" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(container.textContent ?? "").toMatch(/expired or was already used/i),
+    );
+    expect(container.textContent ?? "").toMatch(/Run \/disconnect again/);
+    expect(screen.queryByRole("button", { name: /connect your sui wallet/i })).toBeNull();
   });
 });

@@ -154,7 +154,9 @@ export function MePage() {
         <ol className="space-y-1.5">
           {CLAUDE_CODE_STEPS.map((step) => (
             <li key={step} className="flex items-center gap-2 rounded bg-muted px-2 py-1">
-              <code className="min-w-0 flex-1 break-all font-mono text-xs">{step}</code>
+              <code className="min-w-0 flex-1 font-mono text-xs [overflow-wrap:anywhere]">
+                {step}
+              </code>
               <CopyButton value={step} label="step" />
             </li>
           ))}

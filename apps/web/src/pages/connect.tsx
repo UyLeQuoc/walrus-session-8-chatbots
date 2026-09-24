@@ -44,6 +44,13 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   /** Set when the relayer refused to sponsor and the user paid instead. */
   const [selfPaid, setSelfPaid] = useState(false);
+  /**
+   * The link itself is unusable: expired, used, or never existed. Kept apart
+   * from `step === "error"`, which a failed signature also sets and which must
+   * still offer a retry. A dead link used to show the error and then invite the
+   * person to connect a wallet anyway, for a transaction that could not work.
+   */
+  const [linkDead, setLinkDead] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,10 +63,17 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
           }),
           fetch(`${API_URL}/api/config`),
         ]);
-        if (!tokenRes.ok)
+        if (!tokenRes.ok) {
+          setLinkDead(true);
+          // The server cannot tell which kind an unknown token was meant to be,
+          // so it always said "Run /connect again", on the disconnect page too.
           throw new Error(
-            ((await tokenRes.json()) as { error?: string }).error ?? "Link not valid.",
+            tokenRes.status === 404
+              ? `This link has expired or was already used. Run /${kind} again in the chat for a new one.`
+              : (((await tokenRes.json().catch(() => ({}))) as { error?: string }).error ??
+                  "Link not valid."),
           );
+        }
         if (cancelled) return;
         setInfo((await tokenRes.json()) as TokenInfo);
         setChain((await cfgRes.json()) as ChainConfig);
@@ -73,7 +87,7 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, kind]);
 
   const run = useCallback(async () => {
     if (!info || !chain || !account) return;
@@ -227,7 +241,7 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
       {error && <p className="text-sm text-destructive">{error}</p>}
       {step === "working" && <p className="text-sm">{status}</p>}
 
-      {account ? (
+      {linkDead ? null : account ? (
         <Button onClick={() => void run()} disabled={step === "working"}>
           {step === "working" ? "Working…" : kind === "connect" ? "Grant access" : "Revoke access"}
         </Button>

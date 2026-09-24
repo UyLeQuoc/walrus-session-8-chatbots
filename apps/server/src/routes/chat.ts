@@ -352,8 +352,20 @@ export const chatRoutes = new Hono()
     if (hits === null) {
       return c.json({ error: "Walrus Memory could not be reached just now." }, 502);
     }
+    // Recall also reads the team's memory. Mark what is this person's own, so
+    // the page offers to hide only that: a team fact is not theirs to hide, and
+    // the button failed with a 404 on it.
+    const own = new Set(
+      (
+        await db
+          .select({ blobId: memoryIndex.blobId })
+          .from(memoryIndex)
+          .where(ownMemoryOf(person.id))
+      ).flatMap((r) => (r.blobId ? [r.blobId] : [])),
+    );
     return c.json({
       results: hits.map((h) => ({
+        mine: own.has(h.blob_id),
         text: h.parsed?.text ?? h.text,
         type: h.parsed?.type ?? null,
         // Distance is the relayer's language; relevance is the reader's.

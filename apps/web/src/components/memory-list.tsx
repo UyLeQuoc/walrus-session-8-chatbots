@@ -32,6 +32,8 @@ export interface Memory {
 }
 
 interface Hit {
+  /** False for a team memory: shown, marked, and not the person's to hide. */
+  mine?: boolean;
   text: string;
   type: string | null;
   relevance: number;
@@ -204,18 +206,21 @@ export function MemoryList({
                   <p>{h.text}</p>
                   <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     {h.type && <Badge>{h.type}</Badge>}
+                    {h.mine === false && <Badge variant="outline">team</Badge>}
                     <span>relevance {h.relevance.toFixed(2)}</span>
                     <a className="underline" href={h.explorerUrl} target="_blank" rel="noreferrer">
                       blob
                     </a>
-                    <button
-                      type="button"
-                      className="underline disabled:opacity-50"
-                      disabled={toggling === h.blobId}
-                      onClick={() => void toggle(h.blobId, true)}
-                    >
-                      stop using this
-                    </button>
+                    {h.mine !== false && (
+                      <button
+                        type="button"
+                        className="underline disabled:opacity-50"
+                        disabled={toggling === h.blobId}
+                        onClick={() => void toggle(h.blobId, true)}
+                      >
+                        stop using this
+                      </button>
+                    )}
                   </p>
                 </li>
               ))}
