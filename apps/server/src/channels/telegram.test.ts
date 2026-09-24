@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunk } from "./telegram.ts";
+import { chunk } from "./chunk.ts";
 
 describe("telegram chunking", () => {
   it("leaves a short message alone", () => {

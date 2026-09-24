@@ -1,6 +1,7 @@
 <!-- 4. Blob. A Walrus blob with a keyhole: public bytes, one reader. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <title>hippo candidate mark: a blob with a keyhole</title>
   <rect x="3.5" y="3.5" width="17" height="17" rx="5.5" />
   <circle cx="12" cy="10.5" r="2.1" />
   <path d="M12 12.6v4" />

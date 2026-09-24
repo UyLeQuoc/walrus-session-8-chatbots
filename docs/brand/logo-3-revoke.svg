@@ -2,6 +2,7 @@
      cannot be faked: take the key off the ring and the bot is out. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <title>hippo candidate mark: a key leaving the ring</title>
   <circle cx="9" cy="12" r="5.5" />
   <path d="M14.5 12h3.5" />
   <path d="M16.5 12v2.2" />

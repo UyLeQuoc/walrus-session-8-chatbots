@@ -10,9 +10,9 @@ import { type CommandContext, handleCommand } from "../commands.ts";
 import { startConnect, startDisconnect } from "../connect.ts";
 import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
+import { tooLong } from "../limits.ts";
 import { logTurn, type Person, portFor, resolvePerson } from "../persons.ts";
 import { checkRate, noteCommand } from "../ratelimit.ts";
-import { tooLong } from "../turn.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
 const CHANNEL = "web";

@@ -18,3 +18,4 @@ dist/
 # config is personal tooling rather than part of the project. Recreate with:
 #   cd apps/web && pnpm dlx shadcn@latest mcp init --client claude
 .mcp.json
+.DS_Store

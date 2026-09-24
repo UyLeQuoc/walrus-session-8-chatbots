@@ -6,7 +6,7 @@
  * not the plumbing.
  */
 import { describe, expect, it } from "vitest";
-import { MAX_INBOUND_CHARS, tooLong } from "./turn.ts";
+import { MAX_INBOUND_CHARS, tooLong } from "./limits.ts";
 
 describe("oversized messages", () => {
   it("lets an ordinary message through", () => {

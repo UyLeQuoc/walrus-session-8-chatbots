@@ -14,9 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here. package.json pins `packageManager`, and the action
+      # refuses to start when both are set — which is how this workflow failed
+      # at setup on every push from the first one, without running a check.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
