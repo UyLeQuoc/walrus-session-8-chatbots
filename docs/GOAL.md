@@ -173,7 +173,7 @@ Original task list:
 
 Verification: every checklist item in `docs/PLAN.md` "Submission checklist" is ticked with a link.
 
-### M8 — Close the gap between what hippo claims and what it does — IN PROGRESS
+### M8 — Close the gap between what hippo claims and what it does — SHIPPED, except task 4 (waits on the owner)
 
 Added 2026-09-24 from `docs/SCOPE-RESEARCH.md`, in its order. Every item makes a
 claim the project already makes true, rather than adding a new one. **Feature
