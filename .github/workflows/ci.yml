@@ -43,13 +43,15 @@ jobs:
 
       - name: Secrets must not be committed
         run: |
-          if git ls-files | grep -qx '.env'; then
-            echo "::error::.env is tracked"; exit 1
+          # Any .env file in any directory, except the example.
+          if git ls-files | grep -E '(^|/)\.env(\..+)?$' | grep -vq '\.env\.example$'; then
+            echo "::error::an .env file is tracked"; exit 1
           fi
           if git ls-files | grep -q '^memwal/'; then
             echo "::error::the memwal reference clone is tracked"; exit 1
           fi
-          if git ls-files | grep -q '^\.turbo/'; then
+          # In any package, not just the root: four slipped in at the scaffold.
+          if git ls-files | grep -Eq '(^|/)\.turbo/'; then
             echo "::error::turbo cache is tracked"; exit 1
           fi
           echo "clean"
