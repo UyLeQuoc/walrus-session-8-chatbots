@@ -3,6 +3,28 @@ import { buildMemoryText, parseMemoryText } from "./format.ts";
 import { redactCredentials } from "./redact.ts";
 
 describe("memory text format", () => {
+  it("drops our own tags when the model copies them into the fact", () => {
+    // Seen on mainnet 2026-09-24: a recalled prefix pasted back into remember.
+    const line = buildMemoryText({
+      type: "style",
+      by: "mai",
+      channel: "demo",
+      date: new Date("2026-09-24"),
+      text: "[by:@mai] [#demo] [2026-09-24] Please keep your answers short.",
+    });
+    expect(line).toBe("[style] [by:@mai] [#demo] [2026-09-24] Please keep your answers short.");
+  });
+
+  it("keeps a bracket that is not one of ours", () => {
+    const line = buildMemoryText({
+      type: "gotcha",
+      by: "uy",
+      date: new Date("2026-09-24"),
+      text: "[WIP] branches never deploy to staging",
+    });
+    expect(line).toBe("[gotcha] [by:@uy] [2026-09-24] [WIP] branches never deploy to staging");
+  });
+
   it("round-trips", () => {
     const line = buildMemoryText({
       type: "gotcha",

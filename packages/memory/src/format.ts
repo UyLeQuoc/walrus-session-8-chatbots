@@ -31,12 +31,23 @@ export function isoDate(d: Date = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Our own tags at the start of a fact, and only those shapes. The model reads
+ * recalled memories in this format and sometimes copies the prefix into the
+ * text it asks to store, which produced lines like
+ * `[style] [by:@mai] [#demo] [2026-09-24] [by:@mai] [#demo] [2026-09-24] …`
+ * on mainnet. A bracket that is not one of ours, like `[WIP]`, is content.
+ */
+const COPIED_TAGS = new RegExp(
+  `^\\s*(?:\\[(?:${MEMORY_TYPES.join("|")}|by:[^\\]]*|#[^\\]]*|\\d{4}-\\d{2}-\\d{2})\\]\\s*)+`,
+);
+
 /** `[type] [by:@handle] [#channel]? [YYYY-MM-DD] fact` */
 export function buildMemoryText(input: BuildMemoryInput): string {
   const parts = [`[${input.type}]`, `[by:@${input.by.replace(/^@/, "")}]`];
   if (input.channel) parts.push(`[#${input.channel.replace(/^#/, "")}]`);
   parts.push(`[${isoDate(input.date)}]`);
-  parts.push(input.text.trim().replace(/\s+/g, " "));
+  parts.push(input.text.replace(COPIED_TAGS, "").trim().replace(/\s+/g, " "));
   return parts.join(" ");
 }
 
