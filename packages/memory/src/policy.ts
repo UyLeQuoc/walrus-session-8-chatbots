@@ -136,6 +136,8 @@ export interface RememberOptions {
   text: string;
   namespace: string;
   limiter?: RateLimiter;
+  /** Blob ids that never count as a duplicate: the ones the person hid. */
+  ignore?: ReadonlySet<string>;
   /** How long the background settle may take before giving up. */
   timeoutMs?: number;
 }
@@ -150,7 +152,7 @@ export interface RememberOptions {
  */
 export async function rememberWithDedupe(
   client: MemWal,
-  { text, namespace, limiter, timeoutMs = 120_000 }: RememberOptions,
+  { text, namespace, limiter, timeoutMs = 120_000, ignore }: RememberOptions,
 ): Promise<RememberOutcome> {
   /**
    * Dedupe is an optimisation, not a precondition. In production the relayer
@@ -183,7 +185,10 @@ export async function rememberWithDedupe(
       maxDistance: DISTANCE.duplicate,
       limiter,
     });
-    dup = near.find((m) => incoming !== "correction" || m.parsed?.type === "correction");
+    dup = near.find(
+      (m) =>
+        !ignore?.has(m.blob_id) && (incoming !== "correction" || m.parsed?.type === "correction"),
+    );
   } catch (err) {
     console.warn(
       `[memory] dedupe check failed in ${namespace}, writing anyway: ${err instanceof Error ? err.message : err}`,

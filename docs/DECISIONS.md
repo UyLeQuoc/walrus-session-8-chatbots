@@ -44,3 +44,6 @@
 
 - 2026-09-24 — **Export contains the person's own memory, not what they gave a team.** `/team remember` records nothing per person, so there is no list to export; the file says so. Tracking team writes moves to M8 task 3, since it also changes `pnpm evidence`, `/memory forget` and `/me`.
 - 2026-09-24 — **Export text is recovered through recall and verified by hash, never stored.** There is no read-by-blob-id in SDK 0.1.7 or 0.1.8. A recovered line is marked verified only when it hashes to the `text_sha256` recorded at write time.
+- 2026-09-24 — **Hiding a memory is hippo's filter, not a deletion.** Walrus cannot delete a blob and the relayer only forgets whole namespaces, so a `hidden_at` column is checked on recall and dedupe. Hidden memories stay in the export. Bare `/memory forget` no longer erases everything; `/memory forget all` does.
+- 2026-09-24 — **Hide-one-memory waits on a branch** until the owner pushes the `hidden_at` column to production, because schema pushes to production are theirs to make and the server cannot deploy before it.
+

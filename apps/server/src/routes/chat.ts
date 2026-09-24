@@ -12,7 +12,14 @@ import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { asDownload, exportFor } from "../export-person.ts";
 import { tooLong } from "../limits.ts";
-import { logTurn, ownMemoryOf, type Person, portFor, resolvePerson } from "../persons.ts";
+import {
+  logTurn,
+  ownMemoryOf,
+  type Person,
+  portFor,
+  resolvePerson,
+  setHidden,
+} from "../persons.ts";
 import { checkRate, noteCommand } from "../ratelimit.ts";
 import { currentTeam, inviteToTeam, leaveTeam } from "../teams.ts";
 
@@ -220,8 +227,29 @@ export const chatRoutes = new Hono()
         // point, so both links are offered.
         ciphertextUrl: r.blobId ? explorer.blob(r.blobId) : null,
         explorerUrl: r.blobId ? explorer.blobExplorer(r.blobId) : null,
+        hidden: Boolean(r.hiddenAt),
       })),
     });
+  })
+
+  /**
+   * Stop using one memory, or start again: `/memory forget <blob>` and
+   * `/memory unhide <blob>` for the page. Only the person's own memories match.
+   */
+  .post("/api/me/memories/visibility", async (c) => {
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const body = (await c.req.json().catch(() => ({}))) as { blobId?: unknown; hidden?: unknown };
+    if (typeof body.blobId !== "string" || typeof body.hidden !== "boolean") {
+      return c.json({ error: "blobId and hidden are required." }, 400);
+    }
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, CHANNEL);
+    const out = await setHidden(person.id, body.blobId, body.hidden);
+    if (out.kind !== "done") return c.json({ error: "No memory of yours has that blob." }, 404);
+    return c.json({ blobId: out.blobId, hidden: body.hidden });
   })
 
   /**

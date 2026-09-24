@@ -35,6 +35,7 @@ export interface IndexRow {
   accountId: string;
   createdAt: Date;
   textSha256: string;
+  hiddenAt?: Date | null;
 }
 
 /** The shape recall returns, narrowed to what recovery reads. */
@@ -125,6 +126,8 @@ export interface ExportedMemory {
   line?: string;
   /** True when `line` hashes to `sha256`. Null when there is no text to check. */
   verified: boolean | null;
+  /** The person asked hippo to stop using it. It is still theirs, and here. */
+  hidden: boolean;
 }
 
 export interface ExportFile {
@@ -171,6 +174,7 @@ export function assembleExport(input: {
       sha256: r.textSha256,
       ...(got ? { text: parsed?.text ?? got.line, line: got.line } : {}),
       verified: got ? got.verified : null,
+      hidden: Boolean(r.hiddenAt),
     };
   });
 
@@ -244,7 +248,7 @@ export function renderMarkdown(file: ExportFile): string {
         m.verified === true ? "verified" : m.verified === false ? "**did not verify**" : "";
       out.push(
         `- ${text}  `,
-        `  ${m.createdAt.slice(0, 10)} · ${m.channel}${m.scope === "team" ? " · team" : ""}${mark ? ` · ${mark}` : ""} · [blob](${m.explorerUrl})${m.expiresAt ? ` · expires ${m.expiresAt.slice(0, 10)}` : ""}`,
+        `  ${m.createdAt.slice(0, 10)} · ${m.channel}${m.scope === "team" ? " · team" : ""}${m.hidden ? " · hidden" : ""}${mark ? ` · ${mark}` : ""} · [blob](${m.explorerUrl})${m.expiresAt ? ` · expires ${m.expiresAt.slice(0, 10)}` : ""}`,
       );
     }
   }

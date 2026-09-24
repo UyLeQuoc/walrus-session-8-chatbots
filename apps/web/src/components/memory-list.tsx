@@ -27,6 +27,8 @@ export interface Memory {
   expiresAt: string | null;
   ciphertextUrl: string | null;
   explorerUrl: string | null;
+  /** hippo has been asked to stop using it. The blob is still on Walrus. */
+  hidden?: boolean;
 }
 
 interface Hit {
@@ -57,17 +59,56 @@ export function ago(iso: string): string {
   return days === 1 ? "yesterday" : `${days}d ago`;
 }
 
+/**
+ * Hide or unhide one memory. Hiding is hippo's filter, not a deletion: nothing
+ * on Walrus can be deleted yet, and the row says so rather than disappearing.
+ */
+async function setVisibility(blobId: string, hidden: boolean): Promise<void> {
+  const res = await fetch(`${API_URL}/api/me/memories/visibility`, {
+    method: "POST",
+    credentials: "include",
+    headers: { ...identityHeaders(), "content-type": "application/json" },
+    body: JSON.stringify({ blobId, hidden }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `That failed (${res.status}).`);
+  }
+}
+
 export function MemoryList({
   memories,
   onError,
+  onChange,
 }: {
   memories: Memory[];
   onError: (m: string) => void;
+  /** Called after a memory is hidden or unhidden, so the page can reload. */
+  onChange?: () => void;
 }) {
   const [type, setType] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  const toggle = useCallback(
+    async (blobId: string, hidden: boolean) => {
+      setToggling(blobId);
+      try {
+        await setVisibility(blobId, hidden);
+        // A hidden memory no longer comes back from search, so take it out of
+        // the results rather than leave something recall would not return.
+        if (hidden) setHits((h) => h?.filter((x) => x.blobId !== blobId) ?? null);
+        onChange?.();
+      } catch (err) {
+        onError(err instanceof Error ? err.message : "That failed.");
+      } finally {
+        setToggling(null);
+      }
+    },
+    [onChange, onError],
+  );
 
   const types = useMemo(() => [...new Set(memories.map((m) => m.type))].sort(), [memories]);
   /** The one expiry figure worth stating, said once rather than on every row. */
@@ -167,6 +208,14 @@ export function MemoryList({
                     <a className="underline" href={h.explorerUrl} target="_blank" rel="noreferrer">
                       blob
                     </a>
+                    <button
+                      type="button"
+                      className="underline disabled:opacity-50"
+                      disabled={toggling === h.blobId}
+                      onClick={() => void toggle(h.blobId, true)}
+                    >
+                      stop using this
+                    </button>
                   </p>
                 </li>
               ))}
@@ -201,10 +250,11 @@ export function MemoryList({
               {shown.map((m) => (
                 <li
                   key={m.id}
-                  className="group flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2"
+                  className={`group flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2 ${m.hidden ? "opacity-60" : ""}`}
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <Badge>{m.type}</Badge>
+                    {m.hidden && <Badge variant="outline">hidden</Badge>}
                     {/* The blob id is the only thing that differs between rows. */}
                     {m.blobId ? (
                       <Hash value={m.blobId} href={m.explorerUrl} label="blob id" head={8} subtle />
@@ -237,6 +287,16 @@ export function MemoryList({
                           >
                             ciphertext
                           </a>
+                        )}
+                        {m.blobId && (
+                          <button
+                            type="button"
+                            className="underline disabled:opacity-50"
+                            disabled={toggling === m.blobId}
+                            onClick={() => m.blobId && void toggle(m.blobId, !m.hidden)}
+                          >
+                            {m.hidden ? "use again" : "hide"}
+                          </button>
                         )}
                       </>
                     ) : (

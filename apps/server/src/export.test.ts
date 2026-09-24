@@ -140,6 +140,18 @@ describe("assembleExport", () => {
     expect(said).toContain("nothing added before hippo began recording team writes");
   });
 
+  it("keeps a hidden memory in the file, marked, because it is still the person's", () => {
+    const withHidden = assembleExport({
+      now: new Date("2026-09-25T00:00:00Z"),
+      account: { mode: "guest", accountId: "0xacc", owner: null },
+      rows: [row("a", LINE_A, { hiddenAt: new Date("2026-09-24T12:00:00Z") }), row("c", LINE_B)],
+      recovered: new Map([["a", { line: LINE_A, verified: true }]]),
+      expiry: new Map(),
+    });
+    expect(withHidden.memories.map((m) => m.hidden)).toEqual([true, false]);
+    expect(renderMarkdown(withHidden)).toContain("· hidden");
+  });
+
   it("never claims the reader can decrypt the blobs", () => {
     expect(file.limits.join(" ")).toContain("You cannot decrypt the ciphertext links yourself");
   });

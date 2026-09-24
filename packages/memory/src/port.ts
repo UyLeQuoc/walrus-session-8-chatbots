@@ -71,6 +71,13 @@ export interface CreatePortOptions {
    * takes ownership of their memory is the moment it all disappears.
    */
   alsoRead?: MemoryScope[];
+  /**
+   * Blob ids the person asked hippo to stop using. Nothing on Walrus can be
+   * deleted or edited, so hiding is ours: these never come back from recall,
+   * and never count as a duplicate either — otherwise restating a hidden fact
+   * would be answered "already known" and stored nowhere hippo can see.
+   */
+  hidden?: ReadonlySet<string>;
 }
 
 export function createMemoryPort({
@@ -79,6 +86,7 @@ export function createMemoryPort({
   channel,
   onWrite,
   alsoRead = [],
+  hidden = new Set(),
 }: CreatePortOptions): MemoryPort {
   const client = createClient(scope);
   const limiter = limiterFor(scope.key);
@@ -106,6 +114,7 @@ export function createMemoryPort({
         text: line,
         namespace: scope.namespace,
         limiter,
+        ignore: hidden,
       });
 
       if (outcome.status === "duplicate") {
@@ -167,11 +176,14 @@ export function createMemoryPort({
     },
 
     async recall(input) {
-      const primary = await recallRelevant(client, {
-        ...input,
-        namespace: scope.namespace,
-        limiter,
-      });
+      const visible = (list: RecalledMemory[]) => list.filter((m) => !hidden.has(m.blob_id));
+      const primary = visible(
+        await recallRelevant(client, {
+          ...input,
+          namespace: scope.namespace,
+          limiter,
+        }),
+      );
       if (!secondary.length) return primary;
 
       /**
@@ -188,7 +200,7 @@ export function createMemoryPort({
             namespace: extra.scope.namespace,
             limiter: extra.limiter,
           });
-          for (const m of more) if (!seen.has(m.blob_id)) seen.set(m.blob_id, m);
+          for (const m of visible(more)) if (!seen.has(m.blob_id)) seen.set(m.blob_id, m);
         } catch (err) {
           // Old memories are a bonus; failing to reach them must never cost the
           // user the ones in the account they actually own.

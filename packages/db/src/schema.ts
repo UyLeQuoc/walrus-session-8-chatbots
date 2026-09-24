@@ -140,6 +140,12 @@ export const memoryIndex = pgTable(
     channel: text("channel").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     settledAt: timestamp("settled_at", { withTimezone: true }),
+    /**
+     * Set when the person asked hippo to stop using this memory. The blob stays
+     * on Walrus and cannot be deleted (docs/issues/09); hiding is hippo's own
+     * filter on recall and dedupe, and it can be undone.
+     */
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
   },
   (t) => [index("memory_index_person_idx").on(t.personId, t.createdAt)],
 );

@@ -28,7 +28,8 @@ interface Me {
 const COMMANDS: Array<[string, string]> = [
   ["/memory", "what hippo remembers about you"],
   ["/memory search", "read those memories back from Walrus"],
-  ["/memory forget", "make everything unrecallable"],
+  ["/memory forget <blob>", "stop hippo using one memory"],
+  ["/memory forget all", "make everything unrecallable"],
   ["/proof", "the blobs behind the last answer"],
   ["/export", "your memory as a file you keep"],
   ["/team", "share a memory with a few people"],
@@ -136,7 +137,7 @@ export function MePage() {
 
       <ChainPanel owned={owned} onError={(m) => toast.error(m)} />
 
-      <MemoryList memories={memories} onError={(m) => toast.error(m)} />
+      <MemoryList memories={memories} onError={(m) => toast.error(m)} onChange={load} />
 
       {stored > 0 && <ExportPanel onError={(m) => toast.error(m)} />}
 

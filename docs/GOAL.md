@@ -201,7 +201,7 @@ freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed
    count toward the 3 × 10 requirement), `/memory forget` and the `/me` list, so
    all three move together. Verification: a render test, and a team write whose
    status settles to stored.
-4. **Hide one memory.** `/memory forget` is all or nothing. Mark one memory so it
+4. **Hide one memory — BUILT on branch `hide-one-memory`, verified on mainnet, waiting for the production column** (`docs/evidence/hide-one-memory-2026-09-24.md`). `/memory forget` is all or nothing. Mark one memory so it
    is never recalled again, from chat (`/memory forget <n>` against the `/memory`
    list) and from `/me`. The blob stays on Walrus and the copy says so.
    Verification: a unit test that a hidden blob never reaches the model, and a
