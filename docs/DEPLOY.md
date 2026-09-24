@@ -40,11 +40,19 @@ Assuming otherwise once left production a day behind `main` with a green CI.
 
 **Schema changes are not automatic.** `drizzle-kit push` can drop a column to
 reach the target schema, and this database holds real users' encrypted delegate
-keys. Push deliberately, having looked at the diff:
+keys. Look at the diff first, then apply it only if it is purely additive:
 
 ```bash
-DATABASE_URL=<prod> pnpm --filter @hippo/db exec drizzle-kit push
+pnpm --filter @hippo/db plan-push ../../.env.production           # prints the plan
+pnpm --filter @hippo/db plan-push ../../.env.production --apply   # applies it
 ```
+
+`plan-push` uses drizzle-kit's own diff (`pushSchema`) but refuses to apply
+anything that drops, renames or reports data loss, and never prints the URL.
+Plain `drizzle-kit push` applies whatever it computes, and its confirmation
+prompt cannot be answered from a non-interactive shell. First used 2026-09-24
+to add `memory_index.hidden_at`: one statement planned, one applied, a re-plan
+showed none left.
 
 Paste these variables. Everything except the last two comes straight from your
 local `.env`.
