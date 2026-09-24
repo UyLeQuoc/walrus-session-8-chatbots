@@ -118,6 +118,16 @@ now. Production does not deploy on push, which left it a day behind `main`.
 | 3 | Command replies as tables | **done**: monospace on the web |
 | 4 | Keep the story true | **done** |
 
+## M10 — Harden what judges and real users touch first
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Review everything since M8 | **done**: four findings, each fixed with a test. A session header that resolved to nobody minted a person per `/api/me` request (measured 16 → 19 people, now 401); `/connect` orphaned a merged person's guest memories (reproduced on mainnet, fixed); the per-address limit showed web users raw JSON; the M8 prompt typed plain "not X" statements as corrections 4/18 times, now 0/18 with real changes still 42/42. `docs/evidence/review-2026-09-25.md` |
+| 2 | Channel adapter tests | **done**: Telegram, Discord and Slack translation now live in `channels/handlers.ts`, tested against fake clients (15 tests). They found Slack filing every user-less event under one shared "unknown" person, and Discord unable to send `/export`'s files; both fixed. Telegram confirmed polling on production after the rewire |
+| 3 | Browser pass | **done**: no horizontal overflow on any page at 375px or desktop, light or dark. Found and fixed: team memory offered for hiding in search (it 404'd), a dead disconnect link naming `/connect` and offering a wallet, mid-word wrapping. `docs/evidence/browser-pass-2026-09-25.md` |
+| 4 | A followable article | **done**: the three SDK calls hippo makes, run as printed on mainnet (`docs/evidence/article-snippet-2026-09-25.md`); 794 words |
+| 5 | Re-measure | **done**: `pnpm demo` passed everything including the memory-off control, no dropped recalls; `bench:recall` 4.34s → 2.30s median (10 rounds), slowest 12.43s → 3.78s. A first memory-on turn is 4.9s, from 7.1s before M9. Recorded in `docs/evidence/latency-2026-09-24.md` |
+
 ## Conclusion
 
 Every task that does not require the account owner or real people is done. The

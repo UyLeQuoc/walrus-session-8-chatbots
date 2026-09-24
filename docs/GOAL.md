@@ -243,25 +243,25 @@ freeze stays Oct 3.
 4. **Keep the story true — DONE.** Article (794 words), README, CLAUDE.md and AUDIT carry the new numbers,
    with their sample sizes.
 
-### M10 — Harden what judges and real users touch first — IN PROGRESS
+### M10 — Harden what judges and real users touch first — SHIPPED
 
 Added 2026-09-25. M8 and M9 added a day's worth of routes that read and change a
 person's memory, and the channel real users will arrive on has never delivered
 a message. Feature freeze stays Oct 3.
 
-1. **Review every change since M8.** Correctness and security: auth on every
+1. **Review every change since M8 — DONE**, four findings fixed with tests (`docs/evidence/review-2026-09-25.md`). Correctness and security: auth on every
    `/api/me` route, rate limits, anything that could leak memory text or another
    person's rows, blob-prefix matching, export content. Each confirmed finding
    fixed with a test; `docs/evidence/review-2026-09-25.md` records what was
    checked, including what was found fine.
-2. **Channel adapter tests.** Telegram chunking, `/export` files sent as
+2. **Channel adapter tests — DONE**, 15 tests; they found Slack's shared "unknown" person and Discord's missing export files. Telegram chunking, `/export` files sent as
    documents, failure replies; Discord and Slack translating to `handleIncoming`
    and back, with mocked clients.
-3. **A real-browser pass** at 375px and desktop, light and dark, over chat,
+3. **A real-browser pass — DONE**, no overflow anywhere, three fixes (`docs/evidence/browser-pass-2026-09-25.md`): at 375px and desktop, light and dark, over chat,
    `/me` (export, team, hide, search) and the connect pages.
-4. **A followable article.** A minimal remember/recall snippet with the SDK calls
+4. **A followable article — DONE**, 794 words, snippet run as printed (`docs/evidence/article-snippet-2026-09-25.md`). A minimal remember/recall snippet with the SDK calls
    hippo really makes, inside 800 words.
-5. **Re-measure** `pnpm demo` and `bench:recall` once.
+5. **Re-measure — DONE**: all passes; session-start recall 4.34s → 2.30s median on a second day, first memory-on turn 4.9s (was 7.1s before M9).
 
 ## Rubric → artifact map
 
