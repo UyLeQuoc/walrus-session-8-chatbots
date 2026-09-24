@@ -94,14 +94,47 @@ consent line.
 
 ## Daily, about ten minutes
 
-- [ ] `pnpm evidence:daily` and commit the file it writes. A daily series is
-      worth more than one final number, and it shows growth in the article.
-      Use this rather than `pnpm evidence`, which reads the local database and
-      would quietly record your own test chatter as the result. It snapshots
-      capacity in the same file, so a budget running low is visible the day it
-      starts rather than the day it ends.
-- [ ] Skim the server log for `[memory] recall … dropped` and `write failed`.
-      Every new failure shape becomes a `docs/issues/` draft the same day.
+- [ ] `pnpm evidence:daily` and commit the file it writes. It opens with what
+      went wrong in production over the last 24 hours and ends with a
+      `Verdict:` line, so the first thing each morning answers "did a real
+      user hit anything?". Then come the counts, and then capacity, so a budget
+      running low is visible the day it starts rather than the day it ends. Use
+      this rather than `pnpm evidence`, which reads the local database and
+      would quietly record your own test chatter as the result. It needs
+      `.env.production` with the production `DATABASE_URL`, and the Railway CLI
+      logged in and linked to the project (`railway status` shows it).
+- [ ] Read the verdict. Anything other than "nobody hit a failure they could
+      feel" gets looked at the same day: `railway logs --service hippo-server
+      --since 1d` has the detail the report leaves out. Every new failure shape
+      becomes a `docs/issues/` draft if it is Walrus Memory's, or a fix if it
+      is ours.
+
+### What the morning report counts
+
+`pnpm ops` (run by `evidence:daily`, or on its own with `--hours 72` after a
+weekend) reads two sources that already exist, and adds nothing to the schema:
+
+| Section | Source | What it means for the person |
+|---|---|---|
+| failed writes | `memory_index.status = 'failed'`, grouped by channel and a masked error | told it was saved; it was not |
+| stuck in pending | pending for over 10 minutes | the same, not yet noticed by the retry |
+| server crashes | Node's exit line in Railway's logs | every channel was down until the restart |
+| recalls given up | `[memory] recall … gave up` | that turn had no memory at all |
+| recall attempts dropped | `[memory] recall … dropped all` | retried; felt only as a slower reply |
+| turns and commands failed | `[<channel>] turn failed`, `command failed` | an apology instead of an answer |
+| everything else | the other fixed prefixes the server logs | see the label on each line |
+
+It reads the logs of every deployment that ran in the window, because
+`railway logs` reads one at a time and a redeploy would otherwise hide the hours
+before it. It never prints a log line or a memory: lines are counted by prefix,
+and write errors are SDK and relayer messages with ids and numbers masked. If
+the logs cannot be read it says `LOGS NOT READ` and the script exits 1, so a
+missing login never looks like a clean day.
+
+Its first run, on 2026-09-25, found 22 server crashes in 24 hours: a Telegram
+409 during every deploy's overlap was unhandled and took the process down, and
+Railway stops restarting after five. Fixed the same day
+(`apps/server/src/channels/polling.ts`).
 - [ ] Collect any "it remembered" moment while it is fresh. Ask users to forward
       screenshots rather than hunting for them at the end.
 - [ ] Watch for a user with 10 or more stored memories; `pnpm evidence` marks the
@@ -139,5 +172,5 @@ whether a deploy actually took.
 | "It forgot something I told it" | Most likely the dropped-recall bug (`docs/issues/01`). Ask them to ask again; the retry usually wins. Log it, this is article material. |
 | "It said it saved but /memory doesn't show it" | The write takes about 25 s and lands in the background. If it never appears, look for a failed job in `memory_index`. |
 | "/connect didn't work" | Check `docs/BLOCKERS.md` first: the flow has never run against a real wallet. Expect to debug it live the first time. |
-| Bot silent | Check `/api/health/deep` first, then Railway logs. The adapters share one process, so one crash takes every channel down. |
+| Bot silent | Check `/api/health/deep` first, then `pnpm ops --hours 2` for crashes, then Railway logs. The adapters share one process, so one crash takes every channel down. A `polling stopped: another process is polling this bot (409)` line that repeats outside a deploy means a second server is running with the production Telegram token, most likely a local one: blank `TELEGRAM_BOT_TOKEN` there. |
 | "It answers but forgets everything" | This was a real production bug: a `SameSite=Lax` cookie is not sent cross-site, so every message arrived as a new person. Fixed by proxying the API same-origin. If it returns, check that the page is calling `/api/*` on its own origin rather than the Railway domain. |

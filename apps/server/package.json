@@ -14,7 +14,8 @@
     "probe:signin": "tsx scripts/probe-signin.ts",
     "prune:people": "tsx scripts/prune.ts",
     "probe:header": "tsx scripts/probe-header-identity.ts",
-    "capacity": "tsx scripts/capacity.ts"
+    "capacity": "tsx scripts/capacity.ts",
+    "ops": "tsx scripts/ops.ts"
   },
   "dependencies": {
     "@hippo/core": "workspace:*",

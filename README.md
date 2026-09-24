@@ -121,10 +121,13 @@ relayer's index against what we wrote.
 Three more exist and are easy to miss. `pnpm evidence:daily` is the one to use
 during the real-use week: it points at production explicitly and writes a dated
 file, where plain `pnpm evidence` reads whichever database `.env` names and would
-quietly record your own test chatter instead. `pnpm capacity` reads the model
-budget, the database size and the relayer against a week of real use, and says
-whether it fits. `pnpm prune:people` clears rows for people who never said
-anything.
+quietly record your own test chatter instead. It opens with `pnpm ops`, what went
+wrong in production over the last day (failed and stuck writes, dropped and
+given-up recalls, failed turns and commands, crashes), counted from
+`memory_index` and Railway's logs without printing a word of anyone's memory.
+`pnpm capacity` reads the model budget, the database size and the relayer
+against a week of real use, and says whether it fits. `pnpm prune:people`
+clears rows for people who never said anything.
 
 `pnpm lint`, `pnpm typecheck` and `pnpm test` need no credentials at all; tests
 that read the real account skip themselves without them. `pnpm db:push` needs

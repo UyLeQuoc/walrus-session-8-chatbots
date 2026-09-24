@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Snapshot production's evidence into a dated file, and print it.
+# Snapshot production's evidence into a dated file, and print it: first what
+# went wrong in the last 24 hours (`pnpm ops`), then the counts, then capacity.
 #
 # `pnpm evidence` on its own reads DATABASE_URL from .env, which is the local
 # Postgres. During the real-use week that would quietly record a developer's own
@@ -23,8 +24,14 @@ day="$(date -u +%Y-%m-%d)"
 out="docs/evidence/daily/${day}.md"
 mkdir -p docs/evidence/daily
 
+# What went wrong comes first: it is the part that changes what you do today.
+# `pnpm ops` exits 1 when it could not read the logs; the file is still written,
+# and says so, but this script then fails so a cron or a tired eye notices.
+ops_ok=1
 {
   echo "<!-- Written by scripts/evidence-daily.sh against production. Do not edit. -->"
+  pnpm --silent ops || ops_ok=0
+  echo
   pnpm --silent evidence
   echo
   pnpm --silent capacity
@@ -32,3 +39,9 @@ mkdir -p docs/evidence/daily
 
 echo "wrote $out"
 tail -n +2 "$out"
+echo
+grep '^Verdict:' "$out" || true
+if [ "$ops_ok" = 0 ]; then
+  echo "The logs were not read; see LOGS NOT READ above." >&2
+  exit 1
+fi
