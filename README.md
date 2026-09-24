@@ -78,10 +78,11 @@ pnpm hippo                   # the CLI, talking to the same server
 `pnpm diagnose` is the first thing to run when something looks wrong: it prints
 what is configured, what works, and where the chain and the relayer disagree.
 
-`pnpm demo` is the proof. It teaches hippo five things, throws the conversation
-away, and in a fresh session asserts three things: that it recalls the facts,
-that a `style` memory changed the reply language without being asked again, and
-that a second channel recalls the same facts.
+`pnpm demo` is the proof. It teaches hippo five things, then contradicts one of
+them, throws the conversation away, and in a fresh session asserts four things:
+that it recalls the facts, that the correction wins over the fact it replaced
+even though both are recalled, that a `style` memory changed the reply language
+without being asked again, and that a second channel recalls the same facts.
 
 `pnpm evidence` prints the numbers the session's submission form asks for,
 counting only memories that actually landed on Walrus. `pnpm restore` checks the

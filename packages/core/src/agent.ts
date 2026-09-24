@@ -2,6 +2,7 @@ import {
   formatUntrustedMemories,
   isoDate,
   type MemoryPort,
+  orderNewestFirst,
   type RecalledMemory,
 } from "@hippo/memory";
 import { type ModelMessage, stepCountIs, streamText } from "ai";
@@ -92,11 +93,52 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
       console.warn("[memory] recall failed", err);
     }
   }
-  const injected = [...seen.values()].sort((a, b) => a.distance - b.distance).slice(0, 10);
+  const relevant = [...seen.values()].sort((a, b) => a.distance - b.distance).slice(0, 10);
+  const corrections = await recallCorrections(input.port, relevant);
+  // Pick by relevance, then read newest first. Both steps matter: distance
+  // decides which memories are worth injecting at all, and write time decides
+  // which of two disagreeing ones the model meets first. Sorting by time alone
+  // would let a recent irrelevant line crowd out an old exact match.
+  const injected = orderNewestFirst([
+    ...relevant,
+    ...corrections.filter((c) => !relevant.some((m) => m.blob_id === c.blob_id)),
+  ]);
   const styleHints = injected
     .filter((m) => m.parsed?.type === "style")
     .map((m) => m.parsed?.text ?? m.text);
   return { injected, styleHints };
+}
+
+/**
+ * The person's corrections, whenever a fact they might correct was recalled.
+ *
+ * A correction only helps if the model sees it beside the fact it replaces,
+ * and a topical recall does not put it there. Measured on 2026-09-24: asked
+ * "what do you know about me?", the profile pull returned "I only use pnpm"
+ * and never "we moved to bun", so the model stated pnpm as current. The two
+ * are about the same thing; they are not close to the same *question*.
+ *
+ * Every correction's stored text starts with the tag `[correction]`, so the tag
+ * is the query, and the parsed type — not the distance — decides membership.
+ * The distance gap alone is too thin to cut on: the farthest correction sat at
+ * 0.638 and a profile line that merely said "corrected" at 0.677
+ * (packages/memory/scripts/spike-corrections.ts).
+ *
+ * One extra recall, run only when something correctable came back, and
+ * sequential like the rest for the reason given in `gatherContext`.
+ */
+async function recallCorrections(
+  port: MemoryPort,
+  recalled: RecalledMemory[],
+): Promise<RecalledMemory[]> {
+  if (!recalled.some((m) => m.parsed?.type !== "correction")) return [];
+  try {
+    const found = await port.recall({ query: "[correction]", limit: 6 });
+    return found.filter((m) => m.parsed?.type === "correction");
+  } catch (err) {
+    console.warn("[memory] corrections recall failed", err);
+    return [];
+  }
 }
 
 export function runTurn(input: TurnInput, ctx: TurnContext, useFallback = false) {

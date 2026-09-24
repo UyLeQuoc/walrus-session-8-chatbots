@@ -40,6 +40,44 @@ interface RecallEnvelope {
   dropped_count?: number;
 }
 
+/**
+ * Order recalled memories newest first, so a fact that has been superseded
+ * never leads.
+ *
+ * Selection stays by distance — that decides which memories are relevant at
+ * all. This decides only the order the model reads them in, and it pairs with
+ * the conflict rule in the system prompt: the rule is worth little if the stale
+ * memory is still the first thing in the block.
+ *
+ * It is needed because a contradiction is not a near-duplicate.
+ * `rememberWithDedupe` collapses anything under `DISTANCE.duplicate`, but "I
+ * switched to bun" sits in the related band against "I only use pnpm", so both
+ * are stored and both are recalled — and measured on production, the stale one
+ * ranked *higher* (docs/SCOPE-RESEARCH.md §1).
+ *
+ * The key is the relayer's `created_at`, the write time to the second. The date
+ * inside our own text format is only a day, which cannot order a correction
+ * made ten minutes after the fact it corrects. It is the fallback for relayers
+ * old enough to omit `created_at`, and undated memories sort last: an undated
+ * line predates the dated format, so it must never outrank a dated correction.
+ *
+ * Not `recall({ sort: "recent" })`. That reorders on the relayer and then
+ * truncates, so it changes *which* memories come back, and would let a recent
+ * vague line push out an older exact match.
+ */
+export function writtenAt(m: RecalledMemory): string {
+  return m.created_at ?? m.parsed?.date ?? "";
+}
+
+export function orderNewestFirst<T extends RecalledMemory>(memories: T[]): T[] {
+  return [...memories].sort((a, b) => {
+    const ta = writtenAt(a);
+    const tb = writtenAt(b);
+    if (ta !== tb) return tb.localeCompare(ta);
+    return a.distance - b.distance;
+  });
+}
+
 export async function recallRelevant(
   client: MemWal,
   {
@@ -122,6 +160,20 @@ export async function rememberWithDedupe(
    * check cannot run, write anyway. A duplicate memory is a far smaller problem
    * than a lost one.
    */
+  /**
+   * A correction is never a duplicate of the fact it corrects.
+   *
+   * Semantic distance cannot see negation, and a correction usually names the
+   * value it replaces: "I moved to Neovim; I no longer use VS Code" measured
+   * 0.243 from "I use VS Code with vim bindings", and "the deadline moved to
+   * October 10, not October 3" measured 0.221 from "ship by October 3". Both
+   * are under `DISTANCE.duplicate`, so both were discarded as already known —
+   * the user corrected hippo, was told "already knew", and nothing changed
+   * (packages/memory/scripts/spike-corrections.ts). So an incoming correction
+   * is only deduplicated against earlier corrections, which is the one case
+   * where "the same thing again" really is a repeat.
+   */
+  const incoming = parseMemoryText(text)?.type;
   let dup: RecalledMemory | undefined;
   try {
     const near = await recallRelevant(client, {
@@ -131,7 +183,7 @@ export async function rememberWithDedupe(
       maxDistance: DISTANCE.duplicate,
       limiter,
     });
-    dup = near[0];
+    dup = near.find((m) => incoming !== "correction" || m.parsed?.type === "correction");
   } catch (err) {
     console.warn(
       `[memory] dedupe check failed in ${namespace}, writing anyway: ${err instanceof Error ? err.message : err}`,

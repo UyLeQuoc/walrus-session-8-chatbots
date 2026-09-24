@@ -435,3 +435,25 @@ One loose end, recorded rather than resolved: both recalls inside the window
 returned zero results while still authenticating. That could be the eviction
 reaching the search index before the auth check, or the unrelated drop behaviour
 in §E. We did not establish which, and the spike does not need it.
+
+### K — a correction is lost three different ways, and each needed its own fix
+
+`docs/SCOPE-RESEARCH.md` §1 found that nothing resolved a contradiction and the
+answer was right by the model's luck. Fixing it turned up two worse problems
+underneath. Full record in `docs/evidence/conflicts-2026-09-24.md`.
+
+| way a correction is lost | measured | fix |
+|---|---|---|
+| **Never stored**: dedupe calls it a duplicate of the fact it corrects | 0.243 and 0.221, under the 0.25 duplicate band; 2 of 3 corrections discarded | a correction is only deduplicated against earlier corrections |
+| **Never stored**: the model acknowledges the change and does not call `remember` | 16/20 once the old fact was in recalled memory, after a prompt edit of ours | an explicit CHANGES rule; 42/42 after |
+| **Never recalled**: the topical query returns the stale fact but not its correction | "what do you know about me?" got pnpm and never bun | a second recall on the literal `[correction]` tag, filtered by parsed type |
+| **Recalled but outranked**: the stale fact is closer to the question | pnpm at 0.51, bun at 0.75 | order by the relayer's `created_at`, newest first, plus a conflict rule |
+
+The deployed relayer returns `created_at` on every recall result, to the
+microsecond, which is what makes newest-first work for a correction made
+seconds after the fact. The date in our own text format is a day and cannot.
+
+`pnpm demo` now teaches a fact, corrects it, and fails if any answer in the
+fresh session states the old value. It passed three consecutive runs on
+mainnet. The distance-dedupe trap follows from `SKILL.md`'s own guidance, so it
+is drafted as `docs/issues/13`.

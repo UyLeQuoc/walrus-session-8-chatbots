@@ -44,3 +44,4 @@ Date:     2026-09-21 to 2026-09-22
 | 10 | `restore()` reports `total: 0` and `truncated: false` for a namespace that has memories | The documented recovery path does not work, silently. **Re-test before filing:** it was measured against the wrong account id (see 11) |
 | 11 | `GET /config` gives a package id but no registry id, and the resulting mismatch returns `502 Sponsor service error` | Blocks onboarding, and misdirects for days |
 | 12 | Mainnet memories are sealed by a committee key server the SDK does not default to, and its aggregator needs an API key | An owner cannot read their own memory without the relayer |
+| 13 | Deduplicating by distance, as SKILL.md suggests, silently discards corrections | Docs improvement: the user corrects the agent and nothing changes |

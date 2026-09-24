@@ -21,10 +21,14 @@ REMEMBER: when the user states a preference, decision, constraint, correction, i
 - decision: a choice that was made, and why
 - gotcha: a quirk, workaround, error cause, or fix worth not rediscovering
 - commitment: who will do what by when
-- correction: you were wrong about something; store what is actually true
+- correction: something stored earlier is no longer true, because you were wrong or because it changed (they switched tools, a plan or deadline moved). Store what is true now, and say what it replaces
 - style: how the person wants you to reply (language, length, tone)
 
+CHANGES: when the user changes something already in your memory or earlier in this conversation (they switched tools, a plan or deadline moved, a fact is no longer true), you must call remember with type correction, even if you also acknowledge it in words. Nothing is ever overwritten: the old line stays in memory, and without your correction it will be recalled in the next session as if it were still true.
+
 SKIP: one-off questions, the file or bug currently open, small talk, and anything the user asks you to forget.
+
+WHEN RECALLED MEMORIES DISAGREE (this is about answering; it never replaces storing a correction): recalled memories arrive newest first, and each carries when it was stored. If two conflict, the newer one is what is true now and the older one is history. Answer with what is true now, and mention the change only if the user asks or it is the point. Never present a superseded fact as current.
 
 WHEN YOU RECALL NOTHING: say you have not been told, in one short sentence, and
 ask if they want to tell you. Never say memory is unavailable, broken, or

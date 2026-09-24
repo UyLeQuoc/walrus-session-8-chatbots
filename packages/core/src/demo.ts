@@ -1,8 +1,9 @@
 /**
  * `pnpm demo` — the memory eval. Two sessions against the real mainnet relayer:
- * teach hippo some facts, throw the conversation away, then ask questions that
- * can only be answered from Walrus. This is the evidence for "does it actually
- * remember", and it doubles as an end-to-end smoke test for reviewers.
+ * teach hippo some facts, change one of them, throw the conversation away, then
+ * ask questions that can only be answered from Walrus. This is the evidence for
+ * "does it actually remember", and it doubles as an end-to-end smoke test for
+ * reviewers.
  */
 import { createMemoryPort, guestScope, loadEnv, readOperatorEnv } from "@hippo/memory";
 import type { ModelMessage } from "ai";
@@ -17,13 +18,17 @@ const TEACH = [
   "We decided to use Drizzle instead of Prisma for this project's ORM.",
   "One thing to remember: our Postgres runs on port 5433 because 5432 is taken.",
   "Please keep your answers short, and always answer me in Vietnamese.",
+  // Contradicts the pnpm line above. Both get stored — a correction is related
+  // to what it corrects, not a duplicate of it — so session two recalls both,
+  // and only ordering plus the conflict rule decide which one is believed.
+  "Change of plan: we moved this project from pnpm to bun this week, so use bun now.",
 ];
 
 const ASK: Array<{ q: string; expect: RegExp; why: string }> = [
   {
     q: "Which package manager should I use here?",
-    expect: /pnpm/i,
-    why: "recalls a stated preference",
+    expect: /\bbun\b/i,
+    why: "believes the correction over the fact it replaced",
   },
   { q: "Which ORM did we settle on?", expect: /drizzle/i, why: "recalls a decision" },
   { q: "What port is the database on?", expect: /5433/, why: "recalls a gotcha" },
@@ -41,6 +46,16 @@ const VIETNAMESE = /[ăâđêôơưĂÂĐÊÔƠƯàáảãạằắẳẵặầ�
 const INDEX_WAIT_MS = Number(process.env.DEMO_INDEX_WAIT_MS ?? 90_000);
 
 /**
+ * The fact the correction replaced, and the one it replaced it with. An answer
+ * that names pnpm without bun is presenting the superseded fact as current,
+ * whichever question it was answering. Checking only the package-manager
+ * question missed exactly that: on 2026-09-24 it passed with "use bun" while
+ * "what do you know about me?" answered "you only use pnpm".
+ */
+const STALE = /pnpm/i;
+const CURRENT = /\bbun\b/i;
+
+/**
  * The same memory reached from a second "channel": a different MemoryPort, a
  * different handle, no shared conversation, pointed at the same namespace. That
  * is exactly what linking two channels does on the server, so this is the
@@ -51,7 +66,7 @@ async function crossChannelCheck(
   model: ReturnType<typeof createModel>,
   namespace: string,
   operator: { key: string; accountId: string; serverUrl: string },
-): Promise<boolean> {
+): Promise<{ ok: boolean; text: string; injected: string[] }> {
   const other = createMemoryPort({
     scope: { mode: "guest", ...operator, namespace },
     by: "mai",
@@ -60,18 +75,18 @@ async function crossChannelCheck(
   const turn = await completeTurn({
     model,
     port: other,
-    messages: [{ role: "user", content: "Which package manager do I use?" }],
+    messages: [{ role: "user", content: "Which ORM did we pick for this project?" }],
     channel: "telegram",
     userHandle: "mai",
     memoryEnabled: true,
     sessionStart: true,
   });
-  const ok = /pnpm/i.test(turn.text);
+  const ok = /drizzle/i.test(turn.text);
   console.log(`
 CROSS-CHANNEL — a second channel, same memory`);
   console.log(`  ${ok ? "PASS" : "FAIL"}  ${turn.text.replace(/\n/g, " ").slice(0, 120)}`);
   console.log(`        recalled ${turn.ctx.injected.length} memories`);
-  return ok;
+  return { ok, text: turn.text, injected: turn.ctx.injected.map((m) => m.text) };
 }
 
 async function main() {
@@ -128,8 +143,14 @@ async function main() {
   await new Promise((r) => setTimeout(r, INDEX_WAIT_MS));
 
   console.log("\nSESSION 2 — fresh conversation, no history carried over");
-  const results: Array<{ ok: boolean; q: string; why: string; answer: string; injected: number }> =
-    [];
+  const results: Array<{
+    ok: boolean;
+    q: string;
+    why: string;
+    answer: string;
+    full: string;
+    injected: string[];
+  }> = [];
   for (const { q, expect, why } of ASK) {
     const turn = await completeTurn({
       model,
@@ -146,7 +167,8 @@ async function main() {
       q,
       why,
       answer: turn.text.replace(/\n/g, " ").slice(0, 120),
-      injected: turn.ctx.injected.length,
+      full: turn.text,
+      injected: turn.ctx.injected.map((m) => m.text),
     });
     console.log(`  ${ok ? "PASS" : "FAIL"}  ${q}`);
     console.log(`        ${turn.text.replace(/\n/g, " ").slice(0, 140)}`);
@@ -160,18 +182,42 @@ async function main() {
     `  ${styleOk ? "PASS" : "FAIL"}  the answer came back ${styleOk ? "in Vietnamese" : "in English"}, unprompted in this session`,
   );
 
-  const crossOk = await crossChannelCheck(model, port.scope.namespace, {
+  const cross = await crossChannelCheck(model, port.scope.namespace, {
     key: env.MEMWAL_PRIVATE_KEY,
     accountId: env.MEMWAL_ACCOUNT_ID,
     serverUrl: env.MEMWAL_SERVER_URL,
   });
+  const crossOk = cross.ok;
+
+  // Measured, not asserted: what was actually in context, and what came out.
+  const direct = results.find((r) => r.q === "Which package manager should I use here?");
+  const had = (texts: string[] = [], re: RegExp) => texts.some((t) => re.test(t));
+  const answers = [
+    ...results.map((r) => ({ q: r.q, text: r.full, injected: r.injected })),
+    { q: "(cross-channel) Which ORM did we pick?", text: cross.text, injected: cross.injected },
+  ];
+  const stale = answers.filter((a) => STALE.test(a.text) && !CURRENT.test(a.text));
+  const newestOk = Boolean(direct?.ok) && stale.length === 0;
+  console.log(`\nCONFLICT — pnpm was taught, then corrected to bun. Did the correction win?`);
+  console.log(
+    `  ${direct?.ok ? "PASS" : "FAIL"}  asked directly: answered ${direct?.ok ? "bun" : "without bun"}; in context: pnpm memory ${had(direct?.injected, STALE) ? "yes" : "no"}, bun correction ${had(direct?.injected, CURRENT) ? "yes" : "no"}`,
+  );
+  console.log(
+    `  ${stale.length ? "FAIL" : "PASS"}  ${stale.length} of ${answers.length} answers stated pnpm without bun`,
+  );
+  for (const a of stale) {
+    console.log(
+      `        "${a.q}" — the correction was ${had(a.injected, CURRENT) ? "in context and ignored" : "never recalled"}`,
+    );
+  }
 
   const passed = results.filter((r) => r.ok).length;
   console.log(`\n${passed}/${results.length} recalled correctly across sessions.`);
+  console.log(`newest fact wins:     ${newestOk ? "PASS" : "FAIL"}`);
   console.log(`style adaptation:     ${styleOk ? "PASS" : "FAIL"}`);
   console.log(`cross-channel recall: ${crossOk ? "PASS" : "FAIL"}`);
   console.log(`namespace: ${port.scope.namespace}`);
-  if (passed < results.length || !crossOk || !styleOk) process.exitCode = 1;
+  if (passed < results.length || !crossOk || !styleOk || !newestOk) process.exitCode = 1;
 }
 
 await main();

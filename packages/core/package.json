@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "hippo": "tsx src/cli.ts",
-    "demo": "tsx src/demo.ts"
+    "demo": "tsx src/demo.ts",
+    "measure:corrections": "tsx src/measure-corrections.ts"
   },
   "dependencies": {
     "@hippo/memory": "workspace:*",

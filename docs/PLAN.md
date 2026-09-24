@@ -45,7 +45,9 @@ Evidence to collect per user: baseline transcript, first "it remembered" moment,
 
 ## Bug bounty
 
-Ten reports drafted with repros in `docs/issues/`, all hit while building on the managed mainnet relayer. File them with `scripts/file-issues.sh` (dry-run first). Order matters if filing a subset: 1, 8 and 10 are the substantial ones.
+Thirteen reports drafted with repros in `docs/issues/`, all hit while building on the managed mainnet relayer. **None has been filed yet**: filing is outward-facing and waits on the owner. File them with `scripts/file-issues.sh --dry-run` first, then without the flag.
+
+**Never file 08.** It is retracted and kept only so the mistake stays on the record. Re-test 10 before filing, because it was measured against the wrong deployment's account (see 11). If filing a subset, 1, 11, 12 and 13 are the substantial ones.
 
 | # | Title |
 |---|---|
@@ -56,12 +58,14 @@ Ten reports drafted with repros in `docs/issues/`, all hit while building on the
 | 5 | A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet |
 | 6 | Write rate limit is 60/min, not the documented 30/min, weights unpublished |
 | 7 | `GET /api/whoami` 404s; `GET /v1/owners/:owner/agents` is flaky and miscounts |
+| 8 | ~~Relayer honours a delegate key the chain does not list~~ **retracted, do not file** |
+| 9 | No way to permanently delete a memory, even as the owner |
+| 10 | `restore()` sees nothing and reports success (re-test first) |
+| 11 | `GET /config` names a package but not its registry; the mismatch surfaces as a masked 502 |
+| 12 | An owner cannot decrypt their own memory: committee key server, keyed aggregator |
+| 13 | Deduplicating by distance, as SKILL.md suggests, silently discards corrections |
 
-Checked and found fine, so not filed: Vietnamese fact extraction and embedding quality. Six Vietnamese facts came back byte-identical and eight questions recalled 8/8, including across languages in both directions (`docs/SPIKES.md` §12).
-
-Confirmed and filed since: `restore()` does not see this account's blobs at all (issue 10), and there is no way to delete a memory you own (issue 9).
-
-Checked and found fine, so not filed: Vietnamese quality (§12) and blob lifetime (§13, about 210 days, nothing expires before judging).
+Checked and found fine, so not drafted: Vietnamese quality (`docs/SPIKES.md` §12), blob lifetime (§13, about 210 days, nothing expires before judging), and whether the deployed relayer returns `created_at` on recall (it does, to the microsecond).
 
 Still to confirm before filing: anything the wallet connect flow throws once a second wallet is available.
 

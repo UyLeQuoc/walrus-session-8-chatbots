@@ -23,6 +23,7 @@ export { explorer } from "./links.ts";
 export {
   DEFAULT_MAX_DISTANCE,
   DISTANCE,
+  orderNewestFirst,
   type RecalledMemory,
   type RememberOutcome,
   recallRelevant,

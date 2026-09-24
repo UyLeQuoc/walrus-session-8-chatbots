@@ -14,6 +14,11 @@ Anything that does not move one of those is not worth the risk this close.
 
 ### 1. Nothing resolves a contradiction
 
+> **Done 2026-09-24**, and it was worse than described here. Besides the
+> ordering problem below, dedupe was discarding corrections outright and the
+> topical recall was not returning them at all. Four failures, four fixes:
+> `docs/evidence/conflicts-2026-09-24.md`, `docs/SPIKES.md` §K.
+
 Tell hippo you changed your mind and it keeps both facts.
 
 `rememberWithDedupe` only collapses near-duplicates, under a cosine distance of
