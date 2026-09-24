@@ -53,6 +53,13 @@ app.route("/", chatRoutes);
 app.route("/", connectRoutes);
 app.route("/", authRoutes);
 
+// A stray rejection used to end the process, and with it every channel and the
+// web API: 22 times in a day from Telegram alone, against a restart policy that
+// gives up after five. Log it, so `pnpm ops` counts it, and stay up.
+process.on("unhandledRejection", (reason) =>
+  console.error("[process] unhandled rejection", reason),
+);
+
 const adapters = [telegramAdapter(), discordAdapter(), slackAdapter()].filter(
   (a): a is ChannelAdapter => a !== null,
 );

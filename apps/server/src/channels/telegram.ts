@@ -2,6 +2,7 @@ import { Bot } from "grammy";
 import { env } from "../env.ts";
 import { handleIncoming } from "../turn.ts";
 import { telegramHandler } from "./handlers.ts";
+import { keepPolling } from "./polling.ts";
 import type { ChannelAdapter } from "./types.ts";
 
 const CHANNEL = "telegram";
@@ -12,6 +13,7 @@ export function telegramAdapter(): ChannelAdapter | null {
 
   const handle = telegramHandler(handleIncoming);
   bot.on("message:text", (ctx) => handle(ctx));
+  let stopping = false;
 
   return {
     name: CHANNEL,
@@ -29,9 +31,16 @@ export function telegramAdapter(): ChannelAdapter | null {
         { command: "privacy", description: "what is stored, where, and for how long" },
         { command: "help", description: "all commands" },
       ]);
-      void bot.start({ onStart: (me) => console.log(`[telegram] @${me.username} polling`) });
+      // Not `void bot.start()`: a 409 during a deploy overlap rejected it
+      // unhandled and crashed the whole server. See polling.ts.
+      void keepPolling({
+        start: () =>
+          bot.start({ onStart: (me) => console.log(`[telegram] @${me.username} polling`) }),
+        stopped: () => stopping,
+      });
     },
     async stop() {
+      stopping = true;
       await bot.stop();
     },
   };
