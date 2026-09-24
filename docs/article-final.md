@@ -12,20 +12,24 @@ You can take it away.
 
 ### What it stores, and when
 
-Every memory is one line of text:
+Every memory is one line of text with a type tag: profile, decision, gotcha,
+commitment, correction or style. The model stores one through a tool in the
+same turn it learns it, unprompted. Before each reply hippo recalls against your
+message, and injects the results as untrusted data, never as instructions.
+`style` memories change how it writes. The whole integration is three calls:
 
-```
-[profile] [by:@mai] [2026-09-21] Only uses pnpm, never npm or yarn.
-[style]   [by:@mai] [2026-09-21] Wants short answers, in Vietnamese.
+```ts
+import { MemWal } from "@mysten-incubation/memwal";
+
+const memwal = MemWal.create({ key, accountId, serverUrl, namespace });
+
+const { job_id } = await memwal.remember("[profile] [by:@mai] [2026-09-25] Only uses pnpm.", namespace);
+await memwal.waitForRememberJob(job_id); // ~24s: hippo waits in the background
+
+const { results } = await memwal.recall({ query: userMessage, namespace, limit: 6 });
 ```
 
-Six types: profile, decision, gotcha, commitment, correction, style. The model
-stores them through a tool in the same turn it learns them, unprompted. Before
-each reply hippo recalls against your message, plus a few fixed queries at the
-start of a session, and injects the results as untrusted data, never as
-instructions. `style` memories change how it writes. Every web reply lists the
-memories it used, each linked to its encrypted blob, because remembering and
-guessing read the same in plain text.
+Every web reply lists the memories it used, each linked to its encrypted blob.
 
 ### Before and after
 
@@ -52,9 +56,9 @@ mattered.
 lands, and asks as few recall questions as it can.
 
 **Recall sometimes returns nothing while saying it found something**:
-`{"results": [], "dropped_count": 5}`, HTTP 200. The SDK's types omit the field,
-so the caller sees an empty list and the bot forgets you for a turn. Four runs of
-one eval dropped 4, 9, 0 and 15 times. Retrying is the only fix I found.
+`{"results": [], "dropped_count": 5}`, HTTP 200, and the bot forgets you for a
+turn. Four runs of one eval dropped 4, 9, 0 and 15 times. Retrying is the only
+fix I found.
 
 **Corrections were lost three ways.** Dedupe discarded "I no longer use VS Code"
 as a duplicate of "I use VS Code", 0.24 apart, because distance cannot see "no".
@@ -72,17 +76,9 @@ my repo, marked retracted. Check the Move type of every id you configure.
 
 ### What revoking actually does
 
-A throwaway account, a delegate key registered, a memory written, then the key
-removed on chain:
-
-```
-recall at +0s    accepted
-recall at +15s   accepted
-recall at +32s   refused, 401
-```
-
-Revocation works, in about half a minute, not instantly. On `/disconnect` hippo
-also destroys its own copy of the key.
+On a throwaway account, a key removed on chain was still accepted 15 seconds
+later and refused by 32. Revocation works, in about half a minute, not
+instantly. On `/disconnect` hippo also destroys its own copy of the key.
 
 ### What ownership does not cover yet
 

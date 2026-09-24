@@ -138,7 +138,7 @@ draft whose heading begins with RETRACTED.
 
 **GitHub.** https://github.com/UyLeQuoc/walrus-session-8-chatbots
 
-**Link to article.** `[HUMAN]` after publishing `docs/article-final.md` (799 words; `docs/article.md` is the long source) on Medium and Inkray
+**Link to article.** `[HUMAN]` after publishing `docs/article-final.md` (794 words; `docs/article.md` is the long source) on Medium and Inkray
 
 **Link to article tweet.** `[HUMAN]` — draft in `docs/promo.md`
 

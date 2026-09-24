@@ -209,7 +209,7 @@ freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed
 5. **Keep the story true.** README, `docs/article.md`, `docs/submission.md` and
    `docs/AUDIT.md` mention what shipped, with its limits.
 
-6. **Article to the word limit — DONE 2026-09-24.** `docs/article-final.md`, 799
+6. **Article to the word limit — DONE 2026-09-24.** `docs/article-final.md`, 794
    words; the session asks for 500 to 800 and the long draft was about 2,350.
 7. **Web chat commands — FIXED 2026-09-24.** They answered with JSON the chat
    could not render, so every slash command on the web showed nothing.
@@ -240,7 +240,7 @@ freeze stays Oct 3.
    where it does not change the answers, and prove that with the eval.
 3. **Command replies that read as lists — DONE.** `/help` and `/memory` render in a
    proportional font on the web, so their columns do not line up.
-4. **Keep the story true — DONE.** Article (799 words), README, CLAUDE.md and AUDIT carry the new numbers,
+4. **Keep the story true — DONE.** Article (794 words), README, CLAUDE.md and AUDIT carry the new numbers,
    with their sample sizes.
 
 ### M10 — Harden what judges and real users touch first — IN PROGRESS
