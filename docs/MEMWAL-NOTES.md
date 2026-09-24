@@ -61,7 +61,7 @@ Headers: `x-public-key`, `x-signature`, `x-timestamp` (±300 s), `x-nonce` (UUID
 
 Rate limits: the write path returns `60 weighted-requests/min per delegate_key`, not the 30 the public docs state, and the weights are unpublished so a client cannot predict its own budget. The read API is a separate 200/min per delegate key. The official multi-tenant pattern puts every end user behind one delegate key, so pace requests in process; `packages/memory/src/limiter.ts` does, and honours `retry_after_seconds`. See `docs/issues/06`.
 
-**`recall()` can lie about finding nothing.** It sometimes returns `{"results": [], "total": 0, "dropped_count": N}`: N matches found and discarded, HTTP 200, no error, and `dropped_count` is absent from the SDK's types. Six identical eval runs gave 4, 9, 0, 15, 0 and 2 of these. Nothing client-side prevents it; retry before believing an empty result. See `docs/issues/01`.
+**`recall()` can lie about finding nothing.** It sometimes returns `{"results": [], "total": 0, "dropped_count": N}`: N matches found and discarded (download or decrypt failures), HTTP 200, no error, and nothing telling the caller to retry. (`dropped_count` is in the SDK's `RecallResult` type; an earlier note here said otherwise, which was wrong.) Six identical eval runs gave 4, 9, 0, 15, 0 and 2 of these. Nothing client-side prevents it; retry before believing an empty result. See `docs/issues/01`.
 
 **Writes take about 24 seconds** and jobs die when the relayer's own Sui RPC is throttled (`seal encrypt failed … Too Many Requests`). Never block a reply on a write, and resubmit a failed job. See `docs/issues/02`.
 

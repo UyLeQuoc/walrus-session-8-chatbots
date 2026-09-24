@@ -1,5 +1,10 @@
 # Published mainnet contract IDs are stale, and following them breaks sponsored transactions
 
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still reproduces.**
+> `docs/contract/overview.md:52` and `apps/app/.env.example:63` in MemWal `main`
+> (`3182c16`) still name package `0xcee7a6fd…`, while `GET /config` serves
+> `0xe7c16fbe…`.
+
 ## Summary
 
 `docs/contract/overview.md` and `apps/app/.env.example` give the mainnet package as

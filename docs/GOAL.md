@@ -263,6 +263,19 @@ a message. Feature freeze stays Oct 3.
    hippo really makes, inside 800 words.
 5. **Re-measure — DONE**: all passes; session-start recall 4.34s → 2.30s median on a second day, first memory-on turn 4.9s (was 7.1s before M9).
 
+### M11 — Ready to be judged and to file — IN PROGRESS
+
+Added 2026-09-25. Nothing is filed or published, and that stays the owner's
+call; this makes sure what they file and what a judge clones hold up.
+
+1. **Re-verify every issue draft** against today's relayer and the latest SDK,
+   and mark each: still reproduces, changed, or fixed upstream. File nothing.
+2. **The judge's path**: a fresh clone on Node 20, following the README
+   literally, until it runs clean.
+3. **SDK 0.1.8** on a branch, merged only if it is no worse.
+4. **Real-use readiness**: `pnpm evidence:daily` reports what real users hit.
+5. **Keep the story true.**
+
 ## Rubric → artifact map
 
 | Judges ask | Where the proof lives |

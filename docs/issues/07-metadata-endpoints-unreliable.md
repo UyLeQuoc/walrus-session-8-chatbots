@@ -1,4 +1,11 @@
-# `GET /api/whoami` returns 404 and `GET /v1/owners/:owner/agents` is flaky and miscounts
+# RESOLVED BEFORE FILING — `GET /api/whoami` returns 404 and `GET /v1/owners/:owner/agents` is flaky and miscounts
+
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Resolved before filing — do not
+> file.** (1) `GET /api/whoami`, signed, now returns the account and owner.
+> (2) `agents()` succeeded 8 of 8 times, no 500. (3) was our mistake: account
+> `0x4926f26b…` belongs to the superseded deployment (see issue 11). The account in
+> the deployment the relayer serves, `0x5a257802…`, lists **6** delegate keys on
+> chain, exactly what the relayer returns. Kept for the record.
 
 Two separate problems with the account-metadata routes, filed together because
 both were hit while building the same screen.

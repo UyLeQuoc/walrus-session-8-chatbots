@@ -1,5 +1,9 @@
 # There is no way to permanently delete a memory, even as the account owner
 
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still applies.** The Security
+> Delete API still documents itself as deleting legacy V1 blobs only, unchanged
+> in MemWal `main` (`3182c16`), and `/api/forget` still removes index rows.
+
 ## Summary
 
 `POST /api/forget` removes vector index rows for a namespace, which makes those

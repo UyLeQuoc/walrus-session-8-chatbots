@@ -1,5 +1,10 @@
 # The mainnet relayer seals with a committee key server, so an owner cannot decrypt their own memory
 
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still reproduces.** Decrypting
+> blob `m7IqwAQS6mIO42v59pH4H3bqDrrmhndbaLA5bX7-dI8` with the account's own key
+> fails with `No API key found in request` (Seal requestId
+> `4eaeff6c-a925-41e1-aa24-7789560f36ce`).
+
 ## What we observed
 
 Walrus Memory's pitch is that the memory belongs to the account, not to the

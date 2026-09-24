@@ -1,5 +1,14 @@
 # `/config` names a package but not its registry, and the mismatch surfaces as "Sponsor service error"
 
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still reproduces, and broader
+> than first written.** `GET /config` still returns no registry id. The sponsor
+> probe with the stale registry still returns `502 Sponsor service error`, whose
+> real cause, simulated directly on Sui, is `CommandArgumentError { arg_idx: 0,
+> kind: TypeMismatch }`. With the correct registry and a sender that already
+> owns an account, it returns the **same** `502` — the simulation there aborts
+> with `EAccountAlreadyExists` (abort code 3 in `account::create_account`). Two
+> unrelated failures, one opaque message: any simulation abort is masked.
+
 ## What we observed
 
 There are two Walrus Memory deployments live on Sui mainnet, and they are

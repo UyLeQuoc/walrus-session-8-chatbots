@@ -1,4 +1,11 @@
-# The two documented `recall()` call forms return different results
+# NOT REPRODUCED — The two documented `recall()` call forms return different results
+
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Not reproduced — do not file.**
+> Six alternating rounds of both forms on the same namespace returned identical
+> results every time (3 results, 0 dropped). The SDK normalises both forms to the
+> same request, and the positional form is now `@deprecated`. The original
+> observation was almost certainly one of the intermittent all-dropped recalls
+> in issue 01 landing on the positional call. Kept for the record.
 
 ## Summary
 

@@ -1,5 +1,13 @@
 # `restore()` reports `total: 0` and `truncated: false` for a namespace that has memories
 
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8, **with the correct account**
+> (owner `0xf8a4…`, account `0x5a257802…`), which settles the earlier doubt about
+> which deployment it was measured on. **Still reproduces.** The namespace below
+> gave exactly the same output as quoted. A second namespace,
+> `spike-recall-bare:s3`, where recall sees 11 memories, gave `restore(limit=500)`
+> → `total: 2, skipped: 2, truncated: false`: two of eleven, reported as
+> complete.
+
 ## Summary
 
 `restore()` is the documented recovery path when the relayer's vector index is

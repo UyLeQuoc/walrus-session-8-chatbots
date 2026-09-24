@@ -1,5 +1,10 @@
 # A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet
 
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still reproduces on mainnet.**
+> The same recall with the correct account id and with the delegate public key
+> as the account id both returned 3 results and no error. The testnet half was
+> not re-run: there is no testnet account to run it with.
+
 ## Summary
 
 We spent the first hour of a build with `MEMWAL_ACCOUNT_ID` set to the delegate

@@ -284,9 +284,12 @@ with that written on the page rather than shipping without it written anywhere.
 
 ## Early software is a feature of a hackathon, not a defect
 
-I have written up twelve issues with repros: stale contract IDs in the docs, an
-undocumented rate limit, two documented call signatures that return different
-results, the silent recall failure above. The session pays **$100 per reproducible issue** through a
+I have written up nine issues with repros, and re-ran every one before filing:
+stale contract IDs in the docs, a rate limit documented at half its deployed
+value, a restore that finds two of eleven memories and reports itself complete,
+the silent recall failure above. Three more did not survive the re-run — one was
+probably fixed upstream, one was a coincidence, and one was half fixed and half
+my own mistake — which is exactly why re-running them is worth the hour. The session pays **$100 per reproducible issue** through a
 bug bounty track judged separately by the engineering team.
 
 That changes how it feels to hit friction. Every wasted hour has a form to put it

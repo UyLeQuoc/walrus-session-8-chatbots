@@ -1,5 +1,10 @@
 # `recall()` returns an empty result set while reporting it dropped the matches
 
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0)
+> and SDK 0.1.7 and 0.1.8. **Still intermittent, corrected.** Last observed
+> 2026-09-24: one all-dropped recall in each of two eval runs. None in about forty
+> recalls on 2026-09-25, after that relayer redeploy.
+
 ## Summary
 
 Intermittently, and reliably under sustained use, `POST /api/recall` answers `200` with
@@ -11,21 +16,25 @@ Intermittently, and reliably under sustained use, `POST /api/recall` answers `20
 for a namespace that definitely holds matching memories, seconds after the same
 query returned them. Five candidates were found and all five were discarded.
 
-The TypeScript SDK's `RecallResult` type does not include `dropped_count`, so a
-caller sees an ordinary empty result. For a memory product this is the worst
-shape a failure can take: the agent concludes the user has no memories, answers
-from nothing, and neither the user nor the developer sees an error.
+The SDK types `dropped_count`, and the relayer logs these as download or
+decrypt failures. But nothing tells a caller that an empty page with a nonzero
+`dropped_count` is transient and worth retrying, rather than an answer. A caller
+that reads `results` sees an ordinary empty result. For a memory product this is
+the worst shape a failure can take: the agent concludes the user has no
+memories, answers from nothing, and neither the user nor the developer sees an
+error.
 
 ## Expected
 
 Either the matches come back, or the call fails loudly. If dropping is
-deliberate, `dropped_count` belongs in the SDK's response type and in the docs,
-with the reason a match can be dropped.
+deliberate, the docs and `SKILL.md`'s recall section should say that an empty
+page with `dropped_count > 0` means "retry", with the reason a match can be
+dropped.
 
 ## Actual
 
 `results: []`, `total: 0`, `dropped_count: N > 0`, HTTP 200, no error field, no
-warning, nothing in the SDK's typings.
+reason, and no guidance anywhere a developer reads.
 
 ## Repro
 
@@ -86,6 +95,7 @@ would simply have forgotten.
 
 ## Asks
 
-1. Expose `dropped_count` (and ideally a reason) in the SDK's `RecallResult`.
+1. Return a reason with a nonzero `dropped_count` (download, decrypt, UTF-8),
+   and have the SDK retry an all-dropped page itself, or say to.
 2. Retry or fail loudly server-side rather than returning a successful empty page.
 3. Document what causes a match to be dropped.

@@ -45,29 +45,19 @@ Evidence to collect per user: baseline transcript, first "it remembered" moment,
 
 ## Bug bounty
 
-Thirteen reports drafted with repros in `docs/issues/`, all hit while building on the managed mainnet relayer. **None has been filed yet**: filing is outward-facing and waits on the owner. File them with `scripts/file-issues.sh --dry-run` first, then without the flag.
+Thirteen reports drafted in `docs/issues/`; **none filed**, which is the owner's
+call. All were re-run on 2026-09-25 against the redeployed relayer and SDK
+0.1.8 (details and statuses in `docs/issues/README.md`):
 
-**Never file 08.** It is retracted and kept only so the mistake stays on the record. Re-test 10 before filing, because it was measured against the wrong deployment's account (see 11). If filing a subset, 1, 11, 12 and 13 are the substantial ones.
+- **File (9):** 01, 04, 05, 06, 09, 10, 11, 12, 13. Strongest: 11 (masked 502s,
+  now shown to hide two unrelated failures), 10 (restore sees 2 of 11 and says it
+  is complete), 12 (owner cannot decrypt), 13 (dedupe advice loses corrections).
+- **Do not file (3):** 08 retracted, 03 not reproduced, 07 resolved upstream and
+  partly our own mistake.
+- **On hold (1):** 02, not seen since the relayer added retries on 2026-09-21.
 
-| # | Title |
-|---|---|
-| 1 | `recall()` returns an empty list while reporting it dropped the matches |
-| 2 | `remember` jobs die from the relayer's own Sui RPC throttling |
-| 3 | The two documented `recall()` call forms are not equivalent |
-| 4 | Published mainnet contract IDs are stale |
-| 5 | A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet |
-| 6 | Write rate limit is 60/min, not the documented 30/min, weights unpublished |
-| 7 | `GET /api/whoami` 404s; `GET /v1/owners/:owner/agents` is flaky and miscounts |
-| 8 | ~~Relayer honours a delegate key the chain does not list~~ **retracted, do not file** |
-| 9 | No way to permanently delete a memory, even as the owner |
-| 10 | `restore()` sees nothing and reports success (re-test first) |
-| 11 | `GET /config` names a package but not its registry; the mismatch surfaces as a masked 502 |
-| 12 | An owner cannot decrypt their own memory: committee key server, keyed aggregator |
-| 13 | Deduplicating by distance, as SKILL.md suggests, silently discards corrections |
-
-Checked and found fine, so not drafted: Vietnamese quality (`docs/SPIKES.md` §12), blob lifetime (§13, about 210 days, nothing expires before judging), and whether the deployed relayer returns `created_at` on recall (it does, to the microsecond).
-
-Still to confirm before filing: anything the wallet connect flow throws once a second wallet is available.
+`scripts/file-issues.sh --dry-run` shows exactly what would be posted and skips
+the four that must not be.
 
 ## Article outline (Medium + Inkray)
 

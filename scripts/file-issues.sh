@@ -33,11 +33,15 @@ if [ ${#PICKS[@]} -gt 0 ]; then
     files+=("$match")
   done
 else
-  # A retracted draft is kept for the write-up, not for filing. Naming it
-  # explicitly still works; sweeping them all up must not post it.
+  # A draft that is retracted, did not reproduce, was resolved upstream or is
+  # on hold is kept for the record, not for filing. Naming one explicitly
+  # still works; sweeping them all up must not post it.
   while IFS= read -r f; do
-    if head -1 "$f" | grep -q '^# RETRACTED'; then
-      echo "skipping $(basename "$f") (retracted)" >&2
+    # `|| true`: no status is the normal case, and grep finding nothing must not
+    # end the script under `set -e`, which it did, silently.
+    status="$(head -1 "$f" | grep -oE '^# (RETRACTED|NOT REPRODUCED|RESOLVED BEFORE FILING|ON HOLD)' | sed 's/^# //' || true)"
+    if [ -n "$status" ]; then
+      echo "skipping $(basename "$f") ($(echo "$status" | tr 'A-Z' 'a-z'))" >&2
       continue
     fi
     files+=("$f")

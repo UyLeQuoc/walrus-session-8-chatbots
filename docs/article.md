@@ -126,9 +126,8 @@ was already told about.
 
 **Recall returns nothing while telling you it found something.** The relayer
 sometimes answers with `{"results": [], "total": 0, "dropped_count": 5}`. Five
-matches found, five discarded, HTTP 200, no error. The SDK's types don't include
-`dropped_count`, so a caller just sees an empty list and concludes the user has
-no memories. During one run of that four-question eval it fired nine times, three
+matches found, five discarded, HTTP 200, no error. Nothing tells the caller that an empty page with a nonzero
+`dropped_count` means "retry". During one run of that four-question eval it fired nine times, three
 of them surviving every retry.
 
 I thought I found the trigger. A session-start turn fires four recall queries at
@@ -262,8 +261,10 @@ it.
 
 These are written up with repros and filed at
 github.com/MystenLabs/MemWal/issues `[HUMAN: file them before publishing; none
-is filed yet]`. Twelve of them. A thirteenth is the one I retracted, which stays
-in my repo rather than theirs.
+is filed yet]`. Nine of them survived being re-run on 2026-09-25. Three did
+not — one probably fixed upstream, one a coincidence, one half fixed and half
+my own mistake — and with the retracted one they stay in my repo rather than
+theirs.
 
 ### Run it
 

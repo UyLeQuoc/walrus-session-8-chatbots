@@ -34,12 +34,6 @@ export const DEFAULT_MAX_DISTANCE = 0.8;
 const RECALL_ATTEMPTS = 4;
 const RECALL_RETRY_BASE_MS = 1_500;
 
-/** The relayer reports matches it discarded; the SDK's typings omit the field. */
-interface RecallEnvelope {
-  total?: number;
-  dropped_count?: number;
-}
-
 /**
  * Order recalled memories newest first, so a fact that has been superseded
  * never leads.
@@ -97,7 +91,8 @@ export async function recallRelevant(
   // candidates. Observed 2026-09-21, see docs/SPIKES.md §5.
   for (let attempt = 1; attempt <= RECALL_ATTEMPTS; attempt++) {
     const res = limiter ? await runLimited(limiter, call) : await call();
-    const dropped = (res as RecallEnvelope).dropped_count ?? 0;
+    // Typed by the SDK: matches the relayer found but could not download or decrypt.
+    const dropped = res.dropped_count ?? 0;
     if (res.results.length > 0 || dropped === 0) {
       return res.results
         .filter((m) => m.distance < maxDistance)

@@ -1,4 +1,10 @@
-# `remember` jobs fail with "seal encrypt failed … Too Many Requests" and the memory is lost
+# ON HOLD — `remember` jobs fail with "seal encrypt failed … Too Many Requests" and the memory is lost
+
+> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **On hold: not reproduced since
+> 2026-09-21.** No failed write in over a hundred since, across every eval log and
+> spike. The relayer added retries for throttled Sui object reads that day
+> (MemWal commit `8889578e`, WALM-614, noting "Prod rejects 57% of GetObject with
+> Unavailable"), which likely covers it. File only if it recurs.
 
 ## Summary
 

@@ -1,5 +1,11 @@
 # Deduplicating by distance, as SKILL.md suggests, silently discards corrections
 
+> **Re-verified 2026-09-25** against MemWal `main` (`3182c16`). **Still
+> applies.** `SKILL.md` still gives `< 0.25` as the duplicate band and still
+> advises deduplicating before `remember()`. The same week MemWal raised its
+> `maxDistance` guidance to 0.8 (`3a2b6bd`), matching what we measured, but the
+> duplicate band and dedupe advice are unchanged.
+
 ## Summary
 
 `SKILL.md` says `remember()` is append-only, "if you need uniqueness, dedupe
