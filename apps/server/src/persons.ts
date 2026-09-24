@@ -22,6 +22,7 @@ import {
 } from "@hippo/memory";
 import { db, operator } from "./app-context.ts";
 import { env } from "./env.ts";
+import { inheritedGuestIds } from "./identity.ts";
 import { currentTeam } from "./teams.ts";
 
 export type Person = typeof people.$inferSelect;
@@ -145,7 +146,11 @@ export async function portFor(
         by,
         channel,
         onWrite,
-        alsoRead: [guestScope(operator, person.id), ...(await teamScopes(person))],
+        alsoRead: [
+          guestScope(operator, person.id),
+          ...(await inheritedGuestScopes(person)),
+          ...(await teamScopes(person)),
+        ],
         hidden,
       });
     }
@@ -155,7 +160,7 @@ export async function portFor(
     by,
     channel,
     onWrite,
-    alsoRead: await teamScopes(person),
+    alsoRead: [...(await inheritedGuestScopes(person)), ...(await teamScopes(person))],
     hidden,
   });
 }
@@ -220,6 +225,22 @@ export async function setHidden(
     .set({ hiddenAt: hide ? new Date() : null })
     .where(eq(memoryIndex.id, row.id));
   return { kind: "done", blobId: row.blobId, type: row.type };
+}
+
+/**
+ * Guest namespaces a merge left in this person's own rows. Read alongside, so a
+ * `/connect` that folds one person into another does not orphan what the folded
+ * one said; `forget all` forgets them too. See `inheritedGuestIds`.
+ */
+export async function inheritedGuestScopes(person: Person) {
+  const rows = await db
+    .selectDistinct({ namespace: memoryIndex.namespace })
+    .from(memoryIndex)
+    .where(ownMemoryOf(person.id));
+  return inheritedGuestIds(
+    person.id,
+    rows.map((r) => r.namespace),
+  ).map((id) => guestScope(operator, id));
 }
 
 /** Empty unless the person is in a team, which keeps the common path unchanged. */

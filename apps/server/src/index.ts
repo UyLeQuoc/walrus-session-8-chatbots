@@ -7,7 +7,7 @@ import { slackAdapter } from "./channels/slack.ts";
 import { telegramAdapter } from "./channels/telegram.ts";
 import type { ChannelAdapter } from "./channels/types.ts";
 import { env } from "./env.ts";
-import { checkAddress, clientAddress } from "./iplimit.ts";
+import { checkAddress, clientAddress, refusal } from "./iplimit.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chat.ts";
 import { connectRoutes } from "./routes/connect.ts";
@@ -39,10 +39,11 @@ app.use("/api/*", async (c, next) => {
   }
   const gate = checkAddress(clientAddress(c.req.raw.headers));
   if (!gate.allowed) {
-    c.header("retry-after", String(gate.retryAfterSeconds));
-    // `command: true` so the web chat renders it as a reply rather than a
-    // stream, the same shape every other refusal on this route uses.
-    return c.json({ command: true, text: gate.message, error: gate.message }, 429);
+    const out = refusal(path, gate.message);
+    return c.body(out.body, 429, {
+      "content-type": out.contentType,
+      "retry-after": String(gate.retryAfterSeconds),
+    });
   }
   return next();
 });

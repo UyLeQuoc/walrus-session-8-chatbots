@@ -11,6 +11,7 @@ import { startConnect, startDisconnect } from "../connect.ts";
 import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { asDownload, exportFor } from "../export-person.ts";
+import { meIdentity } from "../identity.ts";
 import { tooLong } from "../limits.ts";
 import {
   hasCorrections,
@@ -96,6 +97,25 @@ function lastUserText(messages: UIMessage[]): string {
     .map((p) => p.text)
     .join(" ")
     .trim();
+}
+
+/**
+ * The person an `/api/me` request is about, or null when it identifies nobody.
+ * A session header that does not resolve no longer counts: it used to let the
+ * request through and mint a new person for it (see `meIdentity`).
+ */
+async function mePerson(c: Context): Promise<Person | null> {
+  const sessionId = readSessionId(c);
+  const sessionPerson = sessionId ? await personFromSession(sessionId) : null;
+  const guestId = readGuestId(c);
+  switch (meIdentity(Boolean(sessionPerson), guestId)) {
+    case "session":
+      return sessionPerson;
+    case "guest":
+      return resolvePerson(CHANNEL, guestId as string, CHANNEL);
+    case "none":
+      return null;
+  }
 }
 
 export const chatRoutes = new Hono()
@@ -189,9 +209,8 @@ export const chatRoutes = new Hono()
 
   /** The memories hippo wrote for this person, newest first, with links and expiry. */
   .get("/api/me/memories", async (c) => {
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ memories: [] });
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ memories: [] });
     const rows = await db
       .select()
       .from(memoryIndex)
@@ -240,9 +259,8 @@ export const chatRoutes = new Hono()
    * `/memory unhide <blob>` for the page. Only the person's own memories match.
    */
   .post("/api/me/memories/visibility", async (c) => {
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ error: "Say something first." }, 401);
     const body = (await c.req.json().catch(() => ({}))) as { blobId?: unknown; hidden?: unknown };
     if (typeof body.blobId !== "string" || typeof body.hidden !== "boolean") {
       return c.json({ error: "blobId and hidden are required." }, 400);
@@ -266,9 +284,8 @@ export const chatRoutes = new Hono()
    * disagreement between the two is visible rather than hidden.
    */
   .get("/api/me/account", async (c) => {
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ account: null });
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ account: null });
     const owned = person.mode === "owned";
     // In guest mode the memory sits in hippo's own account, which is a real
     // object with real delegates. Saying so is more honest than showing nothing
@@ -323,9 +340,8 @@ export const chatRoutes = new Hono()
   .get("/api/me/search", async (c) => {
     const query = (c.req.query("q") ?? "").trim();
     if (!query) return c.json({ results: [] });
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ results: [] });
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ results: [] });
 
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ error: gate.message }, 429);
@@ -357,9 +373,8 @@ export const chatRoutes = new Hono()
    */
   .get("/api/me/export", async (c) => {
     const format = c.req.query("format") === "md" ? "md" : "json";
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ error: "Say something first." }, 401);
 
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ error: gate.message }, 429);
@@ -382,9 +397,8 @@ export const chatRoutes = new Hono()
    * what to whom.
    */
   .get("/api/me/team", async (c) => {
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ team: null });
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ team: null });
     const team = await currentTeam(person.id);
     if (!team) return c.json({ team: null });
     const rows = await db
@@ -412,9 +426,8 @@ export const chatRoutes = new Hono()
 
   /** An invite code, the same one `/team invite` gives. */
   .post("/api/me/team/invite", async (c) => {
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ error: "Say something first." }, 401);
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ error: gate.message }, 429);
     await noteCommand(person.id, CHANNEL);
@@ -425,9 +438,8 @@ export const chatRoutes = new Hono()
 
   /** Leave, as `/team leave` does. What was added stays with the team. */
   .post("/api/me/team/leave", async (c) => {
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ error: "Say something first." }, 401);
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ error: gate.message }, 429);
     await noteCommand(person.id, CHANNEL);
@@ -444,9 +456,8 @@ export const chatRoutes = new Hono()
    */
   .post("/api/me/:kind{connect|disconnect}", async (c) => {
     const kind = c.req.param("kind") as "connect" | "disconnect";
-    const cookie = readGuestId(c);
-    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
-    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const person = await mePerson(c);
+    if (!person) return c.json({ error: "Say something first." }, 401);
 
     if (kind === "disconnect" && person.mode !== "owned") {
       return c.json({ error: "hippo does not hold a key for you to revoke." }, 409);

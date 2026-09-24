@@ -94,3 +94,18 @@ export function resetAddressLimits(): void {
   buckets.clear();
   lastSweep = 0;
 }
+
+/**
+ * What a refused request gets back.
+ *
+ * The web chat's transport reads the body of a failed response as the error it
+ * shows, so the chat route answers with the sentence alone. It used to answer
+ * `{"command":true,"text":…}`, meant to render as a reply, which the web chat
+ * cannot do with JSON: it surfaced as that raw JSON in an error toast. Every
+ * other route keeps `{ error }`, which the pages read.
+ */
+export function refusal(path: string, message: string): { contentType: string; body: string } {
+  return path === "/api/chat"
+    ? { contentType: "text/plain; charset=utf-8", body: message }
+    : { contentType: "application/json", body: JSON.stringify({ error: message }) };
+}

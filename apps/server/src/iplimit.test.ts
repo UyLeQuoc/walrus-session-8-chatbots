@@ -6,7 +6,7 @@
  * it, and these assert the properties that make it one.
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { checkAddress, clientAddress, resetAddressLimits } from "./iplimit.ts";
+import { checkAddress, clientAddress, refusal, resetAddressLimits } from "./iplimit.ts";
 
 const start = 1_700_000_000_000;
 
@@ -48,5 +48,19 @@ describe("the per-address ceiling", () => {
     expect(clientAddress(headers)).toBe("203.0.113.7");
     expect(clientAddress(new Headers({ "x-real-ip": "198.51.100.2" }))).toBe("198.51.100.2");
     expect(clientAddress(new Headers())).toBe("unknown");
+  });
+});
+
+describe("refusal", () => {
+  it("gives the chat route a sentence, since its client shows the body as the error", () => {
+    // It used to be JSON, which the web chat showed as a raw {"command":true,…} toast.
+    const out = refusal("/api/chat", "Slow down a little.");
+    expect(out.contentType).toContain("text/plain");
+    expect(out.body).toBe("Slow down a little.");
+  });
+
+  it("keeps { error } for the pages, which read it", () => {
+    const out = refusal("/api/me/export", "Slow down a little.");
+    expect(JSON.parse(out.body)).toEqual({ error: "Slow down a little." });
   });
 });

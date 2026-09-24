@@ -162,4 +162,37 @@ const results = [
     held: DEMO_HELD,
   })),
 ];
-if (results.includes(false)) process.exitCode = 1;
+/**
+ * The other direction: a first statement that merely contains a negation is not
+ * a correction. Seen once on 2026-09-25 — "Our CI runs on Buildkite, not GitHub
+ * Actions", with nothing stored before, was typed correction — and a false
+ * correction costs a recall on every later turn and mislabels the export.
+ */
+const FRESH = [
+  "Our CI runs on Buildkite, not GitHub Actions.",
+  "I never deploy on Fridays.",
+  "We use Postgres, not MongoDB, for the ledger.",
+];
+let falseCorrections = 0;
+const freshTypes: Record<string, number> = {};
+for (const text of FRESH) {
+  for (let t = 0; t < TRIALS; t++) {
+    const calls: string[] = [];
+    await completeTurn({
+      model,
+      port: fakePort([], calls),
+      messages: [{ role: "user", content: text }],
+      channel: "demo",
+      userHandle: "mai",
+      memoryEnabled: true,
+    });
+    if (calls.includes("correction")) falseCorrections++;
+    const key = calls.join("+") || "(no call)";
+    freshTypes[key] = (freshTypes[key] ?? 0) + 1;
+  }
+}
+console.log(
+  `${"first statement with a negation".padEnd(34)} typed correction ${falseCorrections}/${FRESH.length * TRIALS}  ${JSON.stringify(freshTypes)}`,
+);
+
+if (results.includes(false) || falseCorrections > 0) process.exitCode = 1;

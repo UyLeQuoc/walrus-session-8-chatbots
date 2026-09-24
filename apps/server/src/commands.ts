@@ -11,7 +11,14 @@ import { HELP, PRIVACY, welcome } from "./copy.ts";
 import { env } from "./env.ts";
 import { asDownload, type ExportDownload, exportFor } from "./export-person.ts";
 import { createLinkCode, redeemLinkCode } from "./link.ts";
-import { ownMemoryOf, type Person, portFor, setHidden, teamPortFor } from "./persons.ts";
+import {
+  inheritedGuestScopes,
+  ownMemoryOf,
+  type Person,
+  portFor,
+  setHidden,
+  teamPortFor,
+} from "./persons.ts";
 import { createTeam, currentTeam, inviteToTeam, joinTeam, leaveTeam } from "./teams.ts";
 
 export interface CommandContext {
@@ -299,6 +306,8 @@ async function forget(ctx: CommandContext): Promise<CommandResult> {
    */
   const scopes = [port.scope];
   if (ctx.person.mode === "owned") scopes.push(guestScope(operator, ctx.person.id));
+  // And any guest namespace a merge left behind, which recall also reads.
+  scopes.push(...(await inheritedGuestScopes(ctx.person)));
   try {
     let deleted = 0;
     for (const scope of scopes) deleted += (await extrasFor(scope).forget(scope.namespace)).deleted;
