@@ -104,6 +104,17 @@ describe("rememberWithDedupe", () => {
     expect(written).toEqual([]);
   });
 
+  it("does not count a hidden memory as a duplicate", async () => {
+    const { client, written } = relayerHolding(vscode, 0.05);
+    const out = await rememberWithDedupe(client, {
+      text: vscode,
+      namespace: "ns",
+      ignore: new Set(["old"]),
+    });
+    expect(out.status).toBe("accepted");
+    expect(written).toEqual([vscode]);
+  });
+
   it("leaves ordinary dedupe alone", async () => {
     const again = "[profile] [by:@u] [2026-09-24] I use VS Code, with vim keys.";
     const { client, written } = relayerHolding(vscode, 0.12);

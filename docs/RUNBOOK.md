@@ -69,8 +69,10 @@ starts with memory on gives us no before.
 > tuần. Khi nào nó nhớ đúng thứ bạn cần mà bạn không phải nhắc lại, chụp cho
 > mình cái đó.
 >
-> `/help` có đủ lệnh. `/memory` cho bạn xem nó nhớ gì về bạn, `/memory forget`
-> xoá sạch, `/connect` chuyển bộ nhớ sang ví của bạn để bạn toàn quyền thu hồi.
+> `/help` có đủ lệnh. `/memory` cho bạn xem nó nhớ gì về bạn, `/memory forget all`
+> khiến nó không nhớ lại được nữa (bản mã hoá vẫn nằm trên Walrus, chưa xoá được),
+> `/export` cho bạn tải bộ nhớ về, `/connect` chuyển bộ nhớ sang ví của bạn để bạn
+> toàn quyền thu hồi.
 >
 > Mình sẽ viết bài về kết quả và có thể dùng ảnh chụp hội thoại. Bạn muốn ẩn tên
 > hay ẩn phần nào thì nói, mình bỏ. Bạn cũng có thể bảo mình xoá hết bất cứ lúc
@@ -85,7 +87,7 @@ consent line.
   `docs/evidence/baseline/` and anywhere a screenshot appears.
 - Do not put anyone's personal details in the article, only the shape of the
   interaction.
-- If someone asks to be removed, `/memory forget` their namespace and delete
+- If someone asks to be removed, `/memory forget all` for them and delete
   their evidence files. Say plainly that the encrypted blobs stay on Walrus until
   their epochs expire, because that is true and they should know it
   (`docs/issues/09`).

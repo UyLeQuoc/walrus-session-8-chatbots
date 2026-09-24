@@ -16,7 +16,7 @@ export async function exportFor(person: Person, channel: string): Promise<Export
     .from(memoryIndex)
     .where(eq(memoryIndex.personId, person.id))
     .orderBy(desc(memoryIndex.createdAt));
-  const port = await portFor(person, channel);
+  const port = await portFor(person, channel, { includeHidden: true });
   const recovered = await recoverText((q) => port.recall(q), rows);
 
   // Expiry is best-effort, as on /me: the metadata route is flaky, and losing

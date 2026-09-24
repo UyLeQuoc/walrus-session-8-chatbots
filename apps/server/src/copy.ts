@@ -25,12 +25,12 @@ export const PRIVACY = `What happens to what you tell me:
 • Your memory lives in a space named after a random id, not your name or your handle. That name is visible on Sui.
 • Until you run /connect, that space sits inside my own Walrus Memory account. After /connect new memories go into an account your wallet owns, and /disconnect takes my access to it away on chain.
 • If you join a team, everyone in it can recall what the team has been told. Your own memory is not shared: only /team remember puts something in the team, and leaving does not take it back out, because a memory on Walrus cannot be deleted.
-• What you told me before connecting stays in my account. It cannot be moved there and it cannot be deleted, so I keep reading it alongside yours, and I can still read it after you revoke me. /memory forget makes it unrecallable.
+• What you told me before connecting stays in my account. It cannot be moved there and it cannot be deleted, so I keep reading it alongside yours, and I can still read it after you revoke me. /memory forget all makes it unrecallable.
 
 What you can do:
 
 • /memory off stops me remembering anything new. /memory on resumes.
-• /memory shows everything I hold. /memory forget makes it all unrecallable.
+• /memory shows everything I hold. /memory forget <blob> stops me using one memory; /memory forget all makes every one unrecallable.
 
 One limit worth knowing: forgetting removes it from search so nothing can bring it back, but the encrypted bytes stay on Walrus until they expire. Nobody can delete them early, including me. If that is not a trade you want, /memory off before you tell me anything.`;
 
@@ -66,7 +66,7 @@ export const HELP = `hippo remembers what you tell it, and the memory belongs to
 /memory            what I remember about you
 /memory search <q> search your memory
 /memory off | on   pause or resume remembering
-/memory forget     make everything unrecallable
+/memory forget <b> stop me using one memory (all: every one)
 /privacy           what is stored, where, and for how long
 /link              use the same memory on another channel
 /team              share a memory with a few people

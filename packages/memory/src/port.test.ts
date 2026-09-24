@@ -12,6 +12,7 @@ import type { MemoryScope } from "./client.ts";
 const recalls: Array<{ namespace: string; query: string }> = [];
 let byNamespace: Record<string, Array<{ blob_id: string; distance: number }>> = {};
 let failing: string | null = null;
+let dedupeIgnored: ReadonlySet<string> | undefined;
 
 vi.mock("./client.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./client.ts")>()),
@@ -28,7 +29,14 @@ vi.mock("./policy.ts", () => ({
     if (failing === ns) throw new Error(`relayer said no for ${ns}`);
     return (byNamespace[ns] ?? []).map((m) => ({ ...m, text: `from ${ns}`, parsed: null }));
   },
-  rememberWithDedupe: async () => ({ status: "accepted", jobId: "j", blobId: null }),
+  rememberWithDedupe: async (_client: unknown, opts: { ignore?: ReadonlySet<string> }) => {
+    dedupeIgnored = opts.ignore;
+    return {
+      status: "accepted",
+      jobId: "j",
+      settled: Promise.resolve({ status: "stored", blobId: "b", attempts: 1 }),
+    };
+  },
 }));
 
 const { createMemoryPort } = await import("./port.ts");
@@ -109,5 +117,36 @@ describe("recall after taking ownership", () => {
     const solo = createMemoryPort({ scope: guest, by: "uy", channel: "web" });
     await solo.recall({ query: "q" });
     expect(recalls).toHaveLength(1);
+  });
+});
+
+describe("hidden memories", () => {
+  const hiddenPort = () =>
+    createMemoryPort({
+      scope: owned,
+      by: "uy",
+      channel: "web",
+      alsoRead: [guest],
+      hidden: new Set(["old", "shown-twice"]),
+    });
+
+  it("never come back from recall, in either scope", async () => {
+    byNamespace = {
+      hippo: [
+        { blob_id: "keep", distance: 0.2 },
+        { blob_id: "shown-twice", distance: 0.3 },
+      ],
+      "hippo-guest:person-1": [
+        { blob_id: "old", distance: 0.1 },
+        { blob_id: "keep-too", distance: 0.4 },
+      ],
+    };
+    const got = await hiddenPort().recall({ query: "q" });
+    expect(got.map((m) => m.blob_id)).toEqual(["keep", "keep-too"]);
+  });
+
+  it("are never treated as a duplicate of something said again", async () => {
+    await hiddenPort().remember({ type: "profile", text: "I use VS Code" });
+    expect(dedupeIgnored?.has("old")).toBe(true);
   });
 });

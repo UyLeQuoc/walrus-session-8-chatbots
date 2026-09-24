@@ -4,6 +4,7 @@ import {
   channelIdentities,
   delegateKeys,
   eq,
+  isNotNull,
   memoryIndex,
   people,
   sql,
@@ -108,9 +109,16 @@ function indexWrites(person: Person) {
  * fact into the team is an explicit act, `/team remember`, and that path builds
  * its own port through `teamPortFor` below.
  */
-export async function portFor(person: Person, channel: string): Promise<MemoryPort> {
+export async function portFor(
+  person: Person,
+  channel: string,
+  opts: { includeHidden?: boolean } = {},
+): Promise<MemoryPort> {
   const by = person.displayName ?? person.id.slice(0, 8);
   const onWrite = indexWrites(person);
+  // The export reads hidden memories too: hiding stops hippo using a memory,
+  // it does not make it stop being the person's.
+  const hidden = opts.includeHidden ? new Set<string>() : await hiddenBlobs(person.id);
   if (person.mode === "owned" && person.accountId) {
     const [key] = await db
       .select()
@@ -138,6 +146,7 @@ export async function portFor(person: Person, channel: string): Promise<MemoryPo
         channel,
         onWrite,
         alsoRead: [guestScope(operator, person.id), ...(await teamScopes(person))],
+        hidden,
       });
     }
   }
@@ -147,7 +156,56 @@ export async function portFor(person: Person, channel: string): Promise<MemoryPo
     channel,
     onWrite,
     alsoRead: await teamScopes(person),
+    hidden,
   });
+}
+
+/** Blob ids this person asked hippo to stop using. */
+export async function hiddenBlobs(personId: string): Promise<Set<string>> {
+  const rows = await db
+    .select({ blobId: memoryIndex.blobId })
+    .from(memoryIndex)
+    .where(and(ownMemoryOf(personId), isNotNull(memoryIndex.hiddenAt)));
+  return new Set(rows.flatMap((r) => (r.blobId ? [r.blobId] : [])));
+}
+
+export type HideOutcome =
+  | { kind: "done"; blobId: string; type: string }
+  | { kind: "too-short" }
+  | { kind: "none" }
+  | { kind: "ambiguous"; count: number };
+
+/**
+ * Hide or unhide one of the person's own memories, named by the start of its
+ * blob id, which is what `/memory` and `/memory search` show.
+ *
+ * Six characters at least: a blob id is 43, and a prefix short enough to match
+ * several memories must never silently pick one.
+ */
+export async function setHidden(
+  personId: string,
+  blobPrefix: string,
+  hide: boolean,
+): Promise<HideOutcome> {
+  // What /memory prints ends in "…"; accept it pasted as shown.
+  const prefix = blobPrefix.trim().replace(/…$/, "");
+  if (prefix.length < 6 || !/^[A-Za-z0-9_-]+$/.test(prefix)) return { kind: "too-short" };
+  // An exact prefix, not LIKE: blob ids contain "_", which LIKE reads as "any
+  // character", so a LIKE match could hide a memory the person did not name.
+  const rows = await db
+    .select({ id: memoryIndex.id, blobId: memoryIndex.blobId, type: memoryIndex.type })
+    .from(memoryIndex)
+    .where(
+      and(ownMemoryOf(personId), sql`left(${memoryIndex.blobId}, ${prefix.length}) = ${prefix}`),
+    );
+  const [row] = rows;
+  if (!row?.blobId) return { kind: "none" };
+  if (rows.length > 1) return { kind: "ambiguous", count: rows.length };
+  await db
+    .update(memoryIndex)
+    .set({ hiddenAt: hide ? new Date() : null })
+    .where(eq(memoryIndex.id, row.id));
+  return { kind: "done", blobId: row.blobId, type: row.type };
 }
 
 /** Empty unless the person is in a team, which keeps the common path unchanged. */

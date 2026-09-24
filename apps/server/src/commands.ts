@@ -5,13 +5,13 @@
  * model.
  */
 import { and, desc, eq, memoryIndex, people, sql, turnLog } from "@hippo/db";
-import { explorer, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
-import { db } from "./app-context.ts";
+import { explorer, guestScope, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
+import { db, operator } from "./app-context.ts";
 import { HELP, PRIVACY, welcome } from "./copy.ts";
 import { env } from "./env.ts";
 import { asDownload, type ExportDownload, exportFor } from "./export-person.ts";
 import { createLinkCode, redeemLinkCode } from "./link.ts";
-import { ownMemoryOf, type Person, portFor, teamPortFor } from "./persons.ts";
+import { ownMemoryOf, type Person, portFor, setHidden, teamPortFor } from "./persons.ts";
 import { createTeam, currentTeam, inviteToTeam, joinTeam, leaveTeam } from "./teams.ts";
 
 export interface CommandContext {
@@ -223,11 +223,12 @@ async function listMemories(ctx: CommandContext): Promise<CommandResult> {
     .slice(0, 10)
     .map((r) => {
       const where = r.blobId ? `blob ${r.blobId.slice(0, 10)}…` : "writing to Walrus…";
-      return `• [${r.type}] ${r.createdAt.toISOString().slice(0, 10)} · ${where}`;
+      const hidden = r.hiddenAt ? " · hidden" : "";
+      return `• [${r.type}] ${r.createdAt.toISOString().slice(0, 10)} · ${where}${hidden}`;
     })
     .join("\n");
   return {
-    text: `${rows.length} memories (${summary}).\n\n${recent}\n\nUse /memory search <question> to read them back.`,
+    text: `${rows.length} memories (${summary}).\n\n${recent}\n\nUse /memory search <question> to read them back, and /memory forget <blob> to stop me using one.`,
   };
 }
 
@@ -252,13 +253,58 @@ async function setMemory(ctx: CommandContext, on: boolean): Promise<CommandResul
   };
 }
 
+const FORGET_USAGE =
+  "/memory forget <blob>  stop me using one memory: the blob shown by /memory or /memory search\n/memory forget all     make everything unrecallable\n\nNothing is deleted from Walrus either way; that is not possible yet.";
+
+/**
+ * Stop using one memory, or start again.
+ *
+ * Walrus cannot delete or edit a blob, and the relayer can only forget a whole
+ * namespace, so this is hippo's own filter: the memory stops being recalled
+ * and stops counting as a duplicate. What it cannot do is said every time.
+ */
+async function hideOne(ctx: CommandContext, target: string, hide: boolean): Promise<CommandResult> {
+  const verb = hide ? "forget" : "unhide";
+  if (!target.trim()) return { text: `Usage: /memory ${verb} <blob>, as /memory shows it.` };
+  const out = await setHidden(ctx.person.id, target, hide);
+  switch (out.kind) {
+    case "too-short":
+      return { text: "Give at least the first six characters of the blob, as /memory shows it." };
+    case "none":
+      return { text: `None of your memories has a blob starting "${target.trim()}".` };
+    case "ambiguous":
+      return { text: `That matches ${out.count} of your memories. Give more of the blob.` };
+    case "done": {
+      const short = `${out.blobId.slice(0, 10)}…`;
+      if (!hide) return { text: `I will use that ${out.type} memory again (blob ${short}).` };
+      const elsewhere =
+        ctx.person.mode === "owned"
+          ? " Other apps signed in to your account can still recall it."
+          : "";
+      return {
+        text: `I will not use that ${out.type} memory again (blob ${short}).\n\nIt is still on Walrus, encrypted, because nothing there can be deleted yet.${elsewhere} /memory unhide ${out.blobId.slice(0, 10)} brings it back.`,
+      };
+    }
+  }
+}
+
 async function forget(ctx: CommandContext): Promise<CommandResult> {
   const port = await portFor(ctx.person, ctx.channel);
+  /**
+   * Every namespace that is this person's own. Once they own an account, what
+   * they said as a guest is still in hippo's account and still read alongside
+   * (see `alsoRead` in persons.ts), so forgetting only the owned namespace left
+   * it recallable — while /privacy and /disconnect both promised otherwise.
+   * Team memory is not theirs to forget and is left alone.
+   */
+  const scopes = [port.scope];
+  if (ctx.person.mode === "owned") scopes.push(guestScope(operator, ctx.person.id));
   try {
-    const res = await extrasFor(port.scope).forget(port.scope.namespace);
+    let deleted = 0;
+    for (const scope of scopes) deleted += (await extrasFor(scope).forget(scope.namespace)).deleted;
     await db.delete(memoryIndex).where(ownMemoryOf(ctx.person.id));
     return {
-      text: `Removed ${res.deleted} memories from the search index, so I can no longer recall any of them.\n\nBeing straight with you about the limit: the encrypted blobs stay on Walrus until their storage epochs run out, and there is currently no way to delete them earlier. Nobody can read them without your account's keys, and I can no longer find them, but they are not gone.`,
+      text: `Removed ${deleted} memories from the search index, so I can no longer recall any of them.\n\nBeing straight with you about the limit: the encrypted blobs stay on Walrus until their storage epochs run out, and there is currently no way to delete them earlier. Nobody can read them without your account's keys, and I can no longer find them, but they are not gone.`,
     };
   } catch (e) {
     return { text: `Could not reach the relayer: ${e instanceof Error ? e.message : String(e)}` };
@@ -349,7 +395,7 @@ export async function handleCommand(
     case "disconnect":
       return ctx.person.mode === "owned"
         ? {
-            text: `Revoke my access on-chain:\n${await ctx.connectUrl("disconnect")}\n\nAfter it lands I cannot read or write anything in your account, within about a minute. What you told me before you connected is the exception: that lives in my account, not yours, and I can still read it. /memory forget makes it unrecallable.`,
+            text: `Revoke my access on-chain:\n${await ctx.connectUrl("disconnect")}\n\nAfter it lands I cannot read or write anything in your account, within about a minute. What you told me before you connected is the exception: that lives in my account, not yours, and I can still read it. /memory forget all makes it unrecallable.`,
           }
         : { text: "Nothing to revoke: you are in guest mode." };
     case "memory": {
@@ -363,8 +409,13 @@ export async function handleCommand(
           return setMemory(ctx, true);
         case "off":
           return setMemory(ctx, false);
-        case "forget":
-          return forget(ctx);
+        case "forget": {
+          const target = subRest.join(" ").trim();
+          if (!target) return { text: FORGET_USAGE };
+          return target.toLowerCase() === "all" ? forget(ctx) : hideOne(ctx, target, true);
+        }
+        case "unhide":
+          return hideOne(ctx, subRest.join(" "), false);
         default:
           return searchMemories(ctx, arg);
       }

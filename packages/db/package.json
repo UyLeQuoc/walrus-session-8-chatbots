@@ -10,7 +10,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "push": "drizzle-kit push",
-    "studio": "drizzle-kit studio"
+    "studio": "drizzle-kit studio",
+    "plan-push": "tsx scripts/plan-push.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.3",
@@ -20,6 +21,7 @@
     "@types/node": "^24.0.0",
     "dotenv": "^17.0.0",
     "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

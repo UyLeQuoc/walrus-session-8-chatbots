@@ -585,6 +585,45 @@ describe("me page", () => {
     expect(document.body.textContent).toMatch(/\/team new <name>/);
   });
 
+  it("hides one memory from its row, and shows a hidden one as hidden rather than gone", async () => {
+    const row = (id: string, blobId: string, hidden: boolean) => ({
+      id,
+      type: "profile",
+      status: "stored",
+      channel: "web",
+      createdAt: new Date().toISOString(),
+      blobId,
+      expiresAt: null,
+      ciphertextUrl: `https://aggregator.example/v1/blobs/${blobId}`,
+      explorerUrl: `https://walruscan.com/mainnet/blob/${blobId}`,
+      hidden,
+    });
+    const base = stubFetch({
+      "/api/me": { mode: "guest", signedIn: false, memoryEnabled: true, surveyUrl: null },
+      "/api/me/memories": { memories: [row("1", "keepblob1", false), row("2", "gonebl0b2", true)] },
+    });
+    const posted: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("/api/me/memories/visibility")) {
+          posted.push(JSON.parse(String(init?.body)));
+          return { ok: true, status: 200, json: async () => ({}) } as Response;
+        }
+        return base(input);
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await screen.findByText("use again");
+    expect(screen.getByText("hidden")).toBeTruthy();
+    screen.getByRole("button", { name: "hide" }).click();
+    await waitFor(() => expect(posted).toEqual([{ blobId: "keepblob1", hidden: true }]));
+  });
+
   it("warns on a memory that is nearly gone, where the row is the right place", async () => {
     const soon = new Date(Date.now() + 9 * 86_400_000).toISOString();
     vi.stubGlobal(
