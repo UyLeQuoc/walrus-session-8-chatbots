@@ -403,6 +403,79 @@ describe("me page", () => {
     expect(seen).toMatch(/under its own account/i);
   });
 
+  it("offers the memory as a file once something has reached Walrus, and says what it holds", async () => {
+    const routes = stubFetch({
+      "/api/me": { mode: "guest", signedIn: false, memoryEnabled: true, surveyUrl: null },
+      "/api/me/memories": {
+        memories: [
+          {
+            id: "1",
+            type: "profile",
+            status: "stored",
+            channel: "web",
+            createdAt: new Date().toISOString(),
+            blobId: "blob123",
+            expiresAt: null,
+            ciphertextUrl: "https://aggregator.example/v1/blobs/blob123",
+            explorerUrl: "https://walruscan.com/mainnet/blob/blob123",
+          },
+        ],
+      },
+    });
+    const exportFetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ coverage: { memories: 1, withText: 1, verified: 1 } }),
+      headers: new Headers({
+        "content-type": "application/json",
+        "content-disposition": 'attachment; filename="hippo-memory-2026-09-24.json"',
+      }),
+    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input).includes("/api/me/export") ? exportFetch() : routes(input),
+      ),
+    );
+    // jsdom can neither make object URLs nor follow a download.
+    vi.stubGlobal(
+      "URL",
+      Object.assign(URL, { createObjectURL: () => "blob:x", revokeObjectURL: () => {} }),
+    );
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    const full = await screen.findByRole("button", { name: /full record/i });
+    // The limit is on the page before anyone downloads, not only inside the file.
+    expect(document.body.textContent).toMatch(/cannot do yet: let you decrypt/i);
+    full.click();
+    await screen.findByText(/verified for/i);
+    expect(exportFetch).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalled();
+    click.mockRestore();
+  });
+
+  it("offers no export before anything has reached Walrus", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", signedIn: false, memoryEnabled: true, surveyUrl: null },
+        "/api/me/memories": { memories: [] },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/My memory/));
+    expect(screen.queryByRole("button", { name: /full record/i })).toBeNull();
+  });
+
   it("warns on a memory that is nearly gone, where the row is the right place", async () => {
     const soon = new Date(Date.now() + 9 * 86_400_000).toISOString();
     vi.stubGlobal(

@@ -9,6 +9,7 @@ import { explorer, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/
 import { db } from "./app-context.ts";
 import { HELP, PRIVACY, welcome } from "./copy.ts";
 import { env } from "./env.ts";
+import { asDownload, type ExportDownload, exportFor } from "./export-person.ts";
 import { createLinkCode, redeemLinkCode } from "./link.ts";
 import { type Person, portFor, teamPortFor } from "./persons.ts";
 import { createTeam, currentTeam, inviteToTeam, joinTeam, leaveTeam } from "./teams.ts";
@@ -22,6 +23,46 @@ export interface CommandContext {
 
 export interface CommandResult {
   text: string;
+  /** Sent as attachments where the channel can (Telegram, the CLI). */
+  files?: ExportDownload[];
+}
+
+/** Channels whose adapter delivers `files`. The rest are told where to go. */
+const ATTACHES = new Set(["telegram", "cli"]);
+
+/**
+ * `/export`: the person's memory as files they keep.
+ *
+ * Built fresh and handed over, never stored, since memory text never goes into
+ * Postgres. The web chat points at the button on /me, which downloads the same
+ * thing; channels that cannot carry a file say so rather than pretending.
+ */
+async function exportMemories(ctx: CommandContext): Promise<CommandResult> {
+  const file = await exportFor(ctx.person, ctx.channel);
+  const c = file.coverage;
+  if (!c.memories) {
+    return { text: "Nothing to export yet: I have not written anything about you." };
+  }
+  const summary = `${c.memories} memories. Text recovered for ${c.withText} of them, and ${c.verified} match the fingerprint I recorded when I wrote them.`;
+  const caveat =
+    "The file lists every blob on Walrus. It cannot let you decrypt them without me yet; it says why inside.";
+  if (ATTACHES.has(ctx.channel)) {
+    return {
+      text: `Your memory, as files you keep. ${summary}
+
+The .md is for reading, the .json is the complete record. ${caveat}`,
+      files: [asDownload(file, "md"), asDownload(file, "json")],
+    };
+  }
+  const where =
+    ctx.channel === "web"
+      ? `Download it from the Export button on ${env.WEB_BASE_URL}/me.`
+      : `I cannot send files on this channel yet. /link it to the web chat, then use Export on ${env.WEB_BASE_URL}/me.`;
+  return {
+    text: `${summary}
+
+${where} ${caveat}`,
+  };
 }
 
 /**
@@ -295,6 +336,8 @@ export async function handleCommand(
       return link(ctx, arg);
     case "proof":
       return proof(ctx);
+    case "export":
+      return exportMemories(ctx);
     case "connect":
       return ctx.person.mode === "owned"
         ? {

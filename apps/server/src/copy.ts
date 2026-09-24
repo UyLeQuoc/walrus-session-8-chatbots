@@ -72,6 +72,7 @@ export const HELP = `hippo remembers what you tell it, and the memory belongs to
 /team              share a memory with a few people
 /whoami            your account and where the memory lives
 /proof             the memories behind my last answer
+/export            your memory as a file you keep
 /connect           own your memory in your own Walrus account
 /disconnect        revoke my access on-chain
 /help              this message`;

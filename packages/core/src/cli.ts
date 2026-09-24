@@ -8,7 +8,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { createInterface } from "node:readline/promises";
 
 const API_URL = process.env.HIPPO_API_URL ?? "http://localhost:8787";
@@ -59,13 +59,16 @@ async function send(
 
   const type = res.headers.get("content-type") ?? "";
   if (type.includes("application/json")) {
-    const body = (await res.json()) as { text?: string };
-    return { text: body.text ?? "", streamed: false };
+    const body = (await res.json()) as {
+      text?: string;
+      files?: Array<{ name: string; content: string }>;
+    };
+    return { text: body.text ?? "", streamed: false, files: body.files ?? [] };
   }
 
   // Server-sent UI message stream.
   const reader = res.body?.getReader();
-  if (!reader) return { text: "", streamed: false };
+  if (!reader) return { text: "", streamed: false, files: [] };
   const decoder = new TextDecoder();
   let buffer = "";
   let out = "";
@@ -102,7 +105,7 @@ async function send(
     }
   }
   if (printedPrefix) process.stdout.write("\n");
-  return { text: out, streamed: true };
+  return { text: out, streamed: true, files: [] };
 }
 
 async function main() {
@@ -131,9 +134,16 @@ async function main() {
       parts: [{ type: "text", text: line }],
     });
     try {
-      const { text, streamed } = await send(messages, sessionStart);
+      const { text, streamed, files } = await send(messages, sessionStart);
       if (!streamed) console.log(`hippo › ${text}\n`);
       else console.log();
+      // `/export` hands back files; the terminal is where they are kept. The
+      // name comes from our own server, but it is still stripped to a basename.
+      for (const f of files) {
+        const path = join(process.cwd(), basename(f.name));
+        writeFileSync(path, f.content);
+        console.log(`  saved ${path}\n`);
+      }
       messages.push({
         id: `a${messages.length}`,
         role: "assistant",

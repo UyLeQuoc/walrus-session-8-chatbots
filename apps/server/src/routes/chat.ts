@@ -10,6 +10,7 @@ import { type CommandContext, handleCommand } from "../commands.ts";
 import { startConnect, startDisconnect } from "../connect.ts";
 import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
+import { asDownload, exportFor } from "../export-person.ts";
 import { tooLong } from "../limits.ts";
 import { logTurn, type Person, portFor, resolvePerson } from "../persons.ts";
 import { checkRate, noteCommand } from "../ratelimit.ts";
@@ -122,7 +123,7 @@ export const chatRoutes = new Hono()
     const command = await handleCommand(ctx, text);
     if (command) {
       await noteCommand(person.id, channel);
-      return c.json({ command: true, text: command.text });
+      return c.json({ command: true, text: command.text, files: command.files });
     }
 
     const port = await portFor(person, channel);
@@ -312,6 +313,31 @@ export const chatRoutes = new Hono()
         blobId: h.blob_id,
         explorerUrl: explorer.blobExplorer(h.blob_id),
       })),
+    });
+  })
+
+  /**
+   * The same export `/export` produces, as a download for the button on /me.
+   *
+   * Built per request and never cached: the text in it comes back from Walrus
+   * and must not land in Postgres or anywhere else we keep. It spends the shared
+   * relayer budget on up to six recalls, so it is rate limited like a command.
+   */
+  .get("/api/me/export", async (c) => {
+    const format = c.req.query("format") === "md" ? "md" : "json";
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
+
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, CHANNEL);
+
+    const file = asDownload(await exportFor(person, CHANNEL), format);
+    return c.body(file.content, 200, {
+      "content-type": file.mime,
+      "content-disposition": `attachment; filename="${file.name}"`,
+      "cache-control": "no-store",
     });
   })
 

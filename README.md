@@ -47,9 +47,20 @@ delegate key on a Walrus Memory account that belongs to your wallet. From then o
   refused a removed key after 32 seconds and still accepted it at 15
   (`docs/evidence/revocation-2026-09-22.md`). hippo also destroys its own copy
   of the key, which closes that window immediately,
-- the same memory is readable from Claude Code, Cursor or any other Walrus Memory
-  client you sign in with the same wallet,
-- `/proof` shows the Walrus blobs behind any answer.
+- the same memory should be readable from Claude Code, Cursor or any other Walrus
+  Memory client you sign in with the same wallet. That follows from how the
+  account works; the Claude Code check itself needs a spare wallet and has not
+  been run yet (`docs/BLOCKERS.md`),
+- `/proof` shows the Walrus blobs behind any answer,
+- `/export`, or Export on `/me`, hands you the memory as a file: every blob, and
+  its text checked line by line against the fingerprint hippo recorded when it
+  wrote it. What the file cannot do yet is let you decrypt the blobs without the
+  relayer, and it says so (`docs/evidence/export-2026-09-24.md`).
+
+It also keeps up when you change your mind. Say you moved from pnpm to bun and
+the correction is stored, recalled next to the fact it replaces, and believed;
+`pnpm demo` fails if any answer states the old value
+(`docs/evidence/conflicts-2026-09-24.md`).
 
 The web app makes that concrete rather than claiming it. `/me` reads your
 `MemWalAccount` straight off Sui and shows the account, its owner and every

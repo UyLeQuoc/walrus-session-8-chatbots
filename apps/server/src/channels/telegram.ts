@@ -1,4 +1,4 @@
-import { Bot } from "grammy";
+import { Bot, InputFile } from "grammy";
 import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { handleIncoming } from "../turn.ts";
@@ -26,6 +26,9 @@ export function telegramAdapter(): ChannelAdapter | null {
       for (const part of chunk(reply.text)) {
         await ctx.reply(part, { link_preview_options: { is_disabled: true } });
       }
+      for (const f of reply.files ?? []) {
+        await ctx.replyWithDocument(new InputFile(Buffer.from(f.content, "utf8"), f.name));
+      }
     } catch (err) {
       console.error("[telegram] turn failed", err);
       await ctx.reply(describeFailure(err));
@@ -42,6 +45,7 @@ export function telegramAdapter(): ChannelAdapter | null {
         { command: "memory", description: "what I remember about you" },
         { command: "whoami", description: "your account and where the memory lives" },
         { command: "proof", description: "the memories behind my last answer" },
+        { command: "export", description: "your memory as a file you keep" },
         { command: "link", description: "use the same memory on another channel" },
         { command: "team", description: "share a memory with a few people" },
         { command: "connect", description: "own your memory on-chain" },

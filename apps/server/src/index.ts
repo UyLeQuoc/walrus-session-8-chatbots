@@ -23,6 +23,9 @@ app.use(
     // A cross-origin client (Walrus Sites, say) carries its id in a header
     // because a SameSite=Lax cookie would not be sent. See routes/chat.ts.
     allowHeaders: ["content-type", "x-hippo-channel", "x-hippo-guest", "x-hippo-session"],
+    // Without this a cross-origin page cannot read the export's file name, and
+    // every download is saved as the fallback "hippo-memory.json".
+    exposeHeaders: ["content-disposition"],
   }),
 );
 /**

@@ -6,7 +6,7 @@
 import { completeTurn } from "@hippo/core";
 import type { ModelMessage } from "ai";
 import { model } from "./app-context.ts";
-import { type CommandContext, handleCommand } from "./commands.ts";
+import { type CommandContext, type CommandResult, handleCommand } from "./commands.ts";
 import { startConnect, startDisconnect } from "./connect.ts";
 import { describeFailure } from "./copy.ts";
 import { tooLong } from "./limits.ts";
@@ -33,6 +33,8 @@ export interface TurnReply {
   text: string;
   /** True when the reply came from a slash command rather than the model. */
   command: boolean;
+  /** Attachments from a command, for adapters that can send them. */
+  files?: CommandResult["files"];
 }
 
 export async function handleIncoming(msg: IncomingMessage): Promise<TurnReply> {
@@ -61,7 +63,7 @@ export async function handleIncoming(msg: IncomingMessage): Promise<TurnReply> {
     const command = await handleCommand(ctx, msg.text);
     if (command) {
       await noteCommand(person.id, msg.channel);
-      return { text: command.text, command: true };
+      return { text: command.text, command: true, files: command.files };
     }
   } catch (err) {
     console.error(`[${msg.channel}] command failed`, err);

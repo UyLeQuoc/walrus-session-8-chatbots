@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { ChainPanel } from "@/components/chain-panel";
 import { CopyButton } from "@/components/copy-button";
+import { ExportPanel } from "@/components/export-panel";
 import { Hash } from "@/components/hash";
 import { type Memory, MemoryList } from "@/components/memory-list";
 import { Section } from "@/components/section";
@@ -22,12 +23,14 @@ interface Me {
   surveyUrl?: string | null;
 }
 
-/** Six commands as a list. They were a paragraph of inline code, unscannable. */
+/** The commands as a list. They were a paragraph of inline code, unscannable. */
 const COMMANDS: Array<[string, string]> = [
   ["/memory", "what hippo remembers about you"],
   ["/memory search", "read those memories back from Walrus"],
   ["/memory forget", "make everything unrecallable"],
   ["/proof", "the blobs behind the last answer"],
+  ["/export", "your memory as a file you keep"],
+  ["/team", "share a memory with a few people"],
   ["/link", "use the same memory on another channel"],
   ["/connect", "own the memory in your own account"],
   ["/disconnect", "revoke hippo's access on chain"],
@@ -133,6 +136,8 @@ export function MePage() {
       <ChainPanel owned={owned} onError={(m) => toast.error(m)} />
 
       <MemoryList memories={memories} onError={(m) => toast.error(m)} />
+
+      {stored > 0 && <ExportPanel onError={(m) => toast.error(m)} />}
 
       <Section
         title="Read the same memory in Claude Code"

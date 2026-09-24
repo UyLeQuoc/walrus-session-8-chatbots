@@ -173,6 +173,46 @@ Original task list:
 
 Verification: every checklist item in `docs/PLAN.md` "Submission checklist" is ticked with a link.
 
+### M8 — Close the gap between what hippo claims and what it does — IN PROGRESS
+
+Added 2026-09-24 from `docs/SCOPE-RESEARCH.md`, in its order. Every item makes a
+claim the project already makes true, rather than adding a new one. **Feature
+freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed.
+
+1. **Conflicts — DONE 2026-09-24.** A change of mind is stored, recalled beside
+   the fact it replaces, and believed. `pnpm demo` fails if any answer states
+   the old value. `docs/evidence/conflicts-2026-09-24.md`.
+2. **Export — DONE 2026-09-24**, 4/4 verified end to end on mainnet, `docs/evidence/export-2026-09-24.md`. "Your memory is yours" with no way to take it is the gap a
+   sceptical judge finds first. `GET /api/me/export?format=json|md`, an Export
+   button on `/me`, and `/export` in chat (Telegram receives the file itself).
+   Text comes back through recall and is **verified against the sha256 recorded
+   when hippo wrote it**, is never stored, and every memory whose text cannot be
+   recovered is still listed with its blob id, ciphertext link and expiry. The
+   file says plainly what it cannot contain and why (`docs/issues/12`).
+   Verification: unit tests for coverage and verification with a fake port; an
+   export of a real mainnet namespace whose text is 100% verified; the button
+   exercised in the browser.
+3. **Team on `/me`.** Team memory exists in chat and is invisible on the page
+   that is supposed to show everything hippo holds. Show the team, its members
+   and the shared memories, with a leave control. **First, track team writes:**
+   `/team remember` records nothing in `memory_index`, so a failed team write is
+   never noticed after the person was told "Added", and nobody has a list of what
+   they gave a team. Recording them changes `pnpm evidence` (team rows must not
+   count toward the 3 × 10 requirement), `/memory forget` and the `/me` list, so
+   all three move together. Verification: a render test, and a team write whose
+   status settles to stored.
+4. **Hide one memory.** `/memory forget` is all or nothing. Mark one memory so it
+   is never recalled again, from chat (`/memory forget <n>` against the `/memory`
+   list) and from `/me`. The blob stays on Walrus and the copy says so.
+   Verification: a unit test that a hidden blob never reaches the model, and a
+   mainnet check that it stops being recalled.
+5. **Keep the story true.** README, `docs/article.md`, `docs/submission.md` and
+   `docs/AUDIT.md` mention what shipped, with its limits.
+
+Not in M8: Discord and Slack go live the moment tokens exist (M4), and needs no
+code. Node 20 is end-of-life; moving to 24 is a one-line Dockerfile change but a
+production runtime change, so it waits for the owner's word.
+
 ## Rubric → artifact map
 
 | Judges ask | Where the proof lives |
