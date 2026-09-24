@@ -25,7 +25,8 @@ DeepSurge: https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608
 > their decisions to a bot every session. It starts in guest mode so the first
 > message costs nothing, then `/connect` moves the memory into a Walrus Memory
 > account owned by the user's own wallet, with hippo holding a delegate key the
-> user can revoke on chain at any time.
+> user can revoke on chain at any time. `/export` hands the memory back as a
+> file, each line checked against the hash hippo recorded when it wrote it.
 
 **What does your chatbot store in memory and how does it use it?**
 
@@ -38,7 +39,10 @@ DeepSurge: https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608
 > what comes back as untrusted data rather than as instructions. `style`
 > memories change the system prompt, so the bot's language and length adapt to
 > the individual, which is the clearest case of memory changing behaviour rather
-> than being quoted back.
+> than being quoted back. When the user changes their mind, the correction is
+> stored even though it resembles the old fact, recalled beside it, and believed:
+> memories reach the model newest first by the relayer's write time, and the eval
+> fails if any answer states the superseded value.
 
 **Chatbot use case.** Personal and developer assistant, with portable, user-owned memory.
 
@@ -66,7 +70,7 @@ https://suiscan.xyz/mainnet/object/0x5a257802b4881641b49ea3ad3e460a4387f9262b4f9
 
 **Confirm the agent has written blobs on mainnet.** Yes. Example blob written during development: `sSON47uP-NTVEGXMuhx_tSCVaQTpSGls2lsYPor5U5k` — https://walruscan.com/mainnet/blob/sSON47uP-NTVEGXMuhx_tSCVaQTpSGls2lsYPor5U5k
 
-**Which tool did you use to connect with Walrus Memory?** The TypeScript SDK, `@mysten-incubation/memwal`, against the managed mainnet relayer. The official MCP plugin is used separately to demonstrate that the same memory is readable from Claude Code.
+**Which tool did you use to connect with Walrus Memory?** The TypeScript SDK, `@mysten-incubation/memwal`, against the managed mainnet relayer. The official MCP plugin is the planned demonstration that the same memory is readable from Claude Code; `[HUMAN]` it needs a spare wallet and has not been run yet, so do not claim it until it has.
 
 **Feedback: GitHub tickets.** Drafted with repros in `docs/issues/`. File with `scripts/file-issues.sh`, which writes each resulting URL back into its draft, then paste the links here.
 

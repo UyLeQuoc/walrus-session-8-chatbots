@@ -79,14 +79,16 @@ bot claims to remember you, you should be able to check.
 ### Before and after
 
 `pnpm demo` in the repo is the honest version of a demo. It teaches hippo five
-things, throws the conversation away, and asks four questions in a session that
-has never seen them:
+things, then changes its mind about one of them ("we moved from pnpm to bun"),
+throws the conversation away, and asks four questions in a session that has never
+seen them:
 
 ```
-PASS  Which package manager should I use here?   → "pnpm."
-PASS  Which ORM did we settle on?                → "We settled on Drizzle."
-PASS  What port is the database on?              → "Our Postgres runs on 5433."
+PASS  Which package manager should I use here?   → "Bạn nên dùng bun."
+PASS  Which ORM did we settle on?                → "Chúng ta đã chọn Drizzle…"
+PASS  What port is the database on?              → "…cổng 5433."
 PASS  What do you know about me?                 → answered in Vietnamese
+PASS  0 of 5 answers stated pnpm without bun
 ```
 
 The last one is my favourite, and it is now an assertion rather than an
@@ -94,6 +96,15 @@ observation. Nobody asked it to speak Vietnamese in that session. A `style`
 memory from the previous one changed how it writes, and the eval fails if the
 answer comes back in English. That is memory shaping behaviour, not memory being
 quoted back.
+
+The correction was the hardest line in that list to earn. When I first added it,
+it was lost three different ways. Dedupe threw it away as a duplicate of the fact
+it replaced, because "I no longer use VS Code" sits 0.24 from "I use VS Code" and
+distance cannot see the word "no". The model sometimes acknowledged the change in
+words and never stored it, and one of the prompt edits that made that worse was
+mine. And "what do you know about me?" recalled the old fact and never the
+correction, which no amount of "prefer the newer memory" can fix. Each needed its
+own change, and the eval now fails if any answer states the old value.
 
 `[M6]` Real-world use: N people over M days, X memories each, the moment it
 mattered.
@@ -222,6 +233,12 @@ The chain decides who may read, and I measured that it does. Reading the bytes
 yourself still goes through somebody's service. That is worth saying plainly in
 an article whose title is about giving memory back to users.
 
+What hippo can hand you is a file. `/export` lists every blob it wrote for you,
+with the text of each one checked against the hash hippo recorded when it wrote
+it, so the file proves it holds exactly what was stored. It also says, inside the
+file, that you cannot decrypt the blobs without the relayer, because that is
+true.
+
 There is one more limit worth stating, because I built a UI for it before I read
 carefully enough. You cannot delete a memory. `forget` removes the search index,
 so nothing can recall it, and the encrypted blob sits on Walrus until its storage
@@ -240,8 +257,9 @@ genuinely on Walrus and I currently have no working way to rebuild an index from
 it.
 
 These are written up with repros and filed at
-github.com/MystenLabs/MemWal/issues. Eleven of them. A twelfth is the one I
-retracted, which stays in my repo rather than theirs.
+github.com/MystenLabs/MemWal/issues `[HUMAN: file them before publishing; none
+is filed yet]`. Twelve of them. A thirteenth is the one I retracted, which stays
+in my repo rather than theirs.
 
 ### Run it
 

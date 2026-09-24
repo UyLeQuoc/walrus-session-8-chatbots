@@ -92,6 +92,22 @@ The one thing an editor should know: the draft body is about 1,950 words against
 an original target of 500 to 800. The header names which sections to cut and
 which two never to cut.
 
+## M8 — Close the gap between the claims and the product
+
+Added 2026-09-24 from `docs/SCOPE-RESEARCH.md`.
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Conflicts | **done**, and it was three defects, not one: dedupe discarded corrections, the model sometimes did not store them, and topical recall never returned them. `pnpm demo` now fails if any answer states a superseded value; passed three runs in a row on mainnet. `docs/evidence/conflicts-2026-09-24.md` |
+| 2 | Export | **done**, 4/4 lines verified by hash end to end on mainnet, button exercised in Chrome. `docs/evidence/export-2026-09-24.md` |
+| 3 | Team on `/me` | **done**, after finding team writes were never tracked. Team rows are kept out of every per-person evidence count. `docs/evidence/team-tracking-2026-09-24.md` |
+| 4 | Hide one memory | **on a branch, waiting**: needs a new column in production, and schema pushes to production are the owner's call (`railway.toml`, `docs/DEPLOY.md`) |
+| 5 | Keep the story true | **done** for README, article, submission and this file. Two claims were stated as fact and never measured, that the same memory is readable from Claude Code; both now say it has not been run |
+
+Also found and fixed along the way: CI had failed at pnpm setup on all 71 runs
+since the first commit, so lint, tests and audit had never run in CI; it is green
+now. Production does not deploy on push, which left it a day behind `main`.
+
 ## Conclusion
 
 Every task that does not require the account owner or real people is done. The
