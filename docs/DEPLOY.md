@@ -26,6 +26,18 @@ New Project → Deploy from GitHub repo → this repository. `railway.toml` is
 picked up automatically: it builds `Dockerfile`, starts the server, health-checks
 `/api/health`, and pins one replica.
 
+**The live service does not redeploy on push.** It is deployed from a checkout
+with the CLI, so pushing to `main` changes nothing in production until someone
+runs:
+
+```bash
+railway up --service hippo-server --ci
+curl -s https://hippo-server-production.up.railway.app/api/health
+railway deployment list | head -3     # the new one should read SUCCESS
+```
+
+Assuming otherwise once left production a day behind `main` with a green CI.
+
 **Schema changes are not automatic.** `drizzle-kit push` can drop a column to
 reach the target schema, and this database holds real users' encrypted delegate
 keys. Push deliberately, having looked at the diff:

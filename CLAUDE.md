@@ -72,7 +72,10 @@ do not accumulate. The web pages have jsdom render tests (`apps/web/src/pages/pa
 that mount each page with the network stubbed and assert what a reader sees, because
 typecheck and build both pass happily on a component that throws on first paint. `.github/workflows/ci.yml` runs lint, typecheck, test, the web
 build and `pnpm audit` on every push, plus a guard that `.env`, `memwal/` and
-`.turbo/` are never tracked. There is one `pnpm.overrides` entry, for esbuild,
+`.turbo/` are never tracked. It failed at pnpm setup on every run until
+2026-09-24, so none of that had actually been checked before then; a local run
+with `.env` present hides failures CI will hit, so reproduce CI in a copy with
+no `.env`, on Node 20. `jsdom` is pinned to 26 because 30 needs Node 22. There is one `pnpm.overrides` entry, for esbuild,
 because `drizzle-kit` still pulls a version with a dev-server advisory it never
 uses; the reasoning is in `package.json`. Tests that read the real mainnet account skip themselves when
 credentials are absent, so a fork gets a green run without secrets.
