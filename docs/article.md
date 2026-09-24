@@ -143,7 +143,7 @@ retrying, and the only reason every run still passed is that a session start
 fires several overlapping queries, so the redundancy covers a loss. A bot that
 asked once would just have forgotten.
 
-**I filed a security bug against Walrus Memory, and it was mine.** This is the
+**I wrote up a security bug against Walrus Memory, and it was mine.** This is the
 one I would most like to skip and the one most worth writing down.
 
 I read my account off chain and counted four delegate keys. The key hippo was
@@ -193,7 +193,7 @@ And when a service masks an error, reproduce the operation without that service
 in the path.
 
 The fix upstream is one line of JSON: `GET /config` should return `registryId`
-beside `packageId`, so a client cannot mix deployments. That is filed. The
+beside `packageId`, so a client cannot mix deployments. That is written up with a repro. The
 retracted report stays in my repo under its correction, because the mistake is
 more instructive than the finding would have been.
 

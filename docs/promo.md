@@ -71,7 +71,7 @@ that matters goes there.
 >
 > I wrote up what it is actually like inside: the 24-second write that decided my
 > architecture before I wrote a line of it, the recall failure that returns
-> HTTP 200, and the security report I filed that turned out to be my own
+> HTTP 200, and the security report I wrote that turned out to be my own
 > misconfiguration.
 >
 > Not affiliated. Just building in it like everyone else.
@@ -94,7 +94,7 @@ that matters goes there.
 > thay vì trong database của mình. Hạn 9/10.
 >
 > Mình viết lại đầy đủ: con số 24 giây quyết định kiến trúc trước khi viết dòng
-> code đầu, lỗi recall trả về HTTP 200, và cái báo cáo bảo mật mình nộp mà hoá ra
+> code đầu, lỗi recall trả về HTTP 200, và cái báo cáo bảo mật mình viết mà hoá ra
 > là do mình cấu hình sai.
 >
 > Không liên quan gì tới Walrus, chỉ đang dự thi.
@@ -254,31 +254,39 @@ letting retrieval change their behaviour.
 If your eval only asks *did it quote the right fact*, every model passes and you
 learn nothing. Include one item that has to change **how** the answer is written.
 
-**4. I published a security finding that was my own misconfiguration.** For a
+The same lesson came back when I taught it a correction — "we moved from pnpm to
+bun". It was lost three different ways: dedupe discarded it as a duplicate of the
+fact it replaced, because "I no longer use VS Code" sits 0.24 from "I use VS
+Code" and distance cannot see the word *no*; the model sometimes acknowledged the
+change without storing it; and "what do you know about me?" recalled the old fact
+and never the correction. The eval now fails if any answer states the old value.
+
+**4. I wrote up a security finding that was my own misconfiguration.** For a
 week I was certain the service was authorising a key the chain did not list. I
 wrote it up carefully, with a repro. It was wrong. There are two separate
 deployments live on mainnet, and I had taken one identifier from the live config
 endpoint and another from the documentation — which put me on a real account that
 was not mine, so of course the key I was looking for was not on it. The report is
 still in my repo, marked RETRACTED at the top, with what actually happened
-underneath and the real bug filed next to it. Deleting it would have been tidier
+underneath and the real bug written up next to it. Deleting it would have been tidier
 and would have taught nobody anything, including me. Ask *what would I have to be
 misconfigured about for this to be boring* before you type the word
 **vulnerability**.
 
 **5. "Your data is yours" has a testable part and an untested part.** The account
-is genuinely the user's; I measured what happens when they revoke. But I cannot
-yet hand a user their own plaintext. The hosted relayer seals blobs against a key
-server the client library does not list, so I can give you the ciphertext from a
-public endpoint and not the bytes behind it. Ownership of the account, yes.
-Ownership of the content, not yet. I am shipping with that written on the page
-rather than shipping without it written anywhere.
+is genuinely the user's; I measured what happens when they revoke. I can hand you
+your memory as a file, with every line checked against the hash recorded when it
+was written. What I cannot give you is the ability to read it without the relayer:
+it seals blobs against a key server the client library does not list, so the
+ciphertext is public and the bytes behind it still go through somebody's service.
+Ownership of the account, yes. Ownership of the content, not yet. I am shipping
+with that written on the page rather than shipping without it written anywhere.
 
 ## Early software is a feature of a hackathon, not a defect
 
-I have filed eleven issues: stale contract IDs in the docs, an undocumented rate
-limit, two documented call signatures that return different results, the silent
-recall failure above. The session pays **$100 per reproducible issue** through a
+I have written up twelve issues with repros: stale contract IDs in the docs, an
+undocumented rate limit, two documented call signatures that return different
+results, the silent recall failure above. The session pays **$100 per reproducible issue** through a
 bug bounty track judged separately by the engineering team.
 
 That changes how it feels to hit friction. Every wasted hour has a form to put it

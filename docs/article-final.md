@@ -61,7 +61,7 @@ The model sometimes acknowledged a change without storing it, and one prompt edi
 of mine made that worse. And "what do you know about me?" recalled the old fact
 but never the correction. Each needed its own fix.
 
-**I filed a security bug against Walrus Memory, and it was mine.** The relayer
+**I wrote up a security bug against Walrus Memory, and it was mine.** The relayer
 accepted a key my account did not list, so I concluded on-chain access control
 was not what governed access. In fact two Walrus Memory deployments are live on
 mainnet. I took the package id from `GET /config` and the registry id from the
