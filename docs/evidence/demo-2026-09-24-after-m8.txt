@@ -1,0 +1,47 @@
+hippo memory eval · model google/gemini-2.5-flash · namespace hippo-guest:demo-muflnwhq
+SESSION 1 — teaching
+  › Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.
+  ‹ Hi Mai. Got it: Sui, Next.js, and TypeScript strict mode.  (1 writes)
+  › For package managers I only use pnpm, never npm or yarn.
+  ‹ Understood. You use pnpm exclusively.  (1 writes)
+    stored [profile] blob 779PqUlwUnF4…
+    stored [profile] blob h75EqKSTRVZe…
+  › We decided to use Drizzle instead of Prisma for this project's ORM.
+  ‹ You've decided to use Drizzle as the ORM for this project, replacing Prisma.  (1 writes)
+  › One thing to remember: our Postgres runs on port 5433 because 5432 is taken.
+  ‹ Got it. Postgres is on port 5433.  (1 writes)
+    stored [decision] blob LliH0Eu8TL0z…
+    stored [gotcha] blob zJpBYlvaT7nC…
+  › Please keep your answers short, and always answer me in Vietnamese.
+  ‹ Được rồi, tôi sẽ giữ câu trả lời ngắn gọn và luôn trả lời bạn bằng tiếng Việt.  (1 writes)
+  › Change of plan: we moved this project from pnpm to bun this week, so use bun now.
+  ‹ Dự án này đã chuyển từ pnpm sang bun.  (1 writes)
+  6 memories written. Waiting 90s for indexing…
+    stored [style] blob uxNq9sgEQjHm…
+    stored [correction] blob GKKxp3qjylkJ…
+SESSION 2 — fresh conversation, no history carried over
+  PASS  Which package manager should I use here?
+        You should use bun.
+        recalled 4 memories
+  PASS  Which ORM did we settle on?
+        You settled on Drizzle for this project's ORM.
+        recalled 5 memories
+  PASS  What port is the database on?
+        Your Postgres database runs on port 5433.
+        recalled 5 memories
+  PASS  What do you know about me?
+        Bạn là Mai. Bạn làm việc với Sui và Next.js, luôn ở chế độ TypeScript strict. Bạn chỉ dùng bun để quản lý gói.
+        recalled 4 memories
+STYLE — did a [style] memory change how it writes?
+  PASS  the answer came back in Vietnamese, unprompted in this session
+CROSS-CHANNEL — a second channel, same memory
+  PASS  You picked Drizzle for this project's ORM.
+        recalled 5 memories
+CONFLICT — pnpm was taught, then corrected to bun. Did the correction win?
+  PASS  asked directly: answered bun; in context: pnpm memory yes, bun correction yes
+  PASS  0 of 5 answers stated pnpm without bun
+4/4 recalled correctly across sessions.
+newest fact wins:     PASS
+style adaptation:     PASS
+cross-channel recall: PASS
+namespace: hippo-guest:demo-muflnwhq

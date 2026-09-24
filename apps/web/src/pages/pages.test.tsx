@@ -288,6 +288,27 @@ describe("chat page", () => {
     expect(container.textContent ?? "").toMatch(/came back from Walrus, not from the page/i);
   });
 
+  it("shows a command's answer without treating it as something taught", () => {
+    // Commands used to come back as JSON the chat could not render: /help on
+    // the web showed nothing at all. They now stream, marked as commands.
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "/help" }] },
+      {
+        id: "2",
+        role: "assistant",
+        parts: [{ type: "text", text: "/memory            what I remember about you" }],
+        metadata: { command: true },
+      },
+    ];
+    render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/what I remember about you/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
+  });
+
   it("bubbles what you said and leaves hippo's answer in the page", () => {
     chatMessages = [
       { id: "1", role: "user", parts: [{ type: "text", text: "I use pnpm" }] },

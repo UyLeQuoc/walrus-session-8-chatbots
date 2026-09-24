@@ -1,5 +1,9 @@
 # Draft article — Medium + Inkray
 
+> **Publish `docs/article-final.md`, not this.** The session asks for 500 to 800
+> words (`docs/BRIEF.md` §4); that version is 792, counting code blocks. This
+> long draft is the source it was cut from and keeps everything measured.
+
 Honest over polished. Sections marked `[M6]` need the real-user numbers from
 `pnpm evidence` before publishing.
 
@@ -139,7 +143,7 @@ retrying, and the only reason every run still passed is that a session start
 fires several overlapping queries, so the redundancy covers a loss. A bot that
 asked once would just have forgotten.
 
-**I filed a security bug against Walrus Memory, and it was mine.** This is the
+**I wrote up a security bug against Walrus Memory, and it was mine.** This is the
 one I would most like to skip and the one most worth writing down.
 
 I read my account off chain and counted four delegate keys. The key hippo was
@@ -189,7 +193,7 @@ And when a service masks an error, reproduce the operation without that service
 in the path.
 
 The fix upstream is one line of JSON: `GET /config` should return `registryId`
-beside `packageId`, so a client cannot mix deployments. That is filed. The
+beside `packageId`, so a client cannot mix deployments. That is written up with a repro. The
 retracted report stays in my repo under its correction, because the mistake is
 more instructive than the finding would have been.
 
