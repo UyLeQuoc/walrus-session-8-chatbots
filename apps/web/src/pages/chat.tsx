@@ -54,7 +54,11 @@ export function ChatPage() {
   }, []);
 
   const lastId = messages.at(-1)?.id;
-  const taught = messages.some((m) => m.role === "assistant");
+  // A command's answer (/help, /memory) teaches nothing, so it must not switch
+  // the examples to "now prove it".
+  const taught = messages.some(
+    (m) => m.role === "assistant" && !(m.metadata as { command?: boolean } | undefined)?.command,
+  );
 
   const send = (value: string) => {
     if (!value.trim() || busy) return;

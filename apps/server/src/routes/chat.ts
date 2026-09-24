@@ -14,6 +14,7 @@ import { asDownload, exportFor } from "../export-person.ts";
 import { tooLong } from "../limits.ts";
 import { logTurn, ownMemoryOf, type Person, portFor, resolvePerson } from "../persons.ts";
 import { checkRate, noteCommand } from "../ratelimit.ts";
+import { plainReply } from "../reply.ts";
 import { currentTeam, inviteToTeam, leaveTeam } from "../teams.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
@@ -105,7 +106,7 @@ export const chatRoutes = new Hono()
 
     const text = lastUserText(body.messages);
     const oversize = tooLong(text);
-    if (oversize) return c.json({ command: true, text: oversize });
+    if (oversize) return plainReply(channel, oversize);
 
     const ctx: CommandContext = {
       person,
@@ -119,12 +120,12 @@ export const chatRoutes = new Hono()
     // the most expensive to serve: /connect mints a keypair and two rows,
     // /memory search spends the shared relayer budget.
     const gate = await checkRate(person.id);
-    if (!gate.allowed) return c.json({ command: true, text: gate.message });
+    if (!gate.allowed) return plainReply(channel, gate.message);
 
     const command = await handleCommand(ctx, text);
     if (command) {
       await noteCommand(person.id, channel);
-      return c.json({ command: true, text: command.text, files: command.files });
+      return plainReply(channel, command.text, command.files);
     }
 
     const port = await portFor(person, channel);
