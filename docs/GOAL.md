@@ -173,7 +173,7 @@ Original task list:
 
 Verification: every checklist item in `docs/PLAN.md` "Submission checklist" is ticked with a link.
 
-### M8 — Close the gap between what hippo claims and what it does — SHIPPED, except task 4 (waits on the owner)
+### M8 — Close the gap between what hippo claims and what it does — SHIPPED
 
 Added 2026-09-24 from `docs/SCOPE-RESEARCH.md`, in its order. Every item makes a
 claim the project already makes true, rather than adding a new one. **Feature
@@ -201,7 +201,7 @@ freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed
    count toward the 3 × 10 requirement), `/memory forget` and the `/me` list, so
    all three move together. Verification: a render test, and a team write whose
    status settles to stored.
-4. **Hide one memory — BUILT on branch `hide-one-memory`, verified on mainnet, waiting for the production column** (`docs/evidence/hide-one-memory-2026-09-24.md`). `/memory forget` is all or nothing. Mark one memory so it
+4. **Hide one memory — DONE 2026-09-24**, shipped after the owner approved the production column (`docs/evidence/hide-one-memory-2026-09-24.md`). `/memory forget` is all or nothing. Mark one memory so it
    is never recalled again, from chat (`/memory forget <n>` against the `/memory`
    list) and from `/me`. The blob stays on Walrus and the copy says so.
    Verification: a unit test that a hidden blob never reaches the model, and a
@@ -215,9 +215,9 @@ freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed
    could not render, so every slash command on the web showed nothing.
    `docs/evidence/web-commands-2026-09-24.md`.
 
-**M8 status:** everything except task 4 is shipped to production and matches
-`main`; task 4 waits on the owner's yes to one production column
-(`docs/BLOCKERS.md`).
+**M8 status:** every task is shipped to production and matches `main`. Task 4's
+column went in through `pnpm --filter @hippo/db plan-push`, which showed one
+additive statement before applying it.
 
 Not in M8: Discord and Slack go live the moment tokens exist (M4), and needs no
 code. Node 20 is end-of-life; moving to 24 is a one-line Dockerfile change but a

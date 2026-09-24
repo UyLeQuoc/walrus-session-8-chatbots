@@ -44,14 +44,31 @@ export: {"memories":3,"withText":3,"verified":3,…}
 The blob stays on Walrus, and in owned mode any other app signed in to the
 person's account can still recall it. Both the chat reply and the page say so.
 
-## Deploying it
+## Deployed
 
-It needs one new nullable column in production:
+The owner approved the column in chat. The plan against production, printed
+before anything was applied:
 
-```sql
-ALTER TABLE "memory_index" ADD COLUMN "hidden_at" timestamp with time zone;
+```
+statements: 1, data loss: false
+  ALTER TABLE "memory_index" ADD COLUMN "hidden_at" timestamp with time zone;
+plan is purely additive
+applied
 ```
 
-Additive, nothing dropped. Schema pushes to production are the owner's call
-(`railway.toml`, `docs/DEPLOY.md`), and the server must not be deployed before
-the column exists, because every `select()` from `memory_index` names it.
+and a re-plan afterwards showed `statements: 0`. The server and web were
+deployed after the column existed, never before. On production, without
+writing any memory:
+
+```
+GET  /api/me/memories                       → {"memories":[]}  [200]
+POST /api/me/memories/visibility (unknown)  → {"error":"No memory of yours has that blob."}  [404]
+/memory forget  (bare)                       → usage, not an erase
+```
+
+`drizzle-kit push` itself could not be used as written in `railway.toml`: its
+confirmation prompt needs a TTY, and its programmatic `pushSchema` reads
+`result.rows`, the node-postgres shape, which postgres-js does not return, so the
+schema pull failed and drizzle-kit exited 1 with the error swallowed.
+`packages/db/scripts/plan-push.ts` adapts the result shape, prints the plan, and
+applies only additive statements.
