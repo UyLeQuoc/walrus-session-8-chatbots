@@ -96,8 +96,8 @@ Then, in separate terminals:
 ```bash
 pnpm dev:server              # Hono API on :8787 plus any channel whose token is set
 pnpm dev:web                 # the Vite app on :5173, proxying /api to :8787
-pnpm hippo                   # the CLI, talking to the same server
-pnpm demo                    # the memory eval below; no server needed, about 5½ minutes
+pnpm hippo                   # the CLI: its own person until you /link it to the web chat
+pnpm demo                    # the memory eval below; no server needed, about 5 minutes
 ```
 
 If :5173 is taken, Vite moves to :5174, which the server also accepts.
