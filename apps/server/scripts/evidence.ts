@@ -3,11 +3,20 @@
  * Everything here is read from Postgres plus the relayer, never invented.
  */
 import { desc, memoryIndex, people, sql, turnLog } from "@hippo/db";
-import { createClient, explorer, guestScope, RelayerExtras } from "@hippo/memory";
+import { createClient, explorer, guestScope, RelayerExtras, TEAM_PREFIX } from "@hippo/memory";
 import { db, operator } from "../src/app-context.ts";
 import { env } from "../src/env.ts";
 
 const rows = <T>(r: T[]): T[] => r;
+
+/**
+ * A team fact is indexed under the person who added it, but it is shared
+ * memory, not theirs. Counting it toward "3 people with 10 memories each" would
+ * let one busy team inflate the requirement check, so every per-person number
+ * below leaves team namespaces out and they are reported on their own line.
+ */
+const ownMemory = sql`${memoryIndex.namespace} not like ${`${TEAM_PREFIX}%`}`;
+const teamMemory = sql`${memoryIndex.namespace} like ${`${TEAM_PREFIX}%`}`;
 
 const byPerson = rows(
   await db
@@ -27,6 +36,7 @@ const byPerson = rows(
     })
     .from(memoryIndex)
     .innerJoin(people, sql`${people.id} = ${memoryIndex.personId}`)
+    .where(ownMemory)
     .groupBy(memoryIndex.personId, people.mode, memoryIndex.accountId)
     .orderBy(desc(sql`count(*)`)),
 );
@@ -60,6 +70,15 @@ const byChannel = rows(
     .orderBy(desc(sql`count(*)`)),
 );
 
+const [team] = await db
+  .select({
+    stored: sql<number>`count(*) filter (where ${memoryIndex.status} = 'stored')::int`,
+    teams: sql<number>`count(distinct ${memoryIndex.namespace})::int`,
+    contributors: sql<number>`count(distinct ${memoryIndex.personId})::int`,
+  })
+  .from(memoryIndex)
+  .where(teamMemory);
+
 const qualifying = byPerson.filter((p) => p.stored >= 10);
 const totalStored = byPerson.reduce((n, p) => n + p.stored, 0);
 const totalFailed = byPerson.reduce((n, p) => n + p.failed, 0);
@@ -80,6 +99,9 @@ console.log(`Memories stored on Walrus:       ${totalStored}`);
 console.log(`  still writing:                 ${totalPending}`);
 console.log(`  failed to land:                ${totalFailed}`);
 console.log(`Distinct accounts written to:    ${new Set(byPerson.map((p) => p.accountId)).size}`);
+console.log(
+  `Team memories, not counted above: ${team?.stored ?? 0} in ${team?.teams ?? 0} teams, from ${team?.contributors ?? 0} people`,
+);
 console.log(
   `Owned-mode people:               ${byPerson.filter((p) => p.mode === "owned").length}`,
 );

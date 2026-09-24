@@ -192,7 +192,7 @@ freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed
    Verification: unit tests for coverage and verification with a fake port; an
    export of a real mainnet namespace whose text is 100% verified; the button
    exercised in the browser.
-3. **Team on `/me`.** Team memory exists in chat and is invisible on the page
+3. **Team on `/me` — DONE 2026-09-24**, `docs/evidence/team-tracking-2026-09-24.md`. Team memory exists in chat and is invisible on the page
    that is supposed to show everything hippo holds. Show the team, its members
    and the shared memories, with a leave control. **First, track team writes:**
    `/team remember` records nothing in `memory_index`, so a failed team write is

@@ -476,6 +476,94 @@ describe("me page", () => {
     expect(screen.queryByRole("button", { name: /full record/i })).toBeNull();
   });
 
+  it("shows the team and what it holds without naming anyone, and leaves only on a second click", async () => {
+    const base = stubFetch({
+      "/api/me": { mode: "guest", signedIn: false, memoryEnabled: true, surveyUrl: null },
+      "/api/me/memories": { memories: [] },
+      "/api/me/team": {
+        team: {
+          name: "Platform",
+          memberCount: 3,
+          memories: [
+            {
+              id: "t1",
+              type: "decision",
+              status: "stored",
+              createdAt: new Date().toISOString(),
+              blobId: "teamblob1",
+              explorerUrl: "https://walruscan.com/mainnet/blob/teamblob1",
+              mine: true,
+            },
+            {
+              id: "t2",
+              type: "gotcha",
+              status: "failed",
+              createdAt: new Date().toISOString(),
+              blobId: null,
+              explorerUrl: null,
+              mine: false,
+            },
+          ],
+        },
+      },
+    });
+    const posted: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = String(input);
+        if (init?.method === "POST") {
+          posted.push(path);
+          const body = path.endsWith("/invite")
+            ? { code: "K7QX2M", expiresInMinutes: 10 }
+            : { left: "Platform" };
+          return { ok: true, status: 200, json: async () => body } as Response;
+        }
+        return base(input);
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await screen.findByText("Team: Platform");
+    const seen = document.body.textContent ?? "";
+    expect(seen).toMatch(/3 members/);
+    expect(seen).toMatch(/2 shared, 1 added by you/);
+    expect(seen).toMatch(/a teammate/);
+    // A failed team write is visible now; it used to vanish after "Added".
+    expect(seen).toMatch(/never reached Walrus/);
+    expect(seen).toMatch(/no member owns it yet/);
+
+    screen.getByRole("button", { name: "Invite" }).click();
+    await screen.findByText("K7QX2M");
+
+    screen.getByRole("button", { name: "Leave the team" }).click();
+    await screen.findByText(/What you added stays with the team/);
+    expect(posted.some((p) => p.endsWith("/leave"))).toBe(false);
+    screen.getByRole("button", { name: "Leave" }).click();
+    await waitFor(() => expect(posted.some((p) => p.endsWith("/api/me/team/leave"))).toBe(true));
+  });
+
+  it("explains how to start a team when there is none", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", signedIn: false, memoryEnabled: true, surveyUrl: null },
+        "/api/me/memories": { memories: [] },
+        "/api/me/team": { team: null },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await screen.findByText("Team memory");
+    expect(document.body.textContent).toMatch(/\/team new <name>/);
+  });
+
   it("warns on a memory that is nearly gone, where the row is the right place", async () => {
     const soon = new Date(Date.now() + 9 * 86_400_000).toISOString();
     vi.stubGlobal(

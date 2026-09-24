@@ -47,7 +47,7 @@ function daysUntil(iso: string): number {
  * Every row on this page carried an identical absolute date, which told a
  * reader nothing and made the rows indistinguishable from each other.
  */
-function ago(iso: string): string {
+export function ago(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;

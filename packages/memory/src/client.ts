@@ -1,9 +1,18 @@
 import { MemWal } from "@mysten-incubation/memwal";
 
+/**
+ * The prefix of every team namespace. Team writes are indexed under the person
+ * who made them, so anything that counts or lists a person's *own* memory —
+ * `pnpm evidence` above all, whose 3 × 10 check must not be inflated by shared
+ * facts — filters on this.
+ */
+export const TEAM_PREFIX = "hippo-team:";
+
 export const NAMESPACE = {
   owned: "hippo",
   guest: (personId: string) => `hippo-guest:${personId}`,
-  team: (id: string) => `hippo-team:${id}`,
+  team: (id: string) => `${TEAM_PREFIX}${id}`,
+  isTeam: (namespace: string) => namespace.startsWith(TEAM_PREFIX),
 } as const;
 
 /** Everything needed to talk to one (account, namespace) through the relayer. */

@@ -11,7 +11,7 @@ import { HELP, PRIVACY, welcome } from "./copy.ts";
 import { env } from "./env.ts";
 import { asDownload, type ExportDownload, exportFor } from "./export-person.ts";
 import { createLinkCode, redeemLinkCode } from "./link.ts";
-import { type Person, portFor, teamPortFor } from "./persons.ts";
+import { ownMemoryOf, type Person, portFor, teamPortFor } from "./persons.ts";
 import { createTeam, currentTeam, inviteToTeam, joinTeam, leaveTeam } from "./teams.ts";
 
 export interface CommandContext {
@@ -192,7 +192,7 @@ async function whoami(ctx: CommandContext): Promise<CommandResult> {
   const [{ count } = { count: 0 }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(memoryIndex)
-    .where(eq(memoryIndex.personId, person.id));
+    .where(ownMemoryOf(person.id));
   lines.push(`Memories written by hippo: ${count}`);
 
   try {
@@ -210,7 +210,7 @@ async function listMemories(ctx: CommandContext): Promise<CommandResult> {
   const rows = await db
     .select()
     .from(memoryIndex)
-    .where(eq(memoryIndex.personId, ctx.person.id))
+    .where(ownMemoryOf(ctx.person.id))
     .orderBy(desc(memoryIndex.createdAt))
     .limit(30);
   if (!rows.length) {
@@ -256,7 +256,7 @@ async function forget(ctx: CommandContext): Promise<CommandResult> {
   const port = await portFor(ctx.person, ctx.channel);
   try {
     const res = await extrasFor(port.scope).forget(port.scope.namespace);
-    await db.delete(memoryIndex).where(eq(memoryIndex.personId, ctx.person.id));
+    await db.delete(memoryIndex).where(ownMemoryOf(ctx.person.id));
     return {
       text: `Removed ${res.deleted} memories from the search index, so I can no longer recall any of them.\n\nBeing straight with you about the limit: the encrypted blobs stay on Walrus until their storage epochs run out, and there is currently no way to delete them earlier. Nobody can read them without your account's keys, and I can no longer find them, but they are not gone.`,
     };

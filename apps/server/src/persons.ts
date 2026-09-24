@@ -1,11 +1,21 @@
 import type { TurnContext } from "@hippo/core";
-import { and, channelIdentities, delegateKeys, eq, memoryIndex, people, turnLog } from "@hippo/db";
+import {
+  and,
+  channelIdentities,
+  delegateKeys,
+  eq,
+  memoryIndex,
+  people,
+  sql,
+  turnLog,
+} from "@hippo/db";
 import {
   createMemoryPort,
   decryptSecret,
   guestScope,
   type MemoryPort,
   ownedScope,
+  TEAM_PREFIX,
   teamScope,
   type WriteEvent,
 } from "@hippo/memory";
@@ -41,18 +51,26 @@ export async function resolvePerson(
   });
 }
 
-/** Guest or owned MemoryPort for a person, recording every write in memory_index. */
 /**
- * Reads a person's own memory, plus their team's if they are in one.
- *
- * Team memory is a read-only companion here on purpose: being in a team must
- * never turn an ordinary sentence into something colleagues can read. Putting a
- * fact into the team is an explicit act, `/team remember`, and that path builds
- * its own port through `teamPortFor` below.
+ * A person's own rows in `memory_index`: everything but what they added to a
+ * team. Team writes are indexed under whoever made them, and a shared fact is
+ * neither theirs to list as "what I remember about you" nor theirs to forget.
  */
-export async function portFor(person: Person, channel: string): Promise<MemoryPort> {
-  const by = person.displayName ?? person.id.slice(0, 8);
-  const onWrite = async (e: WriteEvent) => {
+export function ownMemoryOf(personId: string) {
+  return and(
+    eq(memoryIndex.personId, personId),
+    sql`${memoryIndex.namespace} not like ${`${TEAM_PREFIX}%`}`,
+  );
+}
+
+/**
+ * Record every write in `memory_index` as it moves from accepted to stored or
+ * failed. Shared by a person's own port and the team port, so a team write is
+ * tracked like any other: it used to be written with no record at all, and one
+ * that failed on Walrus went unnoticed after the person had been told "Added".
+ */
+function indexWrites(person: Person) {
+  return async (e: WriteEvent) => {
     if (e.outcome === "duplicate") return;
     if (e.outcome === "accepted") {
       await db.insert(memoryIndex).values({
@@ -79,6 +97,20 @@ export async function portFor(person: Person, channel: string): Promise<MemoryPo
       })
       .where(eq(memoryIndex.jobId, e.jobId));
   };
+}
+
+/** Guest or owned MemoryPort for a person, recording every write in memory_index. */
+/**
+ * Reads a person's own memory, plus their team's if they are in one.
+ *
+ * Team memory is a read-only companion here on purpose: being in a team must
+ * never turn an ordinary sentence into something colleagues can read. Putting a
+ * fact into the team is an explicit act, `/team remember`, and that path builds
+ * its own port through `teamPortFor` below.
+ */
+export async function portFor(person: Person, channel: string): Promise<MemoryPort> {
+  const by = person.displayName ?? person.id.slice(0, 8);
+  const onWrite = indexWrites(person);
   if (person.mode === "owned" && person.accountId) {
     const [key] = await db
       .select()
@@ -134,7 +166,14 @@ export async function teamPortFor(
   teamId: string,
 ): Promise<MemoryPort> {
   const by = person.displayName ?? person.id.slice(0, 8);
-  return createMemoryPort({ scope: teamScope(operator, teamId), by, channel });
+  return createMemoryPort({
+    scope: teamScope(operator, teamId),
+    by,
+    channel,
+    // Recorded under the person who added it, in the team's namespace. Anything
+    // counting a person's own memory must leave these out: see TEAM_PREFIX.
+    onWrite: indexWrites(person),
+  });
 }
 
 export async function logTurn(

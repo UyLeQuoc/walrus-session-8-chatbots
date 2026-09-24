@@ -1,6 +1,6 @@
 import { gatherContext, runTurn } from "@hippo/core";
 import { and, delegateKeys, desc, eq, memoryIndex } from "@hippo/db";
-import { createSuiClient, explorer, RelayerExtras, readAccount } from "@hippo/memory";
+import { createSuiClient, explorer, NAMESPACE, RelayerExtras, readAccount } from "@hippo/memory";
 import { convertToModelMessages, type UIMessage } from "ai";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
@@ -12,8 +12,9 @@ import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { asDownload, exportFor } from "../export-person.ts";
 import { tooLong } from "../limits.ts";
-import { logTurn, type Person, portFor, resolvePerson } from "../persons.ts";
+import { logTurn, ownMemoryOf, type Person, portFor, resolvePerson } from "../persons.ts";
 import { checkRate, noteCommand } from "../ratelimit.ts";
+import { currentTeam, inviteToTeam, leaveTeam } from "../teams.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
 const CHANNEL = "web";
@@ -184,7 +185,7 @@ export const chatRoutes = new Hono()
     const rows = await db
       .select()
       .from(memoryIndex)
-      .where(eq(memoryIndex.personId, person.id))
+      .where(ownMemoryOf(person.id))
       .orderBy(desc(memoryIndex.createdAt))
       .limit(100);
 
@@ -339,6 +340,69 @@ export const chatRoutes = new Hono()
       "content-disposition": `attachment; filename="${file.name}"`,
       "cache-control": "no-store",
     });
+  })
+
+  /**
+   * The team this person is in, and what the team holds.
+   *
+   * Metadata only, as everywhere on /me: memory text is never in Postgres.
+   * Teammates are never named. Each shared memory says only whether this person
+   * added it, because the page is about what hippo holds, not about who said
+   * what to whom.
+   */
+  .get("/api/me/team", async (c) => {
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ team: null });
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const team = await currentTeam(person.id);
+    if (!team) return c.json({ team: null });
+    const rows = await db
+      .select()
+      .from(memoryIndex)
+      .where(eq(memoryIndex.namespace, NAMESPACE.team(team.teamId)))
+      .orderBy(desc(memoryIndex.createdAt))
+      .limit(50);
+    return c.json({
+      team: {
+        name: team.name,
+        memberCount: team.memberCount,
+        memories: rows.map((r) => ({
+          id: r.id,
+          type: r.type,
+          status: r.status,
+          createdAt: r.createdAt,
+          blobId: r.blobId,
+          explorerUrl: r.blobId ? explorer.blobExplorer(r.blobId) : null,
+          mine: r.personId === person.id,
+        })),
+      },
+    });
+  })
+
+  /** An invite code, the same one `/team invite` gives. */
+  .post("/api/me/team/invite", async (c) => {
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, CHANNEL);
+    const team = await currentTeam(person.id);
+    if (!team) return c.json({ error: "You are not in a team." }, 409);
+    return c.json(await inviteToTeam(person, team.teamId));
+  })
+
+  /** Leave, as `/team leave` does. What was added stays with the team. */
+  .post("/api/me/team/leave", async (c) => {
+    const cookie = readGuestId(c);
+    if (!cookie && !readSessionId(c)) return c.json({ error: "Say something first." }, 401);
+    const person = await webPerson(c, CHANNEL, cookie, () => {});
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, CHANNEL);
+    const left = await leaveTeam(person.id);
+    if (!left) return c.json({ error: "You are not in a team." }, 409);
+    return c.json({ left: left.name });
   })
 
   /**

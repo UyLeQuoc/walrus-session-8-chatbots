@@ -87,7 +87,7 @@ describe("recoverText", () => {
 describe("assembleExport", () => {
   const rows = [
     row("a", LINE_A),
-    row("b", LINE_B),
+    row("b", LINE_B, { namespace: "hippo-team:t1" }),
     row("c", "[gotcha] [by:@mai] [2026-09-24] port 5433"),
     row(null, LINE_A, { status: "pending" }),
     row(null, LINE_A, { status: "failed" }),
@@ -130,12 +130,14 @@ describe("assembleExport", () => {
     expect(c?.ciphertextUrl).toContain("c");
   });
 
-  it("says whose account a guest's memory is in, and that team memory is not included", () => {
-    expect(file.limits.join(" ")).toContain("hippo's own Walrus Memory account");
-    // Team writes are not indexed per person, so the file must not imply it
-    // holds what this person gave the team.
-    expect(file.limits.join(" ")).toContain('team "Platform"');
-    expect(file.limits.join(" ")).toContain("is not in this file");
+  it("labels what the person gave a team, and says what that does not cover", () => {
+    expect(file.memories.map((m) => m.scope)).toEqual(["own", "team", "own"]);
+    const said = file.limits.join(" ");
+    expect(said).toContain("hippo's own Walrus Memory account");
+    // Teammates' facts are not theirs, and untracked older writes cannot be
+    // listed; the file must not imply otherwise.
+    expect(said).toContain("What teammates added is theirs and is not in this file");
+    expect(said).toContain("nothing added before hippo began recording team writes");
   });
 
   it("never claims the reader can decrypt the blobs", () => {

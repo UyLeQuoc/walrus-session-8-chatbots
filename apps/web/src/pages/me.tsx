@@ -7,6 +7,7 @@ import { ExportPanel } from "@/components/export-panel";
 import { Hash } from "@/components/hash";
 import { type Memory, MemoryList } from "@/components/memory-list";
 import { Section } from "@/components/section";
+import { TeamPanel } from "@/components/team-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WalletSignIn } from "@/components/wallet-signin";
@@ -138,6 +139,8 @@ export function MePage() {
       <MemoryList memories={memories} onError={(m) => toast.error(m)} />
 
       {stored > 0 && <ExportPanel onError={(m) => toast.error(m)} />}
+
+      <TeamPanel onError={(m) => toast.error(m)} />
 
       <Section
         title="Read the same memory in Claude Code"

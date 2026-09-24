@@ -23,7 +23,7 @@
  * memory text does not go into Postgres, and that includes a cached file.
  */
 import { createHash } from "node:crypto";
-import { explorer, MEMORY_TYPES, parseMemoryText } from "@hippo/memory";
+import { explorer, MEMORY_TYPES, NAMESPACE, parseMemoryText } from "@hippo/memory";
 
 /** One `memory_index` row, as much of it as the export needs. */
 export interface IndexRow {
@@ -110,6 +110,8 @@ export interface ExportedMemory {
   type: string;
   createdAt: string;
   channel: string;
+  /** `own` for this person's memory, `team` for a fact they added to a team. */
+  scope: "own" | "team";
   namespace: string;
   accountId: string;
   expiresAt: string | null;
@@ -160,6 +162,7 @@ export function assembleExport(input: {
       type: r.type,
       createdAt: r.createdAt.toISOString(),
       channel: r.channel,
+      scope: NAMESPACE.isTeam(r.namespace) ? "team" : "own",
       namespace: r.namespace,
       accountId: r.accountId,
       expiresAt: input.expiry.get(r.blobId) ?? null,
@@ -183,11 +186,11 @@ export function assembleExport(input: {
       "These memories are in hippo's own Walrus Memory account, not yours. /connect moves new memories into an account your wallet owns; what is listed here stays where it is.",
     );
   }
-  if (input.teamName) {
-    // /team remember writes to the team's namespace and records nothing per
-    // person, so there is no list of what this person contributed to export.
+  if (input.teamName || memories.some((m) => m.scope === "team")) {
+    // Team writes are indexed per person only from the 2026-09-24 deploy on;
+    // before it `/team remember` recorded nothing, so there is nothing to list.
     limits.push(
-      `You are in the team "${input.teamName}". What you added with /team remember is not in this file: it belongs to the team's shared memory, and hippo does not keep a per-person record of it.`,
+      "Memories marked team are ones you added with /team remember. They belong to the team's shared memory, and leaving the team does not remove them. What teammates added is theirs and is not in this file, and nothing added before hippo began recording team writes is listed.",
     );
   }
 
@@ -241,7 +244,7 @@ export function renderMarkdown(file: ExportFile): string {
         m.verified === true ? "verified" : m.verified === false ? "**did not verify**" : "";
       out.push(
         `- ${text}  `,
-        `  ${m.createdAt.slice(0, 10)} · ${m.channel}${mark ? ` · ${mark}` : ""} · [blob](${m.explorerUrl})${m.expiresAt ? ` · expires ${m.expiresAt.slice(0, 10)}` : ""}`,
+        `  ${m.createdAt.slice(0, 10)} · ${m.channel}${m.scope === "team" ? " · team" : ""}${mark ? ` · ${mark}` : ""} · [blob](${m.explorerUrl})${m.expiresAt ? ` · expires ${m.expiresAt.slice(0, 10)}` : ""}`,
       );
     }
   }
