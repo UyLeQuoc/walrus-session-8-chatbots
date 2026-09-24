@@ -1,29 +1,9 @@
-import { loadEnv, operatorEnvSchema } from "@hippo/memory";
-import { z } from "zod";
+import { loadEnv, withoutBlanks } from "@hippo/memory";
+import { serverEnvSchema } from "./env-schema.ts";
 
 loadEnv();
 
-const schema = operatorEnvSchema.extend({
-  OPENROUTER_API_KEY: z.string().min(1),
-  LLM_MODEL: z.string().default("google/gemini-2.5-flash"),
-  LLM_FALLBACK_MODEL: z.string().optional(),
-  DATABASE_URL: z.string().min(1),
-  PORT: z.coerce.number().default(8787),
-  WEB_BASE_URL: z.string().url().default("http://localhost:5173"),
-  CORS_ORIGIN: z.string().default("http://localhost:5173,http://localhost:5174"),
-  SESSION_SECRET: z.string().min(32),
-  KEY_ENCRYPTION_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/),
-  /** Optional WalForm (or any) feedback survey, shown on /start and /me. */
-  SURVEY_URL: z.string().url().optional(),
-  TELEGRAM_BOT_TOKEN: z.string().optional(),
-  DISCORD_TOKEN: z.string().optional(),
-  DISCORD_CLIENT_ID: z.string().optional(),
-  SLACK_BOT_TOKEN: z.string().optional(),
-  SLACK_APP_TOKEN: z.string().optional(),
-  SLACK_SIGNING_SECRET: z.string().optional(),
-});
-
-const parsed = schema.safeParse(process.env);
+const parsed = serverEnvSchema.safeParse(withoutBlanks(process.env));
 if (!parsed.success) {
   console.error("Invalid environment:");
   for (const i of parsed.error.issues) console.error(`  ${i.path.join(".")}: ${i.message}`);

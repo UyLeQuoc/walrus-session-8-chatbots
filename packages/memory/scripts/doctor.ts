@@ -25,6 +25,7 @@ import {
   operatorEnvSchema,
   RelayerExtras,
   readAccount,
+  withoutBlanks,
 } from "../src/index.ts";
 
 loadEnv();
@@ -38,7 +39,7 @@ const bad = (m: string) => {
 let broken = 0;
 
 console.log("\nEnvironment");
-const parsed = operatorEnvSchema.safeParse(process.env);
+const parsed = operatorEnvSchema.safeParse(withoutBlanks(process.env));
 if (!parsed.success) {
   for (const i of parsed.error.issues) bad(`${i.path.join(".")}: ${i.message}`);
   console.log("\nFix .env and run again. See .env.example.");

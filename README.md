@@ -70,21 +70,37 @@ back from Walrus, because the text is never stored in Postgres.
 
 ## Run it
 
+You need Node 20 or later, pnpm 10 (`corepack enable` picks up the version this
+repo pins) and Docker for the local Postgres. Credentials are a Walrus Memory
+delegate key and an OpenRouter API key; see [Credentials](#credentials).
+
 ```bash
-cp .env.example .env         # fill MEMWAL_*, OPENROUTER_API_KEY, the two secrets
+cp .env.example .env         # fill the four blanks listed below
 docker compose up -d         # local Postgres on :5433
 pnpm install
 pnpm db:push                 # create the schema
-pnpm smoke --write           # writes and recalls one memory on mainnet
+pnpm smoke --write           # one memory round trip on mainnet
 ```
+
+The four blanks in `.env` are `MEMWAL_PRIVATE_KEY`, `OPENROUTER_API_KEY`, and
+`SESSION_SECRET` and `KEY_ENCRYPTION_KEY`, one `openssl rand -hex 32` each. With
+your own Walrus Memory key, also replace `MEMWAL_ACCOUNT_ID`, which ships set to
+hippo's account. Leave everything else as it is; blank values mean "off".
+
+`smoke --write` stores one fact and recalls it. It writes the same fact every
+time, so from the second run on it reports that an earlier run already stored it
+and writes nothing, which is the dedupe every chat write goes through.
 
 Then, in separate terminals:
 
 ```bash
 pnpm dev:server              # Hono API on :8787 plus any channel whose token is set
-pnpm dev:web                 # the Vite app on :5173
+pnpm dev:web                 # the Vite app on :5173, proxying /api to :8787
 pnpm hippo                   # the CLI, talking to the same server
+pnpm demo                    # the memory eval below; no server needed, about 5½ minutes
 ```
+
+If :5173 is taken, Vite moves to :5174, which the server also accepts.
 
 `pnpm diagnose` is the first thing to run when something looks wrong: it prints
 what is configured, what works, and where the chain and the relayer disagree.
@@ -110,10 +126,13 @@ budget, the database size and the relayer against a week of real use, and says
 whether it fits. `pnpm prune:people` clears rows for people who never said
 anything.
 
-`pnpm smoke`, `pnpm db:push`, `pnpm typecheck` and `pnpm test` need only the
-Walrus Memory credentials. `pnpm demo`, `pnpm hippo` and the chat itself also
-need `OPENROUTER_API_KEY`. The whole sequence above was run from a fresh clone on
-2026-09-21; the transcript is in `docs/evidence/clean-clone-2026-09-21.md`.
+`pnpm lint`, `pnpm typecheck` and `pnpm test` need no credentials at all; tests
+that read the real account skip themselves without them. `pnpm db:push` needs
+only the database. `pnpm smoke` needs the Walrus Memory credentials, and
+`pnpm demo`, `pnpm hippo` and the chat also need `OPENROUTER_API_KEY`. The whole
+sequence above was run from a fresh clone on Node 20 on 2026-09-25, and every
+step that failed or needed knowledge this README did not give was fixed; the
+log is in `docs/evidence/clean-clone-2026-09-25.md`.
 
 ### Credentials
 
@@ -151,8 +170,9 @@ docs/            brief, idea, architecture, plan, spikes, evidence, bug reports
 
 `docs/ARCHITECTURE.md` explains guest and owned mode and lists every limitation
 we measured, `docs/SPIKES.md` records what we measured on mainnet and what it
-changed (including a hypothesis we had to retract), `docs/issues/` holds the ten
-bug reports we are filing against Walrus Memory, and
+changed (including a hypothesis we had to retract), `docs/issues/` holds thirteen
+bug reports drafted against Walrus Memory, each re-run on 2026-09-25 (nine still
+stand; the rest are marked with what became of them), and
 `docs/evidence/security-review-2026-09-21.md` is an adversarial review of this
 repo with its findings fixed.
 

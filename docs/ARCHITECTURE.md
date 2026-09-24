@@ -349,7 +349,7 @@ Original list:
 | `pnpm evidence` | The submission numbers, counting only memories that landed and excluding slash commands from the turn counts. |
 | `pnpm smoke` | Health, identity, and with `--write` one round trip on mainnet. |
 | `pnpm restore` | Relayer index versus what we wrote, with a warning when restore sees nothing (`docs/issues/10`). |
-| `scripts/file-issues.sh` | Files the ten drafted reports, `--dry-run` first. |
+| `scripts/file-issues.sh` | Files the drafted reports that still stand, skipping those marked retracted, not reproduced, resolved or on hold; `--dry-run` first. |
 | `pnpm --filter @hippo/server discord:commands <guildId>` | Publishes the slash commands to Discord. |
 
 

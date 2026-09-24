@@ -121,6 +121,9 @@ async function main() {
   );
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
+  // Ctrl+D closes the input, and a question pending on a closed interface never
+  // settles, so Node exited with status 13 and pnpm printed a failure block.
+  rl.on("close", () => process.exit(0));
   const messages: Array<{ id: string; role: string; parts: UIPart[] }> = [];
   let sessionStart = true;
 

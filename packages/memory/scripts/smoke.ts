@@ -77,8 +77,10 @@ if (!write) {
   const t0 = Date.now();
   const out = await rememberWithDedupe(client, { text: line, namespace: scope.namespace });
   if (out.status === "duplicate") {
+    // Every run writes the same fact, so after the first one dedupe finds it.
+    // That is the chat path working, not a write that failed.
     console.log(
-      `→ duplicate of ${out.blobId} (distance ${out.distance.toFixed(3)}) in ${Date.now() - t0} ms`,
+      `→ nothing written: an earlier run already stored this fact as ${out.blobId} (distance ${out.distance.toFixed(3)}), found in ${Date.now() - t0} ms`,
     );
   } else {
     console.log(`→ accepted job ${out.jobId} in ${Date.now() - t0} ms (reply would return here)`);
@@ -93,6 +95,6 @@ if (!write) {
     limit: 3,
     maxDistance: 0.8,
   });
-  console.log(`recall returned ${hits.length}:`);
+  console.log(`recall returned ${hits.length} (distance, lower is closer):`);
   for (const h of hits) console.log(`  ${h.distance.toFixed(3)}  ${h.text}`);
 }

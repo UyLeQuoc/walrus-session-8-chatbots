@@ -9,7 +9,14 @@ export {
 } from "./client.ts";
 export { decryptSecret, encryptSecret } from "./crypto.ts";
 export { type GeneratedDelegate, generateDelegate } from "./delegate.ts";
-export { loadEnv, type OperatorEnv, operatorEnvSchema, readOperatorEnv } from "./env.ts";
+export {
+  loadEnv,
+  type OperatorEnv,
+  operatorEnvSchema,
+  parseEnvText,
+  readOperatorEnv,
+  withoutBlanks,
+} from "./env.ts";
 export {
   buildMemoryText,
   isMemoryType,

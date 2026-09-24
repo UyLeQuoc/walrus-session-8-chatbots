@@ -14,7 +14,7 @@ Multi-channel chatbot (web, Telegram, Discord, Slack) where each user owns their
 - `docs/BLOCKERS.md` — what only the user can provide. Read it before assuming something is blocked.
 - `docs/DECISIONS.md` — the running decision log.
 - `docs/RUNBOOK.md` — how to run the real-use week: invite text, consent rules, daily checklist.
-- `docs/issues/` — thirteen bug reports drafted against Walrus Memory (08 retracted, none filed yet), filed with `scripts/file-issues.sh`.
+- `docs/issues/` — thirteen bug reports drafted against Walrus Memory, re-verified 2026-09-25: nine still stand, four are marked (02 on hold, 03 not reproduced, 07 resolved before filing, 08 retracted). None filed yet; `scripts/file-issues.sh` files the nine.
 - `docs/AUDIT.md` — every task in GOAL.md checked against the codebase, with what is blocked and why. Read this before concluding there is nothing left to do.
 
 ## Commands worth knowing
