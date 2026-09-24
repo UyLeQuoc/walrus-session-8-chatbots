@@ -1,7 +1,7 @@
 import { App } from "@slack/bolt";
-import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { handleIncoming } from "../turn.ts";
+import { slackHandler } from "./handlers.ts";
 import type { ChannelAdapter } from "./types.ts";
 
 const CHANNEL = "slack";
@@ -15,38 +15,21 @@ export function slackAdapter(): ChannelAdapter | null {
     socketMode: true,
   });
 
-  const run = async (
-    userId: string,
-    teamId: string | undefined,
-    channelId: string,
-    text: string,
-    say: (t: string) => Promise<unknown>,
-  ) => {
-    try {
-      const reply = await handleIncoming({
-        channel: CHANNEL,
-        externalId: `${teamId ?? "?"}/${userId}`,
-        text,
-        threadKey: `${channelId}:${userId}`,
-      });
-      await say(reply.text);
-    } catch (err) {
-      console.error("[slack] turn failed", err);
-      await say(describeFailure(err));
-    }
-  };
+  const handle = slackHandler(handleIncoming);
 
   app.event("app_mention", async ({ event, say }) => {
-    const text = event.text.replace(/<@[A-Z0-9]+>/g, "").trim();
-    if (text) await run(event.user ?? "unknown", event.team, event.channel, text, (t) => say(t));
+    await handle(
+      { user: event.user, team: event.team, channel: event.channel, text: event.text },
+      (t) => say(t),
+    );
   });
 
   app.message(async ({ message, say }) => {
     if (message.channel_type !== "im") return;
     if (!("text" in message) || !message.text) return;
-    if (!("user" in message) || !message.user) return;
+    const user = "user" in message ? message.user : undefined;
     const team = "team" in message ? (message.team as string | undefined) : undefined;
-    await run(message.user, team, message.channel, message.text, (t) => say(t));
+    await handle({ user, team, channel: message.channel, text: message.text }, (t) => say(t));
   });
 
   return {

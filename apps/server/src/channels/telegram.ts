@@ -1,8 +1,7 @@
-import { Bot, InputFile } from "grammy";
-import { describeFailure } from "../copy.ts";
+import { Bot } from "grammy";
 import { env } from "../env.ts";
 import { handleIncoming } from "../turn.ts";
-import { chunk } from "./chunk.ts";
+import { telegramHandler } from "./handlers.ts";
 import type { ChannelAdapter } from "./types.ts";
 
 const CHANNEL = "telegram";
@@ -11,31 +10,8 @@ export function telegramAdapter(): ChannelAdapter | null {
   if (!env.TELEGRAM_BOT_TOKEN) return null;
   const bot = new Bot(env.TELEGRAM_BOT_TOKEN);
 
-  bot.on("message:text", async (ctx) => {
-    const from = ctx.from;
-    const typing = setInterval(() => void ctx.replyWithChatAction("typing").catch(() => {}), 5_000);
-    void ctx.replyWithChatAction("typing").catch(() => {});
-    try {
-      const reply = await handleIncoming({
-        channel: CHANNEL,
-        externalId: String(from.id),
-        displayName: from.username ?? from.first_name,
-        text: ctx.message.text,
-        threadKey: `${ctx.chat.id}:${from.id}`,
-      });
-      for (const part of chunk(reply.text)) {
-        await ctx.reply(part, { link_preview_options: { is_disabled: true } });
-      }
-      for (const f of reply.files ?? []) {
-        await ctx.replyWithDocument(new InputFile(Buffer.from(f.content, "utf8"), f.name));
-      }
-    } catch (err) {
-      console.error("[telegram] turn failed", err);
-      await ctx.reply(describeFailure(err));
-    } finally {
-      clearInterval(typing);
-    }
-  });
+  const handle = telegramHandler(handleIncoming);
+  bot.on("message:text", (ctx) => handle(ctx));
 
   return {
     name: CHANNEL,

@@ -1,11 +1,10 @@
 import { ChannelType, Client, Events, GatewayIntentBits, Partials } from "discord.js";
-import { describeFailure } from "../copy.ts";
 import { env } from "../env.ts";
 import { handleIncoming } from "../turn.ts";
+import { discordHandler } from "./handlers.ts";
 import type { ChannelAdapter } from "./types.ts";
 
 const CHANNEL = "discord";
-const MAX_LEN = 1900;
 
 export function discordAdapter(): ChannelAdapter | null {
   if (!env.DISCORD_TOKEN) return null;
@@ -19,31 +18,18 @@ export function discordAdapter(): ChannelAdapter | null {
     partials: [Partials.Channel],
   });
 
-  client.on(Events.MessageCreate, async (msg) => {
-    if (msg.author.bot) return;
-    const isDm = msg.channel.type === ChannelType.DM;
-    const mentioned = client.user ? msg.mentions.has(client.user) : false;
-    if (!isDm && !mentioned) return;
-    const text = msg.content.replace(/<@!?\d+>/g, "").trim();
-    if (!text) return;
-
-    if ("sendTyping" in msg.channel) await msg.channel.sendTyping().catch(() => {});
-    try {
-      const reply = await handleIncoming({
-        channel: CHANNEL,
-        externalId: msg.author.id,
-        displayName: msg.author.username,
-        text,
-        threadKey: `${msg.channelId}:${msg.author.id}`,
-      });
-      for (let i = 0; i < reply.text.length; i += MAX_LEN) {
-        await msg.reply(reply.text.slice(i, i + MAX_LEN));
-      }
-    } catch (err) {
-      console.error("[discord] turn failed", err);
-      await msg.reply(describeFailure(err));
-    }
-  });
+  const handle = discordHandler(handleIncoming);
+  client.on(Events.MessageCreate, (msg) =>
+    handle({
+      author: { id: msg.author.id, username: msg.author.username, bot: msg.author.bot },
+      channelId: msg.channelId,
+      content: msg.content,
+      isDirect: msg.channel.type === ChannelType.DM,
+      mentionsBot: client.user ? msg.mentions.has(client.user) : false,
+      sendTyping: "sendTyping" in msg.channel ? () => msg.channel.sendTyping() : undefined,
+      reply: (content) => msg.reply(content),
+    }),
+  );
 
   return {
     name: CHANNEL,

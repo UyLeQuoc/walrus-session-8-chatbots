@@ -35,7 +35,7 @@ export interface CommandResult {
 }
 
 /** Channels whose adapter delivers `files`. The rest are told where to go. */
-const ATTACHES = new Set(["telegram", "cli"]);
+const ATTACHES = new Set(["telegram", "discord", "cli"]);
 
 /**
  * `/export`: the person's memory as files they keep.
