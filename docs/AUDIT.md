@@ -88,9 +88,8 @@ real bug, carries the revocation timings, and states the decryption limit.
 `[M6]` and `[HUMAN]` still mark what is missing. Task 6 is the human publishing
 and submitting; nothing outward-facing has been posted.
 
-The one thing an editor should know: the draft body is about 1,950 words against
-an original target of 500 to 800. The header names which sections to cut and
-which two never to cut.
+The article to publish is `docs/article-final.md`, 793 words, cut from the long
+draft in `docs/article.md` to the session's 500 to 800.
 
 ## M8 — Close the gap between the claims and the product
 
@@ -98,11 +97,13 @@ Added 2026-09-24 from `docs/SCOPE-RESEARCH.md`.
 
 | # | Task | Status |
 |---|---|---|
-| 1 | Conflicts | **done**, and it was three defects, not one: dedupe discarded corrections, the model sometimes did not store them, and topical recall never returned them. `pnpm demo` now fails if any answer states a superseded value; passed three runs in a row on mainnet. `docs/evidence/conflicts-2026-09-24.md` |
+| 1 | Conflicts | **done**, and it was three defects, not one: dedupe discarded corrections, the model sometimes did not store them, and topical recall never returned them. `pnpm demo` now fails if any answer states a superseded value; passed four runs in a row on mainnet, the last after every other M8 change (`docs/evidence/demo-2026-09-24-after-m8.txt`). `docs/evidence/conflicts-2026-09-24.md` |
 | 2 | Export | **done**, 4/4 lines verified by hash end to end on mainnet, button exercised in Chrome. `docs/evidence/export-2026-09-24.md` |
 | 3 | Team on `/me` | **done**, after finding team writes were never tracked. Team rows are kept out of every per-person evidence count. `docs/evidence/team-tracking-2026-09-24.md` |
-| 4 | Hide one memory | **on a branch, waiting**: needs a new column in production, and schema pushes to production are the owner's call (`railway.toml`, `docs/DEPLOY.md`) |
-| 5 | Keep the story true | **done** for README, article, submission and this file. Two claims were stated as fact and never measured, that the same memory is readable from Claude Code; both now say it has not been run |
+| 4 | Hide one memory | **on branch `hide-one-memory`, waiting on the owner**: verified on mainnet, needs one nullable column in production, and schema pushes to production are the owner's call (`railway.toml`, `docs/BLOCKERS.md`) |
+| 5 | Keep the story true | **done** for README, article, submission, video, promo and this file. Claims stated as fact and never true were corrected: that the same memory is readable from Claude Code (never run), and that the issue drafts and the retracted report were "filed" (none is) |
+| 6 | Article to the word limit | **done**: `docs/article-final.md`, 793 words against the session's 500–800; `docs/article.md` stays as the long source |
+| 7 | Web chat commands | **fixed**: every slash command on the web returned JSON the chat could not render, so `/help`, `/memory`, `/connect` and the rest showed nothing. Now streamed; verified in Chrome and on production. `docs/evidence/web-commands-2026-09-24.md` |
 
 Also found and fixed along the way: CI had failed at pnpm setup on all 71 runs
 since the first commit, so lint, tests and audit had never run in CI; it is green
