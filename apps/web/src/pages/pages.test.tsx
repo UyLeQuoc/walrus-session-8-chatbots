@@ -305,7 +305,9 @@ describe("chat page", () => {
         <ChatPage />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/what I remember about you/)).toBeDefined();
+    const reply = screen.getByText(/what I remember about you/);
+    // Monospace, so the command table's columns line up.
+    expect(reply.className).toContain("font-mono");
     expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
   });
 

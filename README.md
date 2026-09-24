@@ -93,7 +93,10 @@ what is configured, what works, and where the chain and the relayer disagree.
 them, throws the conversation away, and in a fresh session asserts four things:
 that it recalls the facts, that the correction wins over the fact it replaced
 even though both are recalled, that a `style` memory changed the reply language
-without being asked again, and that a second channel recalls the same facts.
+without being asked again, and that a second channel recalls the same facts. It
+then asks the same questions with memory off, and fails if those answers know
+anything nobody could guess; that is the before and after, measured. It also
+prints what memory costs per turn (`docs/evidence/latency-2026-09-24.md`).
 
 `pnpm evidence` prints the numbers the session's submission form asks for,
 counting only memories that actually landed on Walrus. `pnpm restore` checks the

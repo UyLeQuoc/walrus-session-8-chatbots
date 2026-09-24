@@ -22,7 +22,7 @@ Multi-channel chatbot (web, Telegram, Discord, Slack) where each user owns their
 | | |
 |---|---|
 | `pnpm diagnose` | What is configured, what works, and where the chain and the relayer disagree. Run this first when anything looks wrong. |
-| `pnpm demo` | The memory eval: teaches five facts and one correction, drops the conversation, then asserts cross-session recall, that the newer of two conflicting memories wins, style adaptation and cross-channel recall. |
+| `pnpm demo` | The memory eval: teaches five facts and one correction, drops the conversation, then asserts cross-session recall, that the newer of two conflicting memories wins, style adaptation and cross-channel recall, then a memory-off control on the same questions and the recall cost per turn. |
 | `pnpm evidence` | The numbers the submission form asks for, counting only memories that landed on Walrus. |
 | `pnpm smoke` | Health, identity and (with `--write`) one round trip on mainnet. |
 | `pnpm restore` | Compares the relayer's index against what we wrote, and warns when restore sees nothing. |

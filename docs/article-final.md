@@ -39,16 +39,17 @@ PASS  What do you know about me?                → answered in Vietnamese
 PASS  0 of 5 answers stated pnpm without bun
 ```
 
-Nobody asked for Vietnamese in that session. A memory from the previous one
-changed how it writes, and the eval fails if it doesn't.
+Nobody asked for Vietnamese in that session; a memory from the previous one
+changed how it writes. With memory off, the same questions got "Which
+database?" and "We did not settle on an ORM."
 
 `[M6]` Real use: N people over M days, X memories each, and the moment it
 mattered.
 
 ### What broke
 
-**Writes take 24 seconds.** Blocking a reply on that is unusable, so hippo
-accepts the write, answers at once, and records the blob id when it lands.
+**Writes take 24 seconds, recalls about one.** So hippo answers before a write
+lands, and asks as few recall questions as it can.
 
 **Recall sometimes returns nothing while saying it found something**:
 `{"results": [], "dropped_count": 5}`, HTTP 200. The SDK's types omit the field,

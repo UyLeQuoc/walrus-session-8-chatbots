@@ -160,7 +160,15 @@ function Message({
         <ToolLine key={`${p.type as string}-${i}`} part={p} />
       ))}
       {shown ? (
-        <p className="whitespace-pre-wrap leading-relaxed">
+        // A command's answer is a table in plain text (/help, /memory); in a
+        // proportional font its columns do not line up.
+        <p
+          className={
+            (message.metadata as { command?: boolean } | undefined)?.command
+              ? "whitespace-pre-wrap font-mono text-xs leading-relaxed"
+              : "whitespace-pre-wrap leading-relaxed"
+          }
+        >
           {streaming ? <StreamingWords text={shown} /> : shown}
         </p>
       ) : (

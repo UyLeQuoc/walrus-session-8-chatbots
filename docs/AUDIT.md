@@ -88,7 +88,7 @@ real bug, carries the revocation timings, and states the decryption limit.
 `[M6]` and `[HUMAN]` still mark what is missing. Task 6 is the human publishing
 and submitting; nothing outward-facing has been posted.
 
-The article to publish is `docs/article-final.md`, 793 words, cut from the long
+The article to publish is `docs/article-final.md`, 799 words, cut from the long
 draft in `docs/article.md` to the session's 500 to 800.
 
 ## M8 — Close the gap between the claims and the product
@@ -102,12 +102,21 @@ Added 2026-09-24 from `docs/SCOPE-RESEARCH.md`.
 | 3 | Team on `/me` | **done**, after finding team writes were never tracked. Team rows are kept out of every per-person evidence count. `docs/evidence/team-tracking-2026-09-24.md` |
 | 4 | Hide one memory | **done**: verified on mainnet, then shipped once the owner approved the `hidden_at` column, applied through `plan-push` (one additive statement planned, one applied, none left). Also stops a bare `/memory forget` erasing everything, and makes `forget all` cover pre-connect memories. `docs/evidence/hide-one-memory-2026-09-24.md` |
 | 5 | Keep the story true | **done** for README, article, submission, video, promo and this file. Claims stated as fact and never true were corrected: that the same memory is readable from Claude Code (never run), and that the issue drafts and the retracted report were "filed" (none is) |
-| 6 | Article to the word limit | **done**: `docs/article-final.md`, 793 words against the session's 500–800; `docs/article.md` stays as the long source |
+| 6 | Article to the word limit | **done**: `docs/article-final.md`, 799 words against the session's 500–800; `docs/article.md` stays as the long source |
 | 7 | Web chat commands | **fixed**: every slash command on the web returned JSON the chat could not render, so `/help`, `/memory`, `/connect` and the rest showed nothing. Now streamed; verified in Chrome and on production. `docs/evidence/web-commands-2026-09-24.md` |
 
 Also found and fixed along the way: CI had failed at pnpm setup on all 71 runs
 since the first commit, so lint, tests and audit had never run in CI; it is green
 now. Production does not deploy on push, which left it a day behind `main`.
+
+## M9 — Measure what the pitch rests on
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Measured before/after | **done**: `pnpm demo` asks the same questions with memory off and fails if an answer knows what nobody could guess. Off: "Which database?", "We did not settle on an ORM." On: port 5433, Drizzle, who the person is |
+| 2 | Memory's cost per turn | **done**: session-start recall 3.76s → 1.97s median (ten alternating rounds, `bench:recall`), later turns 2.0s → 1.0s for people with no corrections. Parallel recalls measured to gain nothing and reverted. `docs/evidence/latency-2026-09-24.md` |
+| 3 | Command replies as tables | **done**: monospace on the web |
+| 4 | Keep the story true | **done** |
 
 ## Conclusion
 

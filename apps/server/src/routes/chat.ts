@@ -13,6 +13,7 @@ import { env } from "../env.ts";
 import { asDownload, exportFor } from "../export-person.ts";
 import { tooLong } from "../limits.ts";
 import {
+  hasCorrections,
   logTurn,
   ownMemoryOf,
   type Person,
@@ -145,6 +146,7 @@ export const chatRoutes = new Hono()
       userHandle: person.displayName ?? "web",
       memoryEnabled: person.memoryEnabled,
       sessionStart: body.sessionStart ?? body.messages.length <= 1,
+      hasCorrections: await hasCorrections(person.id),
     };
     const turnCtx = await gatherContext(input);
     const result = runTurn(input, turnCtx);

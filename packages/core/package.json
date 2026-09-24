@@ -10,7 +10,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "hippo": "tsx src/cli.ts",
     "demo": "tsx src/demo.ts",
-    "measure:corrections": "tsx src/measure-corrections.ts"
+    "measure:corrections": "tsx src/measure-corrections.ts",
+    "test": "vitest run",
+    "bench:recall": "tsx src/bench-recall.ts"
   },
   "dependencies": {
     "@hippo/memory": "workspace:*",
@@ -21,6 +23,7 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

@@ -7,7 +7,7 @@
  */
 import { createMemoryPort, guestScope, loadEnv, readOperatorEnv } from "@hippo/memory";
 import type { ModelMessage } from "ai";
-import { completeTurn } from "./agent.ts";
+import { completeTurn, gatherContext } from "./agent.ts";
 import { createModel } from "./model.ts";
 
 loadEnv();
@@ -54,6 +54,24 @@ const INDEX_WAIT_MS = Number(process.env.DEMO_INDEX_WAIT_MS ?? 90_000);
  */
 const STALE = /pnpm/i;
 const CURRENT = /\bbun\b/i;
+
+/**
+ * The control: the same questions, the same model, memory off. Only facts no
+ * model could guess are asserted — a generic answer to "which package manager"
+ * may well list pnpm and bun, and "which ORM" may list Drizzle, so those two
+ * are shown side by side and not scored. Nobody guesses port 5433, that this
+ * person works on Sui and Next.js, or that they want Vietnamese.
+ */
+const CANNOT_GUESS: Record<string, RegExp> = {
+  "What port is the database on?": /5433/,
+  "What do you know about me?": /\bsui\b|next\.?js/i,
+};
+
+function median(xs: number[]): number {
+  const sorted = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? (sorted[mid] ?? 0) : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+}
 
 /**
  * The same memory reached from a second "channel": a different MemoryPort, a
@@ -151,7 +169,9 @@ async function main() {
     full: string;
     injected: string[];
   }> = [];
+  const onMs: number[] = [];
   for (const { q, expect, why } of ASK) {
+    const began = Date.now();
     const turn = await completeTurn({
       model,
       port,
@@ -161,6 +181,7 @@ async function main() {
       memoryEnabled: true,
       sessionStart: true,
     });
+    onMs.push(Date.now() - began);
     const ok = expect.test(turn.text);
     results.push({
       ok,
@@ -180,6 +201,12 @@ async function main() {
   console.log(`\nSTYLE — did a [style] memory change how it writes?`);
   console.log(
     `  ${styleOk ? "PASS" : "FAIL"}  the answer came back ${styleOk ? "in Vietnamese" : "in English"}, unprompted in this session`,
+  );
+  // Scored on one answer, reported on all: a change to what a session's first
+  // turn recalls could lose the style memory for some questions and not others.
+  const inVietnamese = results.filter((r) => VIETNAMESE.test(r.full)).length;
+  console.log(
+    `        ${inVietnamese} of ${results.length} answers in this session came back in Vietnamese`,
   );
 
   const cross = await crossChannelCheck(model, port.scope.namespace, {
@@ -211,13 +238,83 @@ async function main() {
     );
   }
 
+  /**
+   * Before and after, measured rather than claimed: the same four questions
+   * with memory off. The eval fails if a memory-off answer knows something
+   * nobody could guess, or comes back in Vietnamese unasked.
+   */
+  console.log(`\nBASELINE — the same questions, memory off`);
+  const offMs: number[] = [];
+  let baselineOk = true;
+  for (const { q } of ASK) {
+    const began = Date.now();
+    const turn = await completeTurn({
+      model,
+      port,
+      messages: [{ role: "user", content: q }],
+      channel: "demo",
+      userHandle: "mai",
+      memoryEnabled: false,
+    });
+    offMs.push(Date.now() - began);
+    const leak = CANNOT_GUESS[q]?.test(turn.text) || VIETNAMESE.test(turn.text);
+    if (leak) baselineOk = false;
+    const on = results.find((r) => r.q === q)?.answer ?? "";
+    console.log(`  ${leak ? "FAIL" : CANNOT_GUESS[q] ? "PASS" : "    "}  ${q}`);
+    console.log(`        off: ${turn.text.replace(/\n/g, " ").slice(0, 110)}`);
+    console.log(`        on:  ${on.slice(0, 110)}`);
+  }
+
+  /**
+   * What memory costs. Recall timed on its own, so the model's variance does
+   * not hide it: a session's first turn runs the message recall, three
+   * session-start pulls and the corrections pull, one after another; a turn
+   * mid-session runs the message recall and the corrections pull.
+   */
+  const startMs: number[] = [];
+  const midMs: number[] = [];
+  const plainMs: number[] = [];
+  for (const { q } of ASK) {
+    // The third case is a later turn for someone who has never corrected
+    // anything, where the server skips the corrections recall. Timing only:
+    // this person does have a correction, so its answers are not scored.
+    for (const [sessionStart, hasCorrections, into] of [
+      [true, undefined, startMs],
+      [false, undefined, midMs],
+      [false, false, plainMs],
+    ] as const) {
+      const began = Date.now();
+      await gatherContext({
+        model,
+        port,
+        messages: [{ role: "user", content: q }],
+        channel: "demo",
+        userHandle: "mai",
+        memoryEnabled: true,
+        sessionStart,
+        hasCorrections,
+      });
+      into.push(Date.now() - began);
+    }
+  }
+  const s1 = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
+  console.log(`\nCOST — median over ${ASK.length} questions`);
+  console.log(`  whole turn, memory on (first of a session):  ${s1(median(onMs))}`);
+  console.log(`  whole turn, memory off:                      ${s1(median(offMs))}`);
+  console.log(`  recall alone, first turn of a session:       ${s1(median(startMs))}`);
+  console.log(`  recall alone, later turns:                   ${s1(median(midMs))}`);
+  console.log(`  recall alone, later turns, no corrections:   ${s1(median(plainMs))}`);
+
   const passed = results.filter((r) => r.ok).length;
   console.log(`\n${passed}/${results.length} recalled correctly across sessions.`);
   console.log(`newest fact wins:     ${newestOk ? "PASS" : "FAIL"}`);
   console.log(`style adaptation:     ${styleOk ? "PASS" : "FAIL"}`);
   console.log(`cross-channel recall: ${crossOk ? "PASS" : "FAIL"}`);
+  console.log(`memory-off control:   ${baselineOk ? "PASS" : "FAIL"}`);
   console.log(`namespace: ${port.scope.namespace}`);
-  if (passed < results.length || !crossOk || !styleOk || !newestOk) process.exitCode = 1;
+  if (passed < results.length || !crossOk || !styleOk || !newestOk || !baselineOk) {
+    process.exitCode = 1;
+  }
 }
 
 await main();

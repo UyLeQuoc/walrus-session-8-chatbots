@@ -160,6 +160,20 @@ export async function portFor(
   });
 }
 
+/**
+ * Whether this person has ever stored a correction. When they have not, the
+ * corrections recall is skipped, which saves about a second on every turn for
+ * most people (docs/evidence/latency-2026-09-24.md).
+ */
+export async function hasCorrections(personId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: memoryIndex.id })
+    .from(memoryIndex)
+    .where(and(ownMemoryOf(personId), eq(memoryIndex.type, "correction")))
+    .limit(1);
+  return Boolean(row);
+}
+
 /** Blob ids this person asked hippo to stop using. */
 export async function hiddenBlobs(personId: string): Promise<Set<string>> {
   const rows = await db

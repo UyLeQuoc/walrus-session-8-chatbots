@@ -1,7 +1,7 @@
 # Draft article — Medium + Inkray
 
 > **Publish `docs/article-final.md`, not this.** The session asks for 500 to 800
-> words (`docs/BRIEF.md` §4); that version is 792, counting code blocks. This
+> words (`docs/BRIEF.md` §4); that version is 799, counting code blocks. This
 > long draft is the source it was cut from and keeps everything measured.
 
 Honest over polished. Sections marked `[M6]` need the real-user numbers from

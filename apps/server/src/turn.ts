@@ -10,7 +10,7 @@ import { type CommandContext, type CommandResult, handleCommand } from "./comman
 import { startConnect, startDisconnect } from "./connect.ts";
 import { describeFailure } from "./copy.ts";
 import { tooLong } from "./limits.ts";
-import { logTurn, portFor, resolvePerson } from "./persons.ts";
+import { hasCorrections, logTurn, portFor, resolvePerson } from "./persons.ts";
 import { checkRate, noteCommand } from "./ratelimit.ts";
 
 const SESSION_GAP_MS = 6 * 60 * 60 * 1000;
@@ -95,6 +95,7 @@ export async function handleIncoming(msg: IncomingMessage): Promise<TurnReply> {
       userHandle: handle,
       memoryEnabled: person.memoryEnabled,
       sessionStart,
+      hasCorrections: await hasCorrections(person.id),
     }));
   } catch (err) {
     // The adapter would otherwise say the same sentence for a dead provider and

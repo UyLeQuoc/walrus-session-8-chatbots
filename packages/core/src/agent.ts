@@ -19,6 +19,12 @@ export interface TurnInput {
   memoryEnabled: boolean;
   /** First turn of a session: also pull profile/style/commitments with fixed queries. */
   sessionStart?: boolean;
+  /**
+   * False when the caller knows this person has never stored a correction, so
+   * the corrections recall can be skipped. Undefined means unknown, and the
+   * recall runs. Measured 2026-09-24, each recall costs about a second.
+   */
+  hasCorrections?: boolean;
 }
 
 export interface TurnContext {
@@ -57,33 +63,23 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
   const add = (list: RecalledMemory[]) => {
     for (const m of list) if (!seen.has(m.blob_id)) seen.set(m.blob_id, m);
   };
-  // Lazy, so they can be issued one at a time. Concurrent recalls make the
-  // relayer drop matches and answer with an empty result (docs/SPIKES.md §H),
-  // and a session-start turn would otherwise fire four at once. The extra
-  // latency is worth not silently forgetting.
+  // One at a time. Issuing them together did not help: measured 2026-09-24,
+  // the relayer answers a key's recalls roughly one after another, so four in
+  // parallel took about as long as four in a row, and only added load on a key
+  // every guest shares. What cut the time was asking fewer questions
+  // (docs/evidence/latency-2026-09-24.md).
   const jobs: Array<() => Promise<RecalledMemory[]>> = [];
   if (query) jobs.push(() => input.port.recall({ query, limit: 6 }));
   if (input.sessionStart) {
+    /**
+     * Who the person is, how they want replies, and what they promised, in one
+     * recall. This was three natural-language queries, a second each. Every
+     * memory's text begins with its type tag, so the tags themselves are the
+     * query: measured on two namespaces, this one recall returned every
+     * profile, style and commitment memory the three used to, between them.
+     */
     jobs.push(() =>
-      input.port.recall({
-        query: "who the user is, their stack, tools and preferences",
-        limit: 5,
-        maxDistance: 0.7,
-      }),
-    );
-    jobs.push(() =>
-      input.port.recall({
-        query: "how the user wants replies: language, length, tone",
-        limit: 3,
-        maxDistance: 0.6,
-      }),
-    );
-    jobs.push(() =>
-      input.port.recall({
-        query: "open commitments, deadlines, things promised",
-        limit: 4,
-        maxDistance: 0.65,
-      }),
+      input.port.recall({ query: "[profile] [style] [commitment]", limit: 8, maxDistance: 0.75 }),
     );
   }
   for (const job of jobs) {
@@ -94,7 +90,8 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
     }
   }
   const relevant = [...seen.values()].sort((a, b) => a.distance - b.distance).slice(0, 10);
-  const corrections = await recallCorrections(input.port, relevant);
+  const corrections =
+    input.hasCorrections === false ? [] : await recallCorrections(input.port, relevant);
   // Pick by relevance, then read newest first. Both steps matter: distance
   // decides which memories are worth injecting at all, and write time decides
   // which of two disagreeing ones the model meets first. Sorting by time alone
@@ -124,8 +121,9 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
  * 0.638 and a profile line that merely said "corrected" at 0.677
  * (packages/memory/scripts/spike-corrections.ts).
  *
- * One extra recall, run only when something correctable came back, and
- * sequential like the rest for the reason given in `gatherContext`.
+ * One extra recall, run only when something correctable came back and the
+ * caller has not said the person has none. It needs the first recalls' results,
+ * so it cannot run alongside them.
  */
 async function recallCorrections(
   port: MemoryPort,
