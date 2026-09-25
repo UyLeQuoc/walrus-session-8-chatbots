@@ -8,11 +8,11 @@
  *   bun run --filter @hippo/server discord:commands            # global, up to an hour to propagate
  *   bun run --filter @hippo/server discord:commands <guildId>  # one server, instant, good for testing
  *
- * The handlers live in apps/server/src/commands.ts and are shared with every
+ * The handlers live in apps/server/src/chat/commands.ts and are shared with every
  * other channel, so this file only publishes the names.
  */
 import { REST, Routes } from "discord.js";
-import { env } from "../src/env.ts";
+import { env } from "../src/env/load.ts";
 
 const COMMANDS = [
   { name: "memory", description: "What I remember about you" },

@@ -2,12 +2,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
 import "./index.css";
-import { Layout } from "./components/layout";
-import { Providers } from "./lib/providers";
-import { ChatPage } from "./pages/chat";
-import { ConnectPage } from "./pages/connect";
-import { MePage } from "./pages/me";
-import { NotFoundPage } from "./pages/not-found";
+import { Layout } from "./app/layout";
+import { NotFoundPage } from "./app/not-found";
+import { Providers } from "./app/providers";
+import { ChatPage } from "./features/chat/chat-page";
+import { ConnectPage } from "./features/connect/connect-page";
+import { MePage } from "./features/me/me-page";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root missing");

@@ -4,8 +4,8 @@
  */
 import { desc, memoryIndex, people, sql, turnLog } from "@hippo/db";
 import { createClient, explorer, guestScope, RelayerExtras, TEAM_PREFIX } from "@hippo/memory";
-import { db, operator } from "../src/app-context.ts";
-import { env } from "../src/env.ts";
+import { db, operator } from "../src/context.ts";
+import { env } from "../src/env/load.ts";
 
 const rows = <T>(r: T[]): T[] => r;
 

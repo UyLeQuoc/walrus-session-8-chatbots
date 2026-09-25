@@ -13,10 +13,10 @@ import {
 } from "@hippo/db";
 import { createSuiClient, fetchRelayerConfig, readAccount } from "@hippo/memory";
 import { Hono } from "hono";
-import { db } from "../app-context.ts";
-import { loadToken } from "../connect.ts";
-import { env } from "../env.ts";
-import { mergePersons, personByWallet } from "../persons.ts";
+import { loadToken } from "../connect/tokens.ts";
+import { db } from "../context.ts";
+import { env } from "../env/load.ts";
+import { mergePersons, personByWallet } from "../identity/persons.ts";
 
 const sui = createSuiClient(env.SUI_NETWORK);
 

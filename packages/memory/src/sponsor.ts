@@ -1,7 +1,7 @@
 /**
  * Sponsored account transactions, for Node.
  *
- * The browser has its own copy of this in `apps/web/src/lib/sponsor.ts`, driven
+ * The browser has its own copy of this in `apps/web/src/features/connect/sponsor.ts`, driven
  * by a wallet. This one is driven by a keypair, so the owned-mode flow can be
  * exercised from a script without a person clicking through a wallet popup.
  *

@@ -13,8 +13,8 @@
  */
 import { sql } from "@hippo/db";
 import { Hono } from "hono";
-import { db } from "../app-context.ts";
-import { env } from "../env.ts";
+import { db } from "../context.ts";
+import { env } from "../env/load.ts";
 
 interface Probe {
   ok: boolean;

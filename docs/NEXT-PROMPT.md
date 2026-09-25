@@ -154,7 +154,7 @@ Add shadcn components only as you actually need them: card, badge, skeleton, son
 Rules.
 - Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
 - Do not touch the Walrus Site or site-builder.
-- Every new page state gets a jsdom render assertion in apps/web/src/pages/pages.test.tsx. Typecheck and build both pass happily on a component that throws on first paint, and that has bitten us.
+- Every new page state gets a jsdom render assertion in apps/web/src/app/pages.test.tsx. Typecheck and build both pass happily on a component that throws on first paint, and that has bitten us.
 - Keep `bun run lint`, `bun run typecheck` and `bun run test` green on every commit. Redeploy the web with `vercel deploy --prod --yes` from apps/web, the server with `railway up --service hippo-server --ci`.
 - Never store memory text in Postgres, never log a private key, never route to an OpenAI or Anthropic model, never edit memwal/, never commit .env.
 - Verify in a real browser against production before calling a UI task done.

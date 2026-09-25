@@ -28,10 +28,15 @@ export function ChatContainerRoot({
 export function ChatContainerContent({
   children,
   className,
+  scrollClassName,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { children: ReactNode }) {
+}: HTMLAttributes<HTMLDivElement> & { children: ReactNode; scrollClassName?: string }) {
   return (
-    <StickToBottom.Content className={cn("flex w-full flex-col", className)} {...props}>
+    <StickToBottom.Content
+      className={cn("flex w-full flex-col", className)}
+      scrollClassName={cn("scroll-fade-y overflow-y-auto", scrollClassName)}
+      {...props}
+    >
       {children}
     </StickToBottom.Content>
   );

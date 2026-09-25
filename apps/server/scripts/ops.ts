@@ -18,14 +18,14 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { memoryIndex, sql, turnLog } from "@hippo/db";
-import { db } from "../src/app-context.ts";
+import { db } from "../src/context.ts";
 import {
   type Deployment,
   deploymentsCovering,
   formatOps,
   type LogLine,
   summarizeLogs,
-} from "../src/ops-report.ts";
+} from "../src/ops/report.ts";
 
 const run = promisify(execFile);
 const SERVICE = process.env.RAILWAY_SERVICE ?? "hippo-server";

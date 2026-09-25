@@ -1,6 +1,6 @@
 import { App } from "@slack/bolt";
-import { env } from "../env.ts";
-import { handleIncoming } from "../turn.ts";
+import { handleIncoming } from "../chat/turn.ts";
+import { env } from "../env/load.ts";
 import { slackHandler } from "./handlers.ts";
 import type { ChannelAdapter } from "./types.ts";
 

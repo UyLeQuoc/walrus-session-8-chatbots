@@ -4,7 +4,7 @@
  */
 import { InputFile } from "grammy";
 import { describe, expect, it, vi } from "vitest";
-import type { IncomingMessage, TurnReply } from "../turn.ts";
+import type { IncomingMessage, TurnReply } from "../chat/turn.ts";
 import { discordHandler, slackHandler, telegramHandler } from "./handlers.ts";
 
 const EXPORT_FILES = [

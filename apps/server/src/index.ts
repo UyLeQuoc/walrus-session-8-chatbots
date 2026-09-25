@@ -6,7 +6,7 @@ import { discordAdapter } from "./channels/discord.ts";
 import { slackAdapter } from "./channels/slack.ts";
 import { telegramAdapter } from "./channels/telegram.ts";
 import type { ChannelAdapter } from "./channels/types.ts";
-import { env } from "./env.ts";
+import { env } from "./env/load.ts";
 import { checkAddress, clientAddress, refusal } from "./iplimit.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chat.ts";

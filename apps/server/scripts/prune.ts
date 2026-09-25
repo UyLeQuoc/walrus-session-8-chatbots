@@ -17,7 +17,7 @@
  *   bun run prune:people --run --older-than 2h
  */
 import { sql } from "@hippo/db";
-import { db } from "../src/app-context.ts";
+import { db } from "../src/context.ts";
 
 const run = process.argv.includes("--run");
 const idx = process.argv.indexOf("--older-than");

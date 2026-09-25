@@ -32,7 +32,7 @@ Nguồn: [schema](../packages/db/src/schema.ts), [định danh web](../apps/serv
 3. Nếu đã đăng nhập ví, `hippo_session` hợp lệ được ưu tiên hơn guest cookie. Owned mode dùng MemWalAccount của người dùng, delegate key riêng lưu mã hóa trong PostgreSQL, namespace `hippo` trong account đó. Khi đọc, server còn tìm memory guest cũ của chính người đó và memory team nếu có; lần ghi thông thường chỉ vào account owned.
 4. `hippo-team:<teamId>` nằm trong account của server; chỉ `/team remember` ghi vào đó. Thành viên đọc team memory cùng với memory cá nhân.
 
-Namespace guest là cách ứng dụng phân luồng, **không phải khóa truy cập độc lập**: delegate key chung của server có thể truy cập các namespace trong account server. [Code chọn scope](../apps/server/src/persons.ts), [định nghĩa namespace](../packages/memory/src/client.ts).
+Namespace guest là cách ứng dụng phân luồng, **không phải khóa truy cập độc lập**: delegate key chung của server có thể truy cập các namespace trong account server. [Code chọn scope](../apps/server/src/identity/persons.ts), [định nghĩa namespace](../packages/memory/src/client.ts).
 
 ## 2. Vào web, định danh và giao diện ban đầu
 
@@ -43,7 +43,7 @@ Namespace guest là cách ứng dụng phân luồng, **không phải khóa truy
 | Theme sáng/tối | `ThemeToggle` đọc lựa chọn `hippo.theme` từ `localStorage`, nếu chưa có thì theo hệ điều hành; đổi theme chỉ sửa class CSS và `localStorage`, không gọi server. |
 | Cùng origin / khác origin | Mặc định web gọi `/api/*` cùng origin qua Vite proxy hoặc Vercel rewrite, dùng cookie `HttpOnly`, `SameSite=Lax`. Nếu `VITE_API_URL` trỏ sang origin khác, `identityHeaders()` gửi `x-hippo-guest`/`x-hippo-session` từ `localStorage`; server chỉ nhận header có định dạng hợp lệ. Đây là đường dự phòng cho host không proxy được. |
 
-Nguồn: [routes web](../apps/web/src/main.tsx), [landing](../apps/web/src/components/landing.tsx), [stats](../apps/server/src/routes/connect.ts), [theme](../apps/web/src/components/theme-toggle.tsx), [API URL và identity](../apps/web/src/lib/api.ts), [Vite proxy](../apps/web/vite.config.ts).
+Nguồn: [routes web](../apps/web/src/main.tsx), [stats](../apps/server/src/routes/connect.ts), [theme](../apps/web/src/components/theme-toggle.tsx), [API URL và identity](../apps/web/src/lib/api.ts), [Vite proxy](../apps/web/vite.config.ts).
 
 ## 3. Gửi tin nhắn, trả lời và ghi nhớ
 
@@ -60,15 +60,15 @@ Người dùng nhập tin / chọn gợi ý
   → web hiển thị chữ, trạng thái tool và memory đã dùng kèm blob ID
 ```
 
-- `ChatPage` giữ transcript trong state của `useChat`, gửi từng lượt qua `DefaultChatTransport`, hiển thị token streaming, lỗi bằng toast và các memory đã recall ngay dưới câu trả lời. Reload làm mất transcript đang hiển thị; `Examples` có nút lưu sẵn câu hỏi vào `sessionStorage`, reload rồi đặt lại câu hỏi vào ô nhập. Nó không tự gửi câu hỏi sau reload. [ChatPage](../apps/web/src/pages/chat.tsx), [Examples](../apps/web/src/components/examples.tsx).
+- `ChatPage` giữ transcript trong state của `useChat`, gửi từng lượt qua `DefaultChatTransport`, hiển thị token streaming, lỗi bằng toast và các memory đã recall ngay dưới câu trả lời. Reload làm mất transcript đang hiển thị; `Examples` có nút lưu sẵn câu hỏi vào `sessionStorage`, reload rồi đặt lại câu hỏi vào ô nhập. Nó không tự gửi câu hỏi sau reload. [ChatPage](../apps/web/src/features/chat/chat-page.tsx), [Examples](../apps/web/src/features/chat/examples.tsx).
 - `POST /api/chat` xác định người dùng, kiểm tra tin quá dài, giới hạn tần suất, thử `handleCommand` trước. Lệnh được trả lời trực tiếp, không gọi model. Tin thường đi vào `portFor` → `gatherContext` → `runTurn`. Server stream AI SDK UI messages về web; metadata đầu câu trả lời gồm loại, text, relevance và blob ID của memory đã đưa vào prompt. Khi xong, `logTurn` ghi metadata vào `turn_log`. [Chat route](../apps/server/src/routes/chat.ts), [agent](../packages/core/src/agent.ts).
 - `gatherContext` bỏ qua memory khi `memoryEnabled=false`. Khi bật, nó tìm theo tối đa 300 ký tự đầu của câu hỏi; đầu phiên còn tìm profile/style/commitment; khi có dữ kiện liên quan thì tìm thêm correction. Kết quả được lọc, gộp và sắp theo thời gian trước khi đưa vào prompt. Lỗi recall được ghi log; lượt chat vẫn có thể tiếp tục. [Agent](../packages/core/src/agent.ts).
 - `runTurn` gọi model chính qua OpenRouter và cấp hai tool `remember`, `recall` cho model khi memory bật. `recall` là tìm bổ sung do model yêu cầu. **Web stream không tự chuyển sang fallback model** nếu stream lỗi; đường non-streaming của các kênh khác có fallback. [Model](../packages/core/src/model.ts), [tools](../packages/core/src/tools.ts), [agent](../packages/core/src/agent.ts).
-- Khi tool `remember` chạy: server che các chuỗi giống credential → định dạng `[type] [by] [#channel] [date] text` → kiểm tra trùng (correction chỉ so với correction) → gửi job tới relayer → ghi hàng `memory_index` trạng thái `pending` → trả lời chat ngay → theo dõi job nền rồi cập nhật `stored` + blob ID hoặc `failed`. Vì vậy “remembering” chưa đồng nghĩa đã có blob trên Walrus. `recall` lọc memory đã bị ẩn và thử lại khi relayer báo đã bỏ toàn bộ kết quả. [Memory port](../packages/memory/src/port.ts), [chính sách ghi/tìm](../packages/memory/src/policy.ts), [indexWrites](../apps/server/src/persons.ts).
+- Khi tool `remember` chạy: server che các chuỗi giống credential → định dạng `[type] [by] [#channel] [date] text` → kiểm tra trùng (correction chỉ so với correction) → gửi job tới relayer → ghi hàng `memory_index` trạng thái `pending` → trả lời chat ngay → theo dõi job nền rồi cập nhật `stored` + blob ID hoặc `failed`. Vì vậy “remembering” chưa đồng nghĩa đã có blob trên Walrus. `recall` lọc memory đã bị ẩn và thử lại khi relayer báo đã bỏ toàn bộ kết quả. [Memory port](../packages/memory/src/port.ts), [chính sách ghi/tìm](../packages/memory/src/policy.ts), [indexWrites](../apps/server/src/identity/persons.ts).
 
 ## 4. Các thao tác trên `/me`
 
-Trang `/me` gọi `GET /api/me` và `GET /api/me/memories` song song. Nếu chưa có guest cookie/session, API trả `anonymous`; web mời chat trước hoặc ký ví. Nếu có `person`, trang hiển thị mode, trạng thái memory, số hàng `stored`, namespace và các panel dưới đây. [MePage](../apps/web/src/pages/me.tsx), [routes](../apps/server/src/routes/chat.ts).
+Trang `/me` gọi `GET /api/me` và `GET /api/me/memories` song song. Nếu chưa có guest cookie/session, API trả `anonymous`; web mời chat trước hoặc ký ví. Nếu có `person`, trang hiển thị mode, trạng thái memory, số hàng `stored`, namespace và các panel dưới đây. [MePage](../apps/web/src/features/me/me-page.tsx), [routes](../apps/server/src/routes/chat.ts).
 
 | Chức năng web | UI → server → nguồn dữ liệu / kết quả |
 |---|---|
@@ -85,7 +85,7 @@ Trang `/me` gọi `GET /api/me` và `GET /api/me/memories` song song. Nếu chư
 | Đăng xuất | `POST /api/auth/signout` xóa web session trong PostgreSQL và cookie; web xóa session header dự phòng, nạp lại `/me`. Guest cookie vẫn còn, nên trang có thể quay về guest của cùng browser. |
 | Hướng dẫn Claude Code | Chỉ hiển thị các bước và nút copy; không tự cài plugin hay gọi API. |
 
-Nguồn UI: [MePage](../apps/web/src/pages/me.tsx), [MemoryList](../apps/web/src/components/memory-list.tsx), [ChainPanel](../apps/web/src/components/chain-panel.tsx), [TeamPanel](../apps/web/src/components/team-panel.tsx), [ExportPanel](../apps/web/src/components/export-panel.tsx). Nguồn server: [chat routes](../apps/server/src/routes/chat.ts), [exportFor](../apps/server/src/export-person.ts), [export logic](../apps/server/src/export.ts), [teams](../apps/server/src/teams.ts).
+Nguồn UI: [MePage](../apps/web/src/features/me/me-page.tsx), [MemoryList](../apps/web/src/features/me/memory-list.tsx), [ChainPanel](../apps/web/src/features/me/chain-panel.tsx), [TeamPanel](../apps/web/src/features/me/team-panel.tsx), [ExportPanel](../apps/web/src/features/me/export-panel.tsx). Nguồn server: [chat routes](../apps/server/src/routes/chat.ts), [exportFor](../apps/server/src/memory/export-person.ts), [export logic](../apps/server/src/memory/export.ts), [teams](../apps/server/src/identity/teams.ts).
 
 ## 5. Kết nối ví để sở hữu memory và thu hồi quyền
 
@@ -103,7 +103,7 @@ Nguồn UI: [MePage](../apps/web/src/pages/me.tsx), [MemoryList](../apps/web/src
 2. Callback `/done` xác nhận key đã biến mất khỏi account trên chain; server đặt key `revoked`, xóa bản private key mã hóa khỏi hàng dữ liệu và chuyển `people.mode` về `guest`.
 3. Từ đó hippo không đọc account owned qua key đã thu hồi; memory guest có trước vẫn có thể được hippo đọc. Không blob nào bị xóa. Người dùng có thể connect lại bằng một key mới.
 
-Nguồn: [connect page](../apps/web/src/pages/connect.tsx), [giao dịch Sui](../apps/web/src/lib/memwal.ts), [sponsor/fallback](../apps/web/src/lib/sponsor.ts), [tạo token/key](../apps/server/src/connect.ts), [xác nhận chain](../apps/server/src/routes/connect.ts), [chọn port](../apps/server/src/persons.ts).
+Nguồn: [connect page](../apps/web/src/features/connect/connect-page.tsx), [giao dịch Sui](../apps/web/src/features/connect/memwal.ts), [sponsor/fallback](../apps/web/src/features/connect/sponsor.ts), [tạo token/key](../apps/server/src/connect/tokens.ts), [xác nhận chain](../apps/server/src/routes/connect.ts), [chọn port](../apps/server/src/identity/persons.ts).
 
 ## 6. Đăng nhập ví để mở cùng memory trên web
 
@@ -119,11 +119,11 @@ WalletSignIn → POST /api/auth/challenge
   → các request sau ưu tiên session này trước guest cookie
 ```
 
-Sign out xóa hàng session. Ở code hiện tại, route `/api/auth/verify` **không truyền guest person ID vào `signInWithWallet`**, nên chỉ ký ví từ một guest browser không tự gộp memory guest đó vào wallet person. Luồng `/connect` có cơ chế gộp identity khi xác nhận account; `/link` cũng là cách gộp các kênh có điều kiện. [WalletSignIn](../apps/web/src/components/wallet-signin.tsx), [auth routes](../apps/server/src/routes/auth.ts), [auth logic](../apps/server/src/auth.ts).
+Sign out xóa hàng session. Ở code hiện tại, route `/api/auth/verify` **không truyền guest person ID vào `signInWithWallet`**, nên chỉ ký ví từ một guest browser không tự gộp memory guest đó vào wallet person. Luồng `/connect` có cơ chế gộp identity khi xác nhận account; `/link` cũng là cách gộp các kênh có điều kiện. [WalletSignIn](../apps/web/src/features/me/wallet-signin.tsx), [auth routes](../apps/server/src/routes/auth.ts), [auth logic](../apps/server/src/identity/auth.ts).
 
 ## 7. Lệnh có thể gõ ngay trong web chat
 
-Mọi lệnh dưới đây đi qua `POST /api/chat`, `handleCommand` xử lý trên server và trả text trực tiếp; chúng không phải route REST riêng (ngoại trừ các nút `/me` được nêu ở trên). [Command handler](../apps/server/src/commands.ts).
+Mọi lệnh dưới đây đi qua `POST /api/chat`, `handleCommand` xử lý trên server và trả text trực tiếp; chúng không phải route REST riêng (ngoại trừ các nút `/me` được nêu ở trên). [Command handler](../apps/server/src/chat/commands.ts).
 
 | Lệnh | Dữ liệu đi đâu / kết quả |
 |---|---|
@@ -141,16 +141,16 @@ Mọi lệnh dưới đây đi qua `POST /api/chat`, `handleCommand` xử lý tr
 | `/team`, `/team new <name>`, `/team join <code>`, `/team invite`, `/team leave` | Đọc/tạo team, membership và lời mời trong PostgreSQL; join/invite qua mã một lần dùng. Rời team không xóa dữ liệu đã chia sẻ. |
 | `/team remember <fact>` | Gọi `teamPortFor` và ghi một memory loại `decision` vào `hippo-team:<teamId>` trong account operator; không tự chia sẻ câu chat thường. |
 
-Lệnh `/memory <cụm khác>` được xử lý như tìm kiếm với chính cụm đó. Lệnh bắt đầu `/` nhưng không khớp trả help, không gửi cho model. [Command handler](../apps/server/src/commands.ts), [link](../apps/server/src/link.ts), [team](../apps/server/src/teams.ts).
+Lệnh `/memory <cụm khác>` được xử lý như tìm kiếm với chính cụm đó. Lệnh bắt đầu `/` nhưng không khớp trả help, không gửi cho model. [Command handler](../apps/server/src/chat/commands.ts), [link](../apps/server/src/identity/link.ts), [team](../apps/server/src/identity/teams.ts).
 
 ## 8. Những ranh giới quan trọng khi đọc workflow
 
-- **Guest riêng theo logic ứng dụng, không riêng theo account/key.** Mọi guest chia sẻ operator key; `personId` quyết định namespace. Owned account mới có account/key delegate riêng. [Scopes](../packages/memory/src/client.ts), [portFor](../apps/server/src/persons.ts).
+- **Guest riêng theo logic ứng dụng, không riêng theo account/key.** Mọi guest chia sẻ operator key; `personId` quyết định namespace. Owned account mới có account/key delegate riêng. [Scopes](../packages/memory/src/client.ts), [portFor](../apps/server/src/identity/persons.ts).
 - **`pending` khác `stored`.** Lệnh ghi trả về sau khi relayer nhận job; blob ID chỉ có khi job nền hoàn tất. `/me` cho thấy `pending` hoặc `failed`. [Memory port](../packages/memory/src/port.ts).
-- **Ẩn khác xóa.** Nút hide và `/memory forget <blob>` chỉ là bộ lọc của hippo. `/memory forget all` bỏ kết quả khỏi search index nhưng không xóa blob Walrus. [Commands](../apps/server/src/commands.ts).
-- **Export không bảo đảm khôi phục toàn bộ text.** Metadata có trong `memory_index`; text chỉ lấy lại được nếu semantic recall tìm thấy, và hash chỉ đánh dấu dòng nào đúng với bản đã ghi. [Export](../apps/server/src/export.ts).
-- **Web không có lịch sử transcript phía server để tải lại.** Sau reload, giao diện không hiển thị lại hội thoại cũ; tính năng memory là các fact đã được ghi và được tìm lại, không phải lưu nguyên cuộc chat. [ChatPage](../apps/web/src/pages/chat.tsx), [schema](../packages/db/src/schema.ts).
-- **Nút xem ciphertext/explorer chỉ mở URL bên ngoài.** Không có endpoint web giải mã trực tiếp một blob theo ID. [MemoryList](../apps/web/src/components/memory-list.tsx).
+- **Ẩn khác xóa.** Nút hide và `/memory forget <blob>` chỉ là bộ lọc của hippo. `/memory forget all` bỏ kết quả khỏi search index nhưng không xóa blob Walrus. [Commands](../apps/server/src/chat/commands.ts).
+- **Export không bảo đảm khôi phục toàn bộ text.** Metadata có trong `memory_index`; text chỉ lấy lại được nếu semantic recall tìm thấy, và hash chỉ đánh dấu dòng nào đúng với bản đã ghi. [Export](../apps/server/src/memory/export.ts).
+- **Web không có lịch sử transcript phía server để tải lại.** Sau reload, giao diện không hiển thị lại hội thoại cũ; tính năng memory là các fact đã được ghi và được tìm lại, không phải lưu nguyên cuộc chat. [ChatPage](../apps/web/src/features/chat/chat-page.tsx), [schema](../packages/db/src/schema.ts).
+- **Nút xem ciphertext/explorer chỉ mở URL bên ngoài.** Không có endpoint web giải mã trực tiếp một blob theo ID. [MemoryList](../apps/web/src/features/me/memory-list.tsx).
 
 ## 9. Đối chiếu endpoint
 

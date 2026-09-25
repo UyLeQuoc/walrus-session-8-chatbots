@@ -1,6 +1,6 @@
 import { ChannelType, Client, Events, GatewayIntentBits, Partials } from "discord.js";
-import { env } from "../env.ts";
-import { handleIncoming } from "../turn.ts";
+import { handleIncoming } from "../chat/turn.ts";
+import { env } from "../env/load.ts";
 import { discordHandler } from "./handlers.ts";
 import type { ChannelAdapter } from "./types.ts";
 

@@ -3,8 +3,13 @@
  */
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { createChallenge, SESSION_TTL_SECONDS, signInWithWallet, signOut } from "../auth.ts";
-import { env } from "../env.ts";
+import { env } from "../env/load.ts";
+import {
+  createChallenge,
+  SESSION_TTL_SECONDS,
+  signInWithWallet,
+  signOut,
+} from "../identity/auth.ts";
 
 const SESSION_COOKIE = "hippo_session";
 const GUEST_COOKIE = "hippo_guest";

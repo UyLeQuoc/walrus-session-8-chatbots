@@ -4,15 +4,14 @@ import { createSuiClient, explorer, NAMESPACE, RelayerExtras, readAccount } from
 import { convertToModelMessages, type UIMessage } from "ai";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import { db, model } from "../app-context.ts";
-import { personFromSession } from "../auth.ts";
-import { type CommandContext, handleCommand } from "../commands.ts";
-import { startConnect, startDisconnect } from "../connect.ts";
+import { type CommandContext, handleCommand } from "../chat/commands.ts";
+import { tooLong } from "../chat/limits.ts";
+import { checkRate, noteCommand } from "../chat/ratelimit.ts";
+import { startConnect, startDisconnect } from "../connect/tokens.ts";
+import { db, model } from "../context.ts";
 import { describeFailure } from "../copy.ts";
-import { env } from "../env.ts";
-import { asDownload, exportFor } from "../export-person.ts";
-import { meIdentity } from "../identity.ts";
-import { tooLong } from "../limits.ts";
+import { env } from "../env/load.ts";
+import { personFromSession } from "../identity/auth.ts";
 import {
   hasCorrections,
   logTurn,
@@ -21,10 +20,11 @@ import {
   portFor,
   resolvePerson,
   setHidden,
-} from "../persons.ts";
-import { checkRate, noteCommand } from "../ratelimit.ts";
-import { plainReply } from "../reply.ts";
-import { currentTeam, inviteToTeam, leaveTeam } from "../teams.ts";
+} from "../identity/persons.ts";
+import { meIdentity } from "../identity/predicates.ts";
+import { currentTeam, inviteToTeam, leaveTeam } from "../identity/teams.ts";
+import { asDownload, exportFor } from "../memory/export-person.ts";
+import { plainReply } from "./reply.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
 const CHANNEL = "web";

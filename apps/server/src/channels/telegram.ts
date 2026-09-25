@@ -1,6 +1,6 @@
 import { Bot } from "grammy";
-import { env } from "../env.ts";
-import { handleIncoming } from "../turn.ts";
+import { handleIncoming } from "../chat/turn.ts";
+import { env } from "../env/load.ts";
 import { telegramHandler } from "./handlers.ts";
 import { keepPolling } from "./polling.ts";
 import type { ChannelAdapter } from "./types.ts";

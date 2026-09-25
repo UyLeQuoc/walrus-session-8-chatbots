@@ -69,7 +69,7 @@ memwal/          reference clone (gitignored)
 ## Checks
 
 `bun run lint` fails on warnings, not just errors, so unused imports and other drift
-do not accumulate. The web pages have jsdom render tests (`apps/web/src/pages/pages.test.tsx`)
+do not accumulate. The web pages have jsdom render tests (`apps/web/src/app/pages.test.tsx`)
 that mount each page with the network stubbed and assert what a reader sees, because
 typecheck and build both pass happily on a component that throws on first paint. `.github/workflows/ci.yml` runs lint, typecheck, test, the web
 build and `bun pm scan` on every push, plus a guard that `.env`, `memwal/` and

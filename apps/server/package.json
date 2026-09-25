@@ -11,9 +11,9 @@
     "restore": "tsx scripts/restore.ts",
     "test": "vitest run",
     "discord:commands": "tsx scripts/register-discord-commands.ts",
-    "probe:signin": "tsx scripts/probe-signin.ts",
+    "probe:signin": "tsx scripts/archive/probe-signin.ts",
     "prune:people": "tsx scripts/prune.ts",
-    "probe:header": "tsx scripts/probe-header-identity.ts",
+    "probe:header": "tsx scripts/archive/probe-header-identity.ts",
     "capacity": "tsx scripts/capacity.ts",
     "ops": "tsx scripts/ops.ts"
   },

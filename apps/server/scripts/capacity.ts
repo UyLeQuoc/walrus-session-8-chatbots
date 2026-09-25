@@ -11,8 +11,8 @@
  */
 import { sql, turnLog } from "@hippo/db";
 import { readOperatorEnv } from "@hippo/memory";
-import { db } from "../src/app-context.ts";
-import { env } from "../src/env.ts";
+import { db } from "../src/context.ts";
+import { env } from "../src/env/load.ts";
 
 const money = (n: number) => `$${n.toFixed(4)}`;
 

@@ -9,8 +9,8 @@
  * and any files go back — is tested in CI with fake clients.
  */
 import { InputFile } from "grammy";
+import type { IncomingMessage, TurnReply } from "../chat/turn.ts";
 import { describeFailure } from "../copy.ts";
-import type { IncomingMessage, TurnReply } from "../turn.ts";
 import { chunk } from "./chunk.ts";
 
 export type Handle = (msg: IncomingMessage) => Promise<TurnReply>;

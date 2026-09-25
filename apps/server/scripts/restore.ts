@@ -24,8 +24,8 @@
  */
 import { delegateKeys, desc, eq, memoryIndex, people, sql } from "@hippo/db";
 import { createClient, decryptSecret, guestScope, ownedScope, RelayerExtras } from "@hippo/memory";
-import { db, operator } from "../src/app-context.ts";
-import { env } from "../src/env.ts";
+import { db, operator } from "../src/context.ts";
+import { env } from "../src/env/load.ts";
 
 const run = process.argv.includes("--run");
 const limitArg = process.argv.indexOf("--limit");

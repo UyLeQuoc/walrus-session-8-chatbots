@@ -7,7 +7,10 @@
  * localStorage can throw in a private window, so every access is guarded and
  * the page renders correctly when it fails.
  */
+import { Moon, Sun } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const KEY = "hippo.theme";
 type Choice = "light" | "dark" | null;
@@ -58,14 +61,28 @@ export function ThemeToggle() {
   }, []);
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={toggle}
       aria-pressed={dark}
       aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
-      className="hover:text-foreground"
     >
-      {dark ? "light" : "dark"}
-    </button>
+      <span className="relative size-4">
+        <Sun
+          className={cn(
+            "absolute inset-0 size-4 transition-all duration-200",
+            dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100",
+          )}
+        />
+        <Moon
+          className={cn(
+            "absolute inset-0 size-4 transition-all duration-200",
+            dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0",
+          )}
+        />
+      </span>
+    </Button>
   );
 }

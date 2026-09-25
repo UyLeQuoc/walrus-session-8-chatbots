@@ -30,7 +30,7 @@ only the account owner can provide; **n/a** superseded by a finding.
 | # | Task | Status |
 |---|---|---|
 | 1 | Web guest identity and `GET /api/me` | done, and now four siblings: `/api/me/memories`, `/api/me/account`, `/api/me/search`, `/api/me/{connect,disconnect}` |
-| 2 | Commands shared by every channel | done, in `apps/server/src/commands.ts` rather than `packages/core` because they need the database |
+| 2 | Commands shared by every channel | done, in `apps/server/src/chat/commands.ts` rather than `packages/core` because they need the database |
 | 3 | Style adaptation, verified by an eval | done, `pnpm demo` fails if the reply is not Vietnamese |
 | 4 | Per-person throttle | done, and commands count against it |
 | 5 | `pnpm demo` | done, asserts recall, style and cross-channel |

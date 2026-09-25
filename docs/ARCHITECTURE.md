@@ -42,7 +42,7 @@ A `person` is the unit of memory. Channel identities (`telegram:123`, `discord:4
 
 Web identity: an anonymous session cookie creates a guest `person` on first message. Signing in with a wallet attaches `wallet:<address>` to that person, or resolves to the person that already owns the wallet. No passwords.
 
-The sign-in is deliberately narrow. The server issues a nonce, the wallet signs a readable message containing it, and **the address is recovered from the signature** rather than taken from the request. The nonce is single-use and burned before anything else happens, so a replay loses the race. If the browser's anonymous person has no memories it is folded into the wallet's person, so an anonymous conversation is not lost; if it has memories, nothing is merged, because taking them would repeat the mistake `/link` refuses. `packages/memory/src/wallet.ts` and `apps/server/src/auth.ts`, with the flow exercised end to end by `bun run --filter @hippo/server probe:signin` using a throwaway keypair.
+The sign-in is deliberately narrow. The server issues a nonce, the wallet signs a readable message containing it, and **the address is recovered from the signature** rather than taken from the request. The nonce is single-use and burned before anything else happens, so a replay loses the race. If the browser's anonymous person has no memories it is folded into the wallet's person, so an anonymous conversation is not lost; if it has memories, nothing is merged, because taking them would repeat the mistake `/link` refuses. `packages/memory/src/wallet.ts` and `apps/server/src/identity/auth.ts`, with the flow exercised end to end by `bun run --filter @hippo/server probe:signin` using a throwaway keypair.
 
 **zkLogin caveat** (`memwal/docs/reference/console-identity-link.md`): a zkLogin address depends on the OAuth client ID, so the same Google account yields a different Sui address in hippo than on memory.walrus.xyz. Google users get a real owned account, but they will not see hippo in the Walrus dashboard and cannot share that account with Claude Code. The portability and dashboard demos therefore use a Slush wallet user. Say so in the article; it is also feedback for Walrus (Enoki Connect would fix it).
 
@@ -146,7 +146,7 @@ The relayer sometimes answers a recall with `{"results": [], "total": 0, "droppe
 
 ### Rate limiting
 
-The relayer allows 60 weighted requests per minute per delegate key, and guest mode shares one key across every user. `packages/memory/src/limiter.ts` paces all traffic per key (50/min, concurrency 2) and `runLimited` honours `retry_after_seconds`. `apps/server/src/ratelimit.ts` separately caps each person at 10 turns per minute and 200 per day, because the web chat is public and every turn costs model credit.
+The relayer allows 60 weighted requests per minute per delegate key, and guest mode shares one key across every user. `packages/memory/src/limiter.ts` paces all traffic per key (50/min, concurrency 2) and `runLimited` honours `retry_after_seconds`. `apps/server/src/chat/ratelimit.ts` separately caps each person at 10 turns per minute and 200 per day, because the web chat is public and every turn costs model credit.
 
 ### Recall policy
 
@@ -169,7 +169,7 @@ Team memories carry `[by:@user] [#channel]`. Personal memories carry `[by:@user]
 
 ## 6. Slash commands
 
-Defined once in `apps/server/src/commands.ts`; every adapter routes through `handleIncoming` in `apps/server/src/turn.ts`, so the three channels cannot drift.
+Defined once in `apps/server/src/chat/commands.ts`; every adapter routes through `handleIncoming` in `apps/server/src/chat/turn.ts`, so the three channels cannot drift.
 
 | Command | Behaviour |
 |---|---|
