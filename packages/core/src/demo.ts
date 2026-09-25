@@ -1,5 +1,5 @@
 /**
- * `pnpm demo` — the memory eval. Two sessions against the real mainnet relayer:
+ * `bun run demo` — the memory eval. Two sessions against the real mainnet relayer:
  * teach hippo some facts, change one of them, throw the conversation away, then
  * ask questions that can only be answered from Walrus. This is the evidence for
  * "does it actually remember", and it doubles as an end-to-end smoke test for

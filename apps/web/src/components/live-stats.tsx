@@ -6,7 +6,7 @@
  * and gutting one down to a strip of three counts at this density would have
  * left none of it behind.
  *
- * The numbers come from the same query `pnpm evidence` uses, counting only
+ * The numbers come from the same query `bun run evidence` uses, counting only
  * memories that actually landed on Walrus. If the request fails the strip does
  * not render: a front page that guesses at its own evidence is worse than one
  * that shows none.

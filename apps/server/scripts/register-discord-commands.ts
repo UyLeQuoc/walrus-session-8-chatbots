@@ -5,8 +5,8 @@
  * connection alone does not publish them. Run once after setting
  * DISCORD_TOKEN and DISCORD_CLIENT_ID, and again whenever the list changes.
  *
- *   pnpm --filter @hippo/server discord:commands            # global, up to an hour to propagate
- *   pnpm --filter @hippo/server discord:commands <guildId>  # one server, instant, good for testing
+ *   bun run --filter @hippo/server discord:commands            # global, up to an hour to propagate
+ *   bun run --filter @hippo/server discord:commands <guildId>  # one server, instant, good for testing
  *
  * The handlers live in apps/server/src/commands.ts and are shared with every
  * other channel, so this file only publishes the names.

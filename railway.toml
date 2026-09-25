@@ -7,8 +7,8 @@ dockerfilePath = "Dockerfile"
 # looking at the diff, not automatically on every deploy: `drizzle-kit push`
 # can drop a column to reach the target schema, and this database will hold
 # real users' delegate keys and memory index.
-#   pnpm --filter @hippo/db plan-push ../../.env.production [--apply]
-startCommand = "pnpm --filter @hippo/server start"
+#   bun run --filter @hippo/db plan-push ../../.env.production [--apply]
+startCommand = "bun run --filter @hippo/server start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"

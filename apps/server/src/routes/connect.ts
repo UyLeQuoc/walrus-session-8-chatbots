@@ -23,7 +23,7 @@ const sui = createSuiClient(env.SUI_NETWORK);
 /**
  * The landing page's numbers, cached.
  *
- * Counted the same way `pnpm evidence` counts them: only `stored` rows, because
+ * Counted the same way `bun run evidence` counts them: only `stored` rows, because
  * a pending write is not yet a blob on Walrus and a failed one never will be.
  * Claiming otherwise on the front page would be the cheapest possible lie and
  * the easiest to check.

@@ -1,5 +1,5 @@
 /**
- * `pnpm capacity` — will this survive the real-use week?
+ * `bun run capacity` — will this survive the real-use week?
  *
  * Three things can end M6 quietly: the model key running out of credit, the
  * database filling its free tier, and the relayer refusing us. The first is the
@@ -52,11 +52,11 @@ if (!key) {
      * That earlier arithmetic was wrong by about seven times and said a
      * realistic week would not fit. It divided every dollar ever spent by the
      * production turn_log rows alone, while most of those dollars went on
-     * `pnpm demo` runs and mainnet spikes, none of which write a turn row. A
+     * `bun run demo` runs and mainnet spikes, none of which write a turn row. A
      * wrong number that says "you cannot afford this" is not a safe default;
      * it nearly bought a worse model.
      *
-     * This figure comes from scripts/model-bakeoff.sh: one `pnpm demo` is nine
+     * This figure comes from scripts/model-bakeoff.sh: one `bun run demo` is nine
      * model turns and cost $0.0033 to $0.0037 on the current model. Re-run the
      * bakeoff if LLM_MODEL changes; the number is per model, not universal.
      * docs/evidence/model-bakeoff-2026-09-23.md has the table.

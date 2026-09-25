@@ -1,7 +1,7 @@
 /**
  * Smoke test against the configured relayer.
- *   pnpm smoke           → health, identity, stats, agents (read only)
- *   pnpm smoke --write   → also writes one memory to hippo-guest:smoke and recalls it
+ *   bun run smoke           → health, identity, stats, agents (read only)
+ *   bun run smoke --write   → also writes one memory to hippo-guest:smoke and recalls it
  */
 import {
   buildMemoryText,

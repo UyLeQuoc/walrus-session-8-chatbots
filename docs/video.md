@@ -19,7 +19,7 @@ Then change your mind: "we moved this project to bun". Reload, ask again. It
 says bun, and the recalled-memories line under the answer shows both the old
 pnpm memory and the correction. Say: both are still there, the newer one wins.
 This is the beat that was broken three ways before it worked
-(`docs/evidence/conflicts-2026-09-24.md`), and `pnpm demo` now asserts it.
+(`docs/evidence/conflicts-2026-09-24.md`), and `bun run demo` now asserts it.
 
 **0:50 — where the memory actually is, 25s.** Open `/me`. The "On chain" panel
 is the shot: the account object, its owner, and the list of keys that can read
@@ -36,7 +36,7 @@ mainnet ciphertext is sealed by a committee key server whose aggregator wants an
 API key (`docs/issues/12`). The honest line is that the chain decides who may
 read, which is the part that was measured.
 
-**1:15 — it follows you, 15s.** In the terminal run `pnpm hippo`. Web chat
+**1:15 — it follows you, 15s.** In the terminal run `bun run hippo`. Web chat
 `/link`, copy the code, `/link <code>` in the terminal, ask what it knows. Same
 memory, different client.
 
@@ -56,7 +56,7 @@ number over it, ask the question after it, and let hippo answer that it does not
 know. A viewer who tests this themselves must find what the video showed. Then
 `/connect` again and it does.
 
-**2:30 — close, 10s.** Repo on screen, five commands, `pnpm demo` scrolling past
+**2:30 — close, 10s.** Repo on screen, the README quickstart and `bun run dev`, then `bun run demo` scrolling past
 with 4/4 and "newest fact wins: PASS".
 
 The revoke timing no longer needs discovering on camera; it is measured and

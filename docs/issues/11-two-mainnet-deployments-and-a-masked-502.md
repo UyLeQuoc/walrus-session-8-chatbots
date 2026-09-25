@@ -98,7 +98,7 @@ deployment the relayer actually uses.
 ## Reproducing
 
 ```bash
-pnpm --filter @hippo/memory exec tsx scripts/probe-sponsor.ts <your-address>
+bun run packages/memory/scripts/probe-sponsor.ts <your-address>
 ```
 
 With `MEMWAL_REGISTRY_ID` set to `0x0da982ce…` the first probe returns 502. With

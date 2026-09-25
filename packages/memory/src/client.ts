@@ -3,7 +3,7 @@ import { MemWal } from "@mysten-incubation/memwal";
 /**
  * The prefix of every team namespace. Team writes are indexed under the person
  * who made them, so anything that counts or lists a person's *own* memory —
- * `pnpm evidence` above all, whose 3 × 10 check must not be inflated by shared
+ * `bun run evidence` above all, whose 3 × 10 check must not be inflated by shared
  * facts — filters on this.
  */
 export const TEAM_PREFIX = "hippo-team:";

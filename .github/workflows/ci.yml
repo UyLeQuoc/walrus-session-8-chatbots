@@ -14,32 +14,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # No `version:` here. package.json pins `packageManager`, and the action
-      # refuses to start when both are set — which is how this workflow failed
-      # at setup on every push from the first one, without running a check.
-      - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - run: bun install --frozen-lockfile
 
       - name: Lint and format
-        run: pnpm lint
+        run: bun run lint
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: bun run typecheck
 
       - name: Test
-        run: pnpm test
+        run: bun run test
 
       - name: Build the web app
-        run: pnpm build
+        run: bun run build
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level moderate
+        run: bun pm scan
 
       - name: Secrets must not be committed
         run: |

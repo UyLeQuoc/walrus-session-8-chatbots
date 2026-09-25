@@ -1,5 +1,5 @@
 /**
- * `pnpm measure:corrections` — how often does the model store a change of mind?
+ * `bun run measure:corrections` — how often does the model store a change of mind?
  *
  * The conflict machinery (newest-first ordering, the corrections pull, the
  * dedupe exemption) is worth nothing if the correction is never written, and
@@ -19,8 +19,8 @@
  * Nothing is written to Walrus: the memory port is a fake that records the
  * calls. Only the model is real, and a run costs well under a cent.
  *
- *   TRIALS=12 pnpm measure:corrections
- *   LLM_MODEL=qwen/qwen3.7-flash pnpm measure:corrections
+ *   TRIALS=12 bun run measure:corrections
+ *   LLM_MODEL=qwen/qwen3.7-flash bun run measure:corrections
  */
 import { loadEnv, type MemoryPort, type MemoryType, type RecalledMemory } from "@hippo/memory";
 import type { ModelMessage } from "ai";

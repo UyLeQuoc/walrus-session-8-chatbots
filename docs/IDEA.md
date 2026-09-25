@@ -35,7 +35,7 @@ The judging rubric (see `BRIEF.md` §3) and prior sessions tell us what the pane
 
 **Portable.** The user pastes the same account into Claude Code via the Walrus Memory MCP plugin and asks "what does hippo know about my stack?" It answers from the same memories. Memory the bot wrote on Telegram is now context in the IDE.
 
-**Same person, every channel.** A wallet sign-in on the web resolves to the same person as `/connect` on Telegram, and a `/link` code does it without a wallet at all, so a fact learned in one channel is recalled in every other. Verified web-to-CLI and asserted in `pnpm demo`; a judge can check it with a link and a bot handle in under two minutes.
+**Same person, every channel.** A wallet sign-in on the web resolves to the same person as `/connect` on Telegram, and a `/link` code does it without a wallet at all, so a fact learned in one channel is recalled in every other. Verified web-to-CLI and asserted in `bun run demo`; a judge can check it with a link and a bot handle in under two minutes.
 
 ## What the bot remembers (memory doing real work)
 

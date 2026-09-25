@@ -9,7 +9,7 @@ the before/after that cannot be recreated later.
 **The OpenRouter key is capped at $1 rather than metered, so it stops dead
 rather than costing more.** That is worth knowing, and it is not a problem.
 
-Measured 2026-09-23 with `scripts/model-bakeoff.sh`, which runs `pnpm demo` and
+Measured 2026-09-23 with `scripts/model-bakeoff.sh`, which runs `bun run demo` and
 reads the key's spend before and after:
 
 | | |
@@ -36,17 +36,17 @@ it: `deepseek/deepseek-v4-flash` and `qwen/qwen3.7-flash` cost a third as much,
 recall just as well, and drop the style adaptation that makes the demo
 interesting. Table in `docs/evidence/model-bakeoff-2026-09-23.md`.
 
-`pnpm capacity` re-checks the balance against the same arithmetic. Neon and the
+`bun run capacity` re-checks the balance against the same arithmetic. Neon and the
 relayer are not the risk: the database is 8 MB against a 500 MB free tier and
 stores no memory text, and the relayer's 60 writes a minute is far above
 anything five people can produce by typing.
 
 ## Before inviting anyone
 
-- [ ] `pnpm capacity` shows the target week fits. It should; if it does not, raise the key's limit at openrouter.ai.
-- [ ] `pnpm evidence` prints `NOT YET MET`, so the starting point is on record.
-- [ ] `pnpm demo` passes, so the bot is known good on the day.
-- [ ] `pnpm diagnose` is clean. It catches a wrong account id, a stale package id, and a delegate the chain does not list.
+- [ ] `bun run capacity` shows the target week fits. It should; if it does not, raise the key's limit at openrouter.ai.
+- [ ] `bun run evidence` prints `NOT YET MET`, so the starting point is on record.
+- [ ] `bun run demo` passes, so the bot is known good on the day.
+- [ ] `bun run diagnose` is clean. It catches a wrong account id, a stale package id, and a delegate the chain does not list.
 - [ ] Deployed, not local. Telegram polls from wherever the process runs, so a laptop works for a day and not for a week.
 - [ ] `mkdir -p docs/evidence/baseline`.
 - [ ] Decide who: 3 minimum, 5 target, developers preferred so the Claude Code
@@ -94,12 +94,12 @@ consent line.
 
 ## Daily, about ten minutes
 
-- [ ] `pnpm evidence:daily` and commit the file it writes. It opens with what
+- [ ] `bun run evidence:daily` and commit the file it writes. It opens with what
       went wrong in production over the last 24 hours and ends with a
       `Verdict:` line, so the first thing each morning answers "did a real
       user hit anything?". Then come the counts, and then capacity, so a budget
       running low is visible the day it starts rather than the day it ends. Use
-      this rather than `pnpm evidence`, which reads the local database and
+      this rather than `bun run evidence`, which reads the local database and
       would quietly record your own test chatter as the result. It needs
       `.env.production` with the production `DATABASE_URL`, and the Railway CLI
       logged in and linked to the project (`railway status` shows it).
@@ -111,7 +111,7 @@ consent line.
 
 ### What the morning report counts
 
-`pnpm ops` (run by `evidence:daily`, or on its own with `--hours 72` after a
+`bun run ops` (run by `evidence:daily`, or on its own with `--hours 72` after a
 weekend) reads two sources that already exist, and adds nothing to the schema:
 
 | Section | Source | What it means for the person |
@@ -137,7 +137,7 @@ Railway stops restarting after five. Fixed the same day
 (`apps/server/src/channels/polling.ts`).
 - [ ] Collect any "it remembered" moment while it is fresh. Ask users to forward
       screenshots rather than hunting for them at the end.
-- [ ] Watch for a user with 10 or more stored memories; `pnpm evidence` marks the
+- [ ] Watch for a user with 10 or more stored memories; `bun run evidence` marks the
       requirement met at three such users.
 
 ## What has to exist by the end
@@ -172,5 +172,5 @@ whether a deploy actually took.
 | "It forgot something I told it" | Most likely the dropped-recall bug (`docs/issues/01`). Ask them to ask again; the retry usually wins. Log it, this is article material. |
 | "It said it saved but /memory doesn't show it" | The write takes about 25 s and lands in the background. If it never appears, look for a failed job in `memory_index`. |
 | "/connect didn't work" | Check `docs/BLOCKERS.md` first: the flow has never run against a real wallet. Expect to debug it live the first time. |
-| Bot silent | Check `/api/health/deep` first, then `pnpm ops --hours 2` for crashes, then Railway logs. The adapters share one process, so one crash takes every channel down. A `polling stopped: another process is polling this bot (409)` line that repeats outside a deploy means a second server is running with the production Telegram token, most likely a local one: blank `TELEGRAM_BOT_TOKEN` there. |
+| Bot silent | Check `/api/health/deep` first, then `bun run ops --hours 2` for crashes, then Railway logs. The adapters share one process, so one crash takes every channel down. A `polling stopped: another process is polling this bot (409)` line that repeats outside a deploy means a second server is running with the production Telegram token, most likely a local one: blank `TELEGRAM_BOT_TOKEN` there. |
 | "It answers but forgets everything" | This was a real production bug: a `SameSite=Lax` cookie is not sent cross-site, so every message arrived as a new person. Fixed by proxying the API same-origin. If it returns, check that the page is calling `/api/*` on its own origin rather than the Railway domain. |

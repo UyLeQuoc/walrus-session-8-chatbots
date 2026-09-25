@@ -1,7 +1,7 @@
 # Submission answers
 
 Every field the Airtable form and DeepSurge ask for, filled where the answer is
-already known. `[M6]` marks a number that comes from `pnpm evidence` after the
+already known. `[M6]` marks a number that comes from `bun run evidence` after the
 real-use week. `[HUMAN]` marks something only the account owner can supply.
 
 Form: https://airtable.com/appoDAKpC74UOqoDa/shro5iVzzjoWfZlPK
@@ -46,13 +46,13 @@ DeepSurge: https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608
 
 **Chatbot use case.** Personal and developer assistant, with portable, user-owned memory.
 
-**Where is it deployed and how can judges access it?** Web: https://hippo-web-ten-nu.vercel.app. Telegram: `@walrussession8_bot`. API health: https://hippo-server-production.up.railway.app/api/health/deep. The web app is also published as a Walrus Site; `[HUMAN]` a SuiNS name still needs pointing at the site object for `wal.app` to serve it. Judges can also clone and run it: five commands in the README, and `pnpm demo` proves cross-session recall on mainnet without any setup beyond credentials.
+**Where is it deployed and how can judges access it?** Web: https://hippo-web-ten-nu.vercel.app. Telegram: `@walrussession8_bot`. API health: https://hippo-server-production.up.railway.app/api/health/deep. The web app is also published as a Walrus Site; `[HUMAN]` a SuiNS name still needs pointing at the site object for `wal.app` to serve it. Judges can clone, follow the README quickstart, and start the local stack with `bun run dev`; `bun run demo` proves cross-session recall on mainnet.
 
 **Which LLM did you build with?** Google Gemini 2.5 Flash, accessed through OpenRouter, driven by the Vercel AI SDK. Chosen deliberately so the submission qualifies for the Beyond the Big Two track, and kept after measuring the alternatives rather than on faith: `deepseek/deepseek-v4-flash` and `qwen/qwen3.7-flash` cost a third as much and recall just as well, but drop the style adaptation that makes memory visibly change behaviour (`docs/evidence/model-bakeoff-2026-09-23.md`). Fallback: `qwen/qwen3.7-flash`, which takes over on the non-streaming channels if the primary fails outright.
 
 **Model name and version.** `google/gemini-2.5-flash` (OpenRouter), `ai` v7, Node 20.
 
-**How many agents have written blobs on mainnet?** `[M6]` — `pnpm evidence` prints this. Each owned-mode user gets their own delegate key, so this grows with real users.
+**How many agents have written blobs on mainnet?** `[M6]` — `bun run evidence` prints this. Each owned-mode user gets their own delegate key, so this grows with real users.
 
 **MEMWAL_AGENT_ID.** `f07169b63a377f86902696bf295997e3b2183043edd6024b4fc86907dfb85fa2`
 
@@ -65,7 +65,7 @@ https://suiscan.xyz/mainnet/object/0x5a257802b4881641b49ea3ad3e460a4387f9262b4f9
 > `0x4926f26b…`. That is this owner's account in the **superseded** mainnet
 > deployment, which is a real object and the wrong one. The id above is the
 > account in the deployment `GET /config` serves, and the one the relayer
-> actually writes to. `pnpm diagnose` verifies the pair and fails if the chain
+> actually writes to. `bun run diagnose` verifies the pair and fails if the chain
 > and the relayer disagree. See `docs/issues/11`.
 
 **Confirm the agent has written blobs on mainnet.** Yes. Example blob written during development: `sSON47uP-NTVEGXMuhx_tSCVaQTpSGls2lsYPor5U5k` — https://walruscan.com/mainnet/blob/sSON47uP-NTVEGXMuhx_tSCVaQTpSGls2lsYPor5U5k
@@ -135,7 +135,7 @@ hold** (not seen since the relayer added retries on 2026-09-21).
 > Two smaller things in the same spirit. Pass the upstream simulation error
 > through instead of collapsing every sponsor failure into one code: ours was
 > `CommandArgumentError { arg_idx: 0, kind: TypeMismatch }` and would have named
-> the problem immediately. And ship something like the `pnpm diagnose` we ended
+> the problem immediately. And ship something like the `bun run diagnose` we ended
 > up writing, which prints what the chain says, what the relayer says, and where
 > they disagree. Every hour we lost was an hour spent not knowing that those two
 > disagreed.

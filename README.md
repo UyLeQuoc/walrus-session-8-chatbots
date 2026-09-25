@@ -59,7 +59,7 @@ delegate key on a Walrus Memory account that belongs to your wallet. From then o
 
 It also keeps up when you change your mind. Say you moved from pnpm to bun and
 the correction is stored, recalled next to the fact it replaces, and believed;
-`pnpm demo` fails if any answer states the old value
+`bun run demo` fails if any answer states the old value
 (`docs/evidence/conflicts-2026-09-24.md`).
 
 The web app makes that concrete rather than claiming it. `/me` reads your
@@ -70,16 +70,13 @@ back from Walrus, because the text is never stored in Postgres.
 
 ## Run it
 
-You need Node 20 or later, pnpm 10 (`corepack enable` picks up the version this
-repo pins) and Docker for the local Postgres. Credentials are a Walrus Memory
+You need Node 20 or later, Bun 1.3.14 and Docker for the local Postgres. Credentials are a Walrus Memory
 delegate key and an OpenRouter API key; see [Credentials](#credentials).
 
 ```bash
 cp .env.example .env         # fill the four blanks listed below
-docker compose up -d         # local Postgres on :5433
-pnpm install
-pnpm db:push                 # create the schema
-pnpm smoke --write           # one memory round trip on mainnet
+bun install
+bun run smoke --write        # one memory round trip on mainnet
 ```
 
 The four blanks in `.env` are `MEMWAL_PRIVATE_KEY`, `OPENROUTER_API_KEY`, and
@@ -91,21 +88,28 @@ hippo's account. Leave everything else as it is; blank values mean "off".
 time, so from the second run on it reports that an earlier run already stored it
 and writes nothing, which is the dedupe every chat write goes through.
 
-Then, in separate terminals:
+Start the whole local stack in one terminal:
 
 ```bash
-pnpm dev:server              # Hono API on :8787 plus any channel whose token is set
-pnpm dev:web                 # the Vite app on :5173, proxying /api to :8787
-pnpm hippo                   # the CLI: its own person until you /link it to the web chat
-pnpm demo                    # the memory eval below; no server needed, about 5 minutes
+bun run dev                  # Postgres + schema + API + web, managed by Turbo TUI
 ```
 
-If :5173 is taken, Vite moves to :5174, which the server also accepts.
+Turbo's TUI shows the server and web logs together. Postgres is started in the
+background by Docker Compose. Press `q` or Ctrl+C to stop Turbo; stop Postgres
+with `docker compose down` when you are done. If :5173 is taken, Vite moves to
+:5174, which the server also accepts.
 
-`pnpm diagnose` is the first thing to run when something looks wrong: it prints
+Other useful commands, in another terminal when needed:
+
+```bash
+bun run hippo                 # CLI, its own person until you /link it to web
+bun run demo                  # memory eval; about 5 minutes
+```
+
+`bun run diagnose` is the first thing to run when something looks wrong: it prints
 what is configured, what works, and where the chain and the relayer disagree.
 
-`pnpm demo` is the proof. It teaches hippo five things, then contradicts one of
+`bun run demo` is the proof. It teaches hippo five things, then contradicts one of
 them, throws the conversation away, and in a fresh session asserts four things:
 that it recalls the facts, that the correction wins over the fact it replaced
 even though both are recalled, that a `style` memory changed the reply language
@@ -114,28 +118,30 @@ then asks the same questions with memory off, and fails if those answers know
 anything nobody could guess; that is the before and after, measured. It also
 prints what memory costs per turn (`docs/evidence/latency-2026-09-24.md`).
 
-`pnpm evidence` prints the numbers the session's submission form asks for,
-counting only memories that actually landed on Walrus. `pnpm restore` checks the
+`bun run evidence` prints the numbers the session's submission form asks for,
+counting only memories that actually landed on Walrus. `bun run restore` checks the
 relayer's index against what we wrote.
 
-Three more exist and are easy to miss. `pnpm evidence:daily` is the one to use
+Three more exist and are easy to miss. `bun run evidence:daily` is the one to use
 during the real-use week: it points at production explicitly and writes a dated
-file, where plain `pnpm evidence` reads whichever database `.env` names and would
-quietly record your own test chatter instead. It opens with `pnpm ops`, what went
+file, where plain `bun run evidence` reads whichever database `.env` names and would
+quietly record your own test chatter instead. It opens with `bun run ops`, what went
 wrong in production over the last day (failed and stuck writes, dropped and
 given-up recalls, failed turns and commands, crashes), counted from
 `memory_index` and Railway's logs without printing a word of anyone's memory.
-`pnpm capacity` reads the model budget, the database size and the relayer
-against a week of real use, and says whether it fits. `pnpm prune:people`
+`bun run capacity` reads the model budget, the database size and the relayer
+against a week of real use, and says whether it fits. `bun run prune:people`
 clears rows for people who never said anything.
 
-`pnpm lint`, `pnpm typecheck` and `pnpm test` need no credentials at all; tests
-that read the real account skip themselves without them. `pnpm db:push` needs
-only the database. `pnpm smoke` needs the Walrus Memory credentials, and
-`pnpm demo`, `pnpm hippo` and the chat also need `OPENROUTER_API_KEY`. The whole
-sequence above was run from a fresh clone on Node 20 on 2026-09-25, and every
-step that failed or needed knowledge this README did not give was fixed; the
-log is in `docs/evidence/clean-clone-2026-09-25.md`.
+`bun run lint`, `bun run typecheck` and `bun run test` need no credentials at all; tests
+that read the real account skip themselves without them. `bun run db:push` needs
+only the database. `bun run smoke` needs the Walrus Memory credentials, and
+`bun run demo`, `bun run hippo` and the chat also need `OPENROUTER_API_KEY`.
+
+The clean-clone log in `docs/evidence/clean-clone-2026-09-25.md` predates this
+Bun migration. The Bun install, lint, typecheck, tests, build and OSV scan have
+been rerun against this workspace; run `bun run dev` from a terminal with Docker
+running to start the local app.
 
 ### Credentials
 
@@ -147,7 +153,7 @@ and not the delegate public key. All three are `0x` plus 64 hex and they are eas
 to confuse. If you have the delegate key and nothing else:
 
 ```bash
-pnpm --filter @hippo/memory exec tsx scripts/find-account.ts
+bun run packages/memory/scripts/find-account.ts
 ```
 
 It prints the owner address, the account id and the delegate public key, which is
@@ -158,7 +164,7 @@ what the submission form calls `MEMWAL_AGENT_ID`.
 Each adapter starts only when its token is present, so you can run with none of
 them. `docs/PLAN.md` has the setup for each one; Slack is a single paste of
 `docs/slack-manifest.yaml`, and Discord's slash commands are one command
-(`pnpm --filter @hippo/server discord:commands <guildId>`).
+(`bun run --filter @hippo/server discord:commands <guildId>`).
 
 ## Layout
 
@@ -206,23 +212,23 @@ verifies cleanly can still be wrong. We lost a week to the second one and drafte
 a bug report accusing the relayer of ignoring on-chain access control before
 finding the cause.
 
-`pnpm diagnose` now fails when the chain and the relayer disagree, which is what
+`bun run diagnose` now fails when the chain and the relayer disagree, which is what
 catches this. If you configure an object id by hand, check its Move **type**, not
 just that it resolves: the registry for the current package is typed under the
 current package. Written up in `docs/issues/11`.
 
-**`401` from the relayer.** Almost always one of four things, and `pnpm diagnose`
+**`401` from the relayer.** Almost always one of four things, and `bun run diagnose`
 tells you which: the delegate private key is wrong, the key is not registered on
 the account, `MEMWAL_ACCOUNT_ID` names something other than the account object,
 or staging credentials are pointed at the mainnet relayer. Note that a wrong
 account id *works* on mainnet, because the relayer repairs it by scanning the
 registry, and fails on testnet, where that scan is unavailable. So a config that
-looks fine can be wrong; run `pnpm diagnose`.
+looks fine can be wrong; run `bun run diagnose`.
 
 **"I set `MEMWAL_ACCOUNT_ID` and it still says the wrong account."** The account
 id is the `MemWalAccount` object id, not your wallet address and not the delegate
 public key. All three are `0x` plus 64 hex.
-`pnpm --filter @hippo/memory exec tsx scripts/find-account.ts` prints all three,
+`bun run packages/memory/scripts/find-account.ts` prints all three,
 correctly labelled, from the delegate key alone.
 
 **Staging versus mainnet.** Credentials are per-deployment. A key created on

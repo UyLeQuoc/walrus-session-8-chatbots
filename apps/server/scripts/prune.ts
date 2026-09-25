@@ -1,10 +1,10 @@
 /**
- * `pnpm prune:people` — remove person rows that hold nothing.
+ * `bun run prune:people` — remove person rows that hold nothing.
  *
  * Every anonymous visitor creates a person, which is how guest mode works, but
  * a crawler, a preflight, or the SameSite cookie bug we hit in production all
  * leave a person behind with no memories and no conversation. Those rows make
- * `pnpm evidence` overstate how many people have used hippo, and the submission
+ * `bun run evidence` overstate how many people have used hippo, and the submission
  * asks for that number.
  *
  * Deliberately conservative. A row is only removed when it has no memories, no
@@ -12,9 +12,9 @@
  * a visitor who is mid-first-message is never deleted out from under their own
  * cookie.
  *
- *   pnpm prune:people              # dry run
- *   pnpm prune:people --run        # delete
- *   pnpm prune:people --run --older-than 2h
+ *   bun run prune:people              # dry run
+ *   bun run prune:people --run        # delete
+ *   bun run prune:people --run --older-than 2h
  */
 import { sql } from "@hippo/db";
 import { db } from "../src/app-context.ts";

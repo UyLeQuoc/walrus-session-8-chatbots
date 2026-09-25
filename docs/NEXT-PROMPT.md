@@ -33,7 +33,7 @@ Rules.
 - If a defence fails, fix it and write it up. Never weaken a defence to make a test pass, and never delete an assertion because it is inconvenient.
 - Nothing outward-facing without me saying so: no filing, posting, publishing, submitting or messaging.
 - Never invent a number, a user, a quote or a result. Probabilistic results get a rate and a sample size.
-- Keep pnpm lint, typecheck and test green on every commit. Commit per task. Redeploy after a server change.
+- Keep `bun run lint`, `bun run typecheck` and `bun run test` green on every commit. Commit per task. Redeploy after a server change.
 - Do not touch the Walrus Site or site-builder.
 - If time runs short cut in this order: task 5, task 4, task 2. Never cut task 1 or task 3.
 
@@ -66,13 +66,13 @@ M6 starts the moment I send the bot one message and then invite people. Everythi
 
 5. Capacity. Check the OpenRouter credit balance, the Neon free-tier limits and the Railway usage against a week of five people talking daily, and write the numbers into docs/RUNBOOK.md. Running out of model credit mid-week would end M6 quietly.
 
-6. A daily evidence snapshot. `pnpm evidence` against production, committed to docs/evidence/daily/, so the final numbers are a record rather than a reconstruction. Add the command to the RUNBOOK checklist.
+6. A daily evidence snapshot. `bun run evidence` against production, committed to docs/evidence/daily/, so the final numbers are a record rather than a reconstruction. Add the command to the RUNBOOK checklist.
 
 Rules.
 - Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
 - Nothing outward-facing without me saying so: do not file issues, post, publish, submit, or message anyone. Dry runs are fine.
 - Never invent a number, a user, a quote or a result.
-- Keep pnpm lint, typecheck and test green on every commit. Commit per task. Redeploy after a server change.
+- Keep `bun run lint`, `bun run typecheck` and `bun run test` green on every commit. Commit per task. Redeploy after a server change.
 - Do not touch the Walrus Site or site-builder.
 - If time runs short cut in this order: task 4, task 6, task 5. Never cut disclosure.
 
@@ -102,9 +102,9 @@ This session is M7, the writing. It matters more than it sounds, because the dra
 
 3. Add the honest limit from docs/issues/12: an owner cannot decrypt their own memory without the relayer, because mainnet memories are sealed by a committee key server whose aggregator wants an API key. Access control is real and revocation works; independent readability does not follow yet. Do not soften this and do not let it swallow the good result either.
 
-4. docs/submission.md: eleven issues are filable, 08 is retracted and must not be listed, 12 is new. Check every identifier in it against `pnpm diagnose`, especially MEMWAL_AGENT_ID and the account id, which changed when the registry was corrected.
+4. docs/submission.md: eleven issues are filable, 08 is retracted and must not be listed, 12 is new. Check every identifier in it against `bun run diagnose`, especially MEMWAL_AGENT_ID and the account id, which changed when the registry was corrected.
 
-5. README.md and docs/promo.md and docs/video.md: same corrections, plus the two-deployment trap and that `pnpm diagnose` catches it. Mention the web UI as it now is.
+5. README.md and docs/promo.md and docs/video.md: same corrections, plus the two-deployment trap and that `bun run diagnose` catches it. Mention the web UI as it now is.
 
 6. Refresh docs/AUDIT.md against the codebase. It drifts every session and has been wrong twice.
 
@@ -112,7 +112,7 @@ Rules.
 - Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
 - Nothing outward-facing without me saying so in this session: do not run scripts/file-issues.sh for real, do not post, publish or submit anything. Dry runs are fine and welcome.
 - Never invent a number, a user, a quote or a result. If the evidence is not in docs/evidence/ or a command output, do not write it.
-- Keep pnpm lint, typecheck and test green on every commit. Commit per task.
+- Keep `bun run lint`, `bun run typecheck` and `bun run test` green on every commit. Commit per task.
 - Do not touch the Walrus Site or site-builder.
 - If time runs short cut in this order: promo, video, README. Never cut the article correction or the submission form check.
 
@@ -155,7 +155,7 @@ Rules.
 - Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
 - Do not touch the Walrus Site or site-builder.
 - Every new page state gets a jsdom render assertion in apps/web/src/pages/pages.test.tsx. Typecheck and build both pass happily on a component that throws on first paint, and that has bitten us.
-- Keep pnpm lint, typecheck and test green on every commit. Redeploy the web with `vercel deploy --prod --yes` from apps/web, the server with `railway up --service hippo-server --ci`.
+- Keep `bun run lint`, `bun run typecheck` and `bun run test` green on every commit. Redeploy the web with `vercel deploy --prod --yes` from apps/web, the server with `railway up --service hippo-server --ci`.
 - Never store memory text in Postgres, never log a private key, never route to an OpenAI or Anthropic model, never edit memwal/, never commit .env.
 - Verify in a real browser against production before calling a UI task done.
 - If time runs short cut in this order: toast, dark mode, search UI. Never cut the landing section or the chain view on /me.
@@ -172,7 +172,7 @@ Read CLAUDE.md and docs/GOAL.md first. GOAL.md is the master plan, every milesto
 
 State (2026-09-22): live in production. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, database on Neon, Telegram @walrussession8_bot polling from production. M0, M1, M2, M5 done. M3 is written, security-reviewed and now proven on mainnet by script; only the browser wallet-popup version is unfilmed. M4 partly done. M6 can start the moment somebody messages the bot. M7 is drafted.
 
-Verified in a real browser against production: teach three facts, reload, ask, and it answers from Walrus with the recalled memories shown and linked to their blobs. pnpm demo asserts cross-session recall, style adaptation and cross-channel recall. pnpm diagnose reports config and chain-versus-relayer disagreements. CI runs lint, typecheck, 29 tests, the web build and pnpm audit.
+Verified in a real browser against production: teach three facts, reload, ask, and it answers from Walrus with the recalled memories shown and linked to their blobs. `bun run demo` asserts cross-session recall, style adaptation and cross-channel recall. `bun run diagnose` reports config and chain-versus-relayer disagreements. CI runs lint, typecheck, 29 tests, the web build and `bun pm scan`.
 
 Blocked on me, in order of risk.
 1. Message @walrussession8_bot, then send the invites in docs/RUNBOOK.md, with the /memory off baseline day first. The bot has never received a message. This is the only thing still blocking a judging criterion.
@@ -191,7 +191,7 @@ Eleven findings are written up in docs/issues/ with repros, filed by scripts/fil
 How to work.
 - Do not ask me what to do next. Every open choice is settled in GOAL.md or ARCHITECTURE.md. If something new comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in DECISIONS.md, and keep going.
 - When blocked, do everything that is not blocked, append the exact ask to BLOCKERS.md, and move on. Never fabricate credentials, users or evidence.
-- Keep pnpm typecheck, lint and test green on every commit. Commit per task, push per milestone. Redeploy after a server change: railway up --service hippo-server --ci.
+- Keep `bun run typecheck`, `bun run lint` and `bun run test` green on every commit. Commit per task, push per milestone. Redeploy after a server change: railway up --service hippo-server --ci.
 - Any SDK or relayer friction becomes a docs/issues/ draft with a repro, the same day.
 - Measure twice before claiming a cause. Never leave a polling loop running against the relayer, and never run the local server while production polls Telegram.
 - Never store memory text in Postgres, never log a private key, never route to an OpenAI or Anthropic model, never edit memwal/, never commit .env or .env.production.
@@ -219,9 +219,9 @@ Two production-only bugs surfaced in that browser session and are fixed. Both ar
 - **A duplicate check was blocking writes.** The relayer failed the dedupe recall with "temporarily cannot verify credentials (upstream unavailable)", the error propagated, and the bot told users it could not remember anything. Dedupe is now best-effort.
 
 Also working and verified:
-- `pnpm demo` asserts cross-session recall, style adaptation and cross-channel recall.
-- `pnpm diagnose` reports config, chain-versus-relayer disagreements and storage expiry.
-- CI runs lint (failing on warnings), typecheck, 29 tests across three packages, the web build and `pnpm audit`, which is clean.
+- `bun run demo` asserts cross-session recall, style adaptation and cross-channel recall.
+- `bun run diagnose` reports config, chain-versus-relayer disagreements and storage expiry.
+- CI runs lint (failing on warnings), typecheck, 29 tests across three packages, the web build and `bun pm scan`, which is clean.
 - A clean clone runs from the README alone, and the production image is verified by building and running it, not just building it.
 - M7 is drafted and needs editing rather than writing: `docs/article.md`, `docs/promo.md`, `docs/video.md`, `docs/submission.md`.
 
@@ -241,7 +241,7 @@ Checked and found fine, so they are not re-investigated: Vietnamese and cross-la
 **How to work.**
 - Do not ask me what to do next. Every open choice is already settled in `docs/GOAL.md` or `docs/ARCHITECTURE.md`. If something new comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in `docs/DECISIONS.md`, and keep going.
 - When you are blocked, do everything that is not blocked, append the exact ask to `docs/BLOCKERS.md`, and move to the next milestone's unblocked work. Never fabricate credentials, users or evidence.
-- Verify every task with the command listed under its milestone. Keep `pnpm typecheck`, `pnpm lint` and `pnpm test` green on every commit. Commit per task, push per milestone.
+- Verify every task with the command listed under its milestone. Keep `bun run typecheck`, `bun run lint` and `bun run test` green on every commit. Commit per task, push per milestone.
 - Any SDK or relayer friction becomes a draft in `docs/issues/` with a repro, the same day. Eight are written and ready to file.
 - Measure twice before claiming a cause, and never leave a polling loop running against the relayer. One encouraging run in the direction I expected nearly went into the article as a finding; a clean re-run refuted it.
 - Never store memory text in Postgres, never log a private key, never route to an OpenAI or Anthropic model, never edit `memwal/`, never commit `.env`.

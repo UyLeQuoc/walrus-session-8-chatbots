@@ -87,8 +87,8 @@ survives the relayer. It may, but not through this endpoint on this account.
 
 ```bash
 # an account with more than ~100 owned Blob objects, and a namespace with memories
-pnpm --filter @hippo/memory exec tsx scripts/probe-restore.ts <namespace>
-pnpm --filter @hippo/memory exec tsx scripts/probe-blob-owner.ts <owner-address>
+bun run packages/memory/scripts/probe-restore.ts <namespace>
+bun run packages/memory/scripts/probe-blob-owner.ts <owner-address>
 ```
 
 The first prints recall working and restore reporting zero. The second prints the

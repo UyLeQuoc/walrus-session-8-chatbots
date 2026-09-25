@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run `pnpm demo` on a model and report what it cost and whether it passed.
+# Run `bun run demo` on a model and report what it cost and whether it passed.
 #
 # Cost is measured, not derived from a price list: OpenRouter's key endpoint is
 # read before and after, so the number includes whatever the model actually did,
@@ -17,7 +17,7 @@ spend() {
 
 before="$(spend)"
 start=$(date +%s)
-LLM_MODEL="$model" pnpm --silent demo > "/tmp/bakeoff-$(echo "$model" | tr '/:' '__').log" 2>&1
+LLM_MODEL="$model" bun run --silent demo > "/tmp/bakeoff-$(echo "$model" | tr '/:' '__').log" 2>&1
 status=$?
 elapsed=$(( $(date +%s) - start ))
 sleep 5                      # OpenRouter's usage figure lags a moment

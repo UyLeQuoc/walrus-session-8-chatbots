@@ -107,9 +107,9 @@ so, and why that source disagrees with the chain.
 
 ```bash
 # with MEMWAL_ACCOUNT_ID and MEMWAL_PRIVATE_KEY set
-pnpm --filter @hippo/memory exec tsx scripts/probe-raw-account.ts   # on-chain: 4 keys, ours absent
-pnpm --filter @hippo/memory exec tsx scripts/probe-auth.ts          # a random key is rejected: 401
-pnpm smoke                                                          # our key works; /agents reports 6
+bun run packages/memory/scripts/probe-raw-account.ts   # on-chain: 4 keys, ours absent
+bun run packages/memory/scripts/probe-auth.ts          # a random key is rejected: 401
+bun run smoke                                                          # our key works; /agents reports 6
 ```
 
 ## Second, related symptom

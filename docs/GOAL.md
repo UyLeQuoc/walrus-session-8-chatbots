@@ -10,9 +10,9 @@ Ship a chatbot that remembers users across web, Telegram, Discord and Slack, whe
 
 All of these are true and verifiable by a stranger:
 
-1. `git clone` → `README.md` five commands → chat works with memory on mainnet.
+1. `git clone` → follow the `README.md` quickstart → `bun run dev` starts the local stack and chats against mainnet with configured credentials.
 2. Live web URL and Telegram handle answer within 5 seconds. Discord and Slack work if configured.
-3. At least 3 real people, at least 10 memories each, on mainnet, with `pnpm evidence` output committed under `docs/evidence/`.
+3. At least 3 real people, at least 10 memories each, on mainnet, with `bun run evidence` output committed under `docs/evidence/`.
 4. At least one real user in owned mode with their own MemWalAccount, plus a recorded revoke → forget → re-grant → remember sequence.
 5. The same memory recalled in Claude Code through the official Walrus Memory MCP plugin, screenshot in the article.
 6. Article (500–800 words) published on Medium and Inkray; X post under the session announcement tagging @WalrusProtocol with #WalrusMemory; one promo post outside Walrus/Sui.
@@ -24,7 +24,7 @@ All of these are true and verifiable by a stranger:
 - **Do not ask; decide.** Every open choice is settled in this file or in `docs/ARCHITECTURE.md`. If something new comes up, pick the option that keeps owned mode, the revoke demo and Telegram intact, write the decision in `docs/DECISIONS.md` with one line of reasoning, and continue.
 - **Human inputs are the only blockers.** They are listed in "Inputs from the human". When one is missing, do every task that does not need it, then append the exact ask to `docs/BLOCKERS.md` and move to the next milestone's non-blocked work. Never fabricate credentials, users or evidence.
 - **Verify each task with a command** listed under its milestone. A task is done only when its command passes. Paste the command output into the commit message body or `docs/evidence/`.
-- **Commit at the end of every task**, push at the end of every milestone. Keep `pnpm typecheck && pnpm lint && pnpm test` green on every commit.
+- **Commit at the end of every task**, push at the end of every milestone. Keep `bun run typecheck && bun run lint && bun run test` green on every commit.
 - **Write frictions down as you hit them.** Any SDK, relayer, dashboard or docs friction goes into `docs/PLAN.md` under bug bounty candidates with a repro, the same day.
 - **Keep docs true.** When code diverges from `docs/ARCHITECTURE.md`, update the doc in the same commit.
 - **Never**: store memory text in Postgres, log a private key, route to an OpenAI or Anthropic model, edit `memwal/`, commit `.env`.
@@ -61,7 +61,7 @@ Original task list:
 Goal: remove every technical unknown before building features. Record each result in `docs/SPIKES.md` as `#n — result — evidence — decision`.
 
 Tasks and verification:
-1. `pnpm smoke --write` stores and recalls one memory on mainnet. Evidence: blob ID and Suiscan link in `docs/SPIKES.md`.
+1. `bun run smoke --write` stores and recalls one memory on mainnet. Evidence: blob ID and Suiscan link in `docs/SPIKES.md`.
 2. `/sponsor` from a non-Walrus origin: a throwaway page on `localhost:5174` builds `add_delegate_key` for a test wallet and posts to `relayer.memory.walrus.xyz/sponsor`. Pass = 200 with `{bytes, digest}`. Fail = CORS or 4xx → decision: proxy via `apps/server` `/api/sponsor/*`.
 3. Full connect on mainnet with a fresh Slush wallet: `create_account` + `add_delegate_key` sponsored, then `remember` with the new key succeeds. Evidence: two tx digests.
 4. `remove_delegate_key` sponsored, then the same key gets `401` on `recall`. Evidence: digest + error text. This is the revoke demo's technical proof.
@@ -77,7 +77,7 @@ Exit: `docs/SPIKES.md` has 11 entries; every "decision" is reflected in `docs/AR
 
 ### M2 — Guest mode complete — DONE
 
-`pnpm demo` asserts three things and passes: 4/4 cross-session recall, style adaptation, and cross-channel recall. Commands, throttle, `pnpm evidence`, `pnpm restore` and `pnpm diagnose` all exist and are verified. Telegram is live and polling as `@walrussession8_bot` with seven commands registered; it has simply never received a message, which needs a Telegram account.
+`bun run demo` asserts three things and passes: 4/4 cross-session recall, style adaptation, and cross-channel recall. Commands, throttle, `bun run evidence`, `bun run restore` and `bun run diagnose` all exist and are verified. Telegram is live and polling as `@walrussession8_bot` with seven commands registered; it has simply never received a message, which needs a Telegram account.
 
 Original task list:
 
@@ -88,15 +88,15 @@ Tasks:
 2. Commands on every channel, implemented once (in `apps/server/src/commands.ts` rather than `packages/core`, since they need database access) and mapped by adapters: `/whoami`, `/memory` (list by type from `memory_index` + recall text), `/memory search <q>`, `/memory off|on`, `/memory forget`, `/proof`, `/connect` (placeholder link until M3), `/help`.
 3. Style adaptation: `style` memories change the system prompt (exists in prompt builder; verify with an eval).
 4. Per-person throttle: 10 turns/min, 200/day, in `apps/server/src/ratelimit.ts` backed by Postgres. Web `/api/chat` requires the cookie.
-5. Evals: `pnpm demo` runs a scripted two-session conversation against mainnet with a fresh guest ID and asserts that session 2 recalls facts from session 1 (`packages/core/src/demo.ts`). Output saved to `docs/evidence/demo-<date>.txt`.
-6. `pnpm evidence`: users, memories per user, blob counts per account, agents per account, turn counts with memory on/off, average injected memories, from Postgres + relayer.
+5. Evals: `bun run demo` runs a scripted two-session conversation against mainnet with a fresh guest ID and asserts that session 2 recalls facts from session 1 (`packages/core/src/demo.ts`). Output saved to `docs/evidence/demo-<date>.txt`.
+6. `bun run evidence`: users, memories per user, blob counts per account, agents per account, turn counts with memory on/off, average injected memories, from Postgres + relayer.
 7. Telegram polish: typing indicator, long replies split at 4000 chars, Markdown-safe output, `/start` explains ownership in two sentences.
 
-Verification: `pnpm demo` passes; `/memory` on Telegram lists the entries from `pnpm demo`; `pnpm evidence` prints non-zero counts.
+Verification: `bun run demo` passes; `/memory` on Telegram lists the entries from `bun run demo`; `bun run evidence` prints non-zero counts.
 
 ### M3 — Owned mode — WRITTEN AND SECURITY-REVIEWED, never run against a wallet
 
-All nine tasks are implemented: connect and disconnect tokens, the wallet page with sponsored `create_account` and `add_delegate_key`, on-chain verification of the grant before switching mode, dual-read instead of migration, `/me` with blob links, storage expiry and wallet sign-in, `/whoami`, and the Claude Code instructions. The sign-in half is verified end to end with a throwaway keypair (`pnpm --filter @hippo/server probe:signin`): a valid signature opens a session, a replayed nonce is refused, a signature over another challenge is refused, and signing out closes it. Two corrections since: permanent deletion is impossible (`docs/issues/09`) so `/me` does not offer it, and the security review found an unauthenticated takeover in the connect callback which is fixed.
+All nine tasks are implemented: connect and disconnect tokens, the wallet page with sponsored `create_account` and `add_delegate_key`, on-chain verification of the grant before switching mode, dual-read instead of migration, `/me` with blob links, storage expiry and wallet sign-in, `/whoami`, and the Claude Code instructions. The sign-in half is verified end to end with a throwaway keypair (`bun run --filter @hippo/server probe:signin`): a valid signature opens a session, a replayed nonce is refused, a signature over another challenge is refused, and signing out closes it. Two corrections since: permanent deletion is impossible (`docs/issues/09`) so `/me` does not offer it, and the security review found an unauthenticated takeover in the connect callback which is fixed.
 
 What is missing is proof, not code. Tasks 8 and 9, the recorded revoke demo and the Claude Code recall, need a wallet.
 
@@ -115,20 +115,20 @@ Tasks:
 8. Record the revoke demo end to end on a test wallet: screen recording + `docs/evidence/revoke-<date>.md` with digests.
 9. Claude Code demo: install the MemWal plugin, `memwal_login` with the same Slush wallet, `--namespace hippo`, ask what hippo knows. Screenshot to `docs/evidence/`.
 
-Verification: a fresh wallet goes guest → owned → revoked → owned again with only the UI; `pnpm evidence` shows 2 agents on that account; Claude Code recalls a hippo memory.
+Verification: a fresh wallet goes guest → owned → revoked → owned again with only the UI; `bun run evidence` shows 2 agents on that account; Claude Code recalls a hippo memory.
 
 ### M4 — More channels and identity linking — PARTLY DONE
 
-Cross-channel identity linking is done and verified without a wallet, using a six-character code, and it is asserted in `pnpm demo`. Evidence in `docs/evidence/cross-channel-2026-09-21.md`. The CLI is a real channel over HTTP and is documented. Discord and Slack adapters are written and typechecked but need tokens; Discord's slash-command registration is a one-command script (`pnpm --filter @hippo/server discord:commands <guildId>`) so task 1 is ready to run the moment a token exists.
+Cross-channel identity linking is done and verified without a wallet, using a six-character code, and it is asserted in `bun run demo`. Evidence in `docs/evidence/cross-channel-2026-09-21.md`. The CLI is a real channel over HTTP and is documented. Discord and Slack adapters are written and typechecked but need tokens; Discord's slash-command registration is a one-command script (`bun run --filter @hippo/server discord:commands <guildId>`) so task 1 is ready to run the moment a token exists.
 
 Original task list:
 
 1. Discord adapter live in a test server (DM + mention). Slash commands registered via REST for `/whoami`, `/memory`, `/connect`.
 2. Slack adapter live in a test workspace (DM + mention, slash commands).
-3. Cross-channel linking: `/connect` from Telegram and a wallet sign-in on web resolve to the same person; a fact told on Telegram is recalled on web and Discord. Add this to `pnpm demo`.
+3. Cross-channel linking: `/connect` from Telegram and a wallet sign-in on web resolve to the same person; a fact told on Telegram is recalled on web and Discord. Add this to `bun run demo`.
 4. CLI channel documented in README.
 
-Verification: `pnpm demo --cross-channel` passes; a screenshot of the same fact on two channels in `docs/evidence/`.
+Verification: `bun run demo --cross-channel` passes; a screenshot of the same fact on two channels in `docs/evidence/`.
 
 ### M5 — Deploy and reproducibility — DONE
 
@@ -136,25 +136,25 @@ Verification: `pnpm demo --cross-channel` passes; a screenshot of the same fact 
 
 Original task list:
 
-1. Railway: `apps/server` with `pnpm start`, all env, health check on `/api/health`, Neon `DATABASE_URL`, `pnpm db:push` in a release step.
+1. Railway: `apps/server` with `bun run --filter @hippo/server start`, all env, health check on `/api/health`, Neon `DATABASE_URL`, `bun run db:push` in a release step.
 2. Web: Walrus Sites deploy (spike #10) with Vercel as backup; `VITE_API_URL` and `CORS_ORIGIN` set to the real origins; cookies `secure`.
-3. README: five commands, env table, architecture diagram, "own your memory" section, troubleshooting (401, staging vs mainnet, namespace), how to run the evals.
-4. `docs/evidence/` folder structure and `pnpm evidence` cron note.
+3. README: Bun quickstart, env table, architecture diagram, "own your memory" section, troubleshooting (401, staging vs mainnet, namespace), how to run the evals.
+4. `docs/evidence/` folder structure and `bun run evidence` cron note.
 5. WalForm survey link in `/start` and on `/me`.
 
 Verification: a clean clone on another machine (or a fresh directory) follows README and chats; live URLs answer; `curl <api>/api/health` from outside.
 
 ### M6 — Real use and evidence — READY TO START, waiting on people
 
-The Telegram token arrived and the adapter is live: `@walrussession8_bot` polls, registers its commands, and runs the same turn handler verified through the web and CLI. What is left is genuinely human: somebody has to message it, and a few people have to use it for a week. `docs/RUNBOOK.md` has the invite text, consent rules and daily checklist ready to run. Everything else it depends on is ready: `pnpm evidence` counts only memories that landed and prints whether the three-people-ten-memories requirement is met, `docs/evidence/` exists, and ten bug reports are drafted and ready to file.
+The Telegram token arrived and the adapter is live: `@walrussession8_bot` polls, registers its commands, and runs the same turn handler verified through the web and CLI. What is left is genuinely human: somebody has to message it, and a few people have to use it for a week. `docs/RUNBOOK.md` has the invite text, consent rules and daily checklist ready to run. Everything else it depends on is ready: `bun run evidence` counts only memories that landed and prints whether the three-people-ten-memories requirement is met, `docs/evidence/` exists, and ten bug reports are drafted and ready to file.
 
 Original task list:
 
 1. Sep 27–28 baseline: onboard 3–5 users with `/memory off`; save transcripts to `docs/evidence/baseline/` (with consent, names redacted).
-2. Sep 29: memory on. Daily: run `pnpm evidence`, collect "the moment it mattered" screenshots, watch logs for frictions.
+2. Sep 29: memory on. Daily: run `bun run evidence`, collect "the moment it mattered" screenshots, watch logs for frictions.
 3. Get at least one real user into owned mode with their own wallet; record it.
 4. File GitHub issues as frictions are confirmed: aim for 5 strong ones from `docs/PLAN.md`'s candidate list, each with a minimal repro script under `docs/issues/`.
-5. Oct 3–4: freeze features; only fixes. Final `pnpm evidence` → `docs/evidence/final.md` with counts, blob totals, explorer links for the operator account and each owned account.
+5. Oct 3–4: freeze features; only fixes. Final `bun run evidence` → `docs/evidence/final.md` with counts, blob totals, explorer links for the operator account and each owned account.
 
 Verification: `docs/evidence/final.md` shows ≥3 users × ≥10 memories, ≥1 owned account, ≥5 issue links.
 
@@ -168,7 +168,7 @@ Original task list:
 2. 2-minute video: memory off vs on, connect, revoke, re-grant, Claude Code recall. Script in `docs/video.md`.
 3. Promo post drafts (Show HN, dev.to, one Vietnamese dev community) in `docs/promo.md`.
 4. X post draft in `docs/promo.md`.
-5. Fill every field of the Airtable form and DeepSurge into `docs/submission.md` (agent ID = operator delegate public key from `pnpm smoke`, account ID, explorer link, agent count, LLM, bug + improvement, article link, X link, promo link, tool used = TypeScript SDK).
+5. Fill every field of the Airtable form and DeepSurge into `docs/submission.md` (agent ID = operator delegate public key from `bun run smoke`, account ID, explorer link, agent count, LLM, bug + improvement, article link, X link, promo link, tool used = TypeScript SDK).
 6. Human publishes article, posts, submits forms. Agent ticks `docs/PLAN.md` checklist and tags the repo `v1.0-submission`.
 
 Verification: every checklist item in `docs/PLAN.md` "Submission checklist" is ticked with a link.
@@ -180,7 +180,7 @@ claim the project already makes true, rather than adding a new one. **Feature
 freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed.
 
 1. **Conflicts — DONE 2026-09-24.** A change of mind is stored, recalled beside
-   the fact it replaces, and believed. `pnpm demo` fails if any answer states
+   the fact it replaces, and believed. `bun run demo` fails if any answer states
    the old value. `docs/evidence/conflicts-2026-09-24.md`.
 2. **Export — DONE 2026-09-24**, 4/4 verified end to end on mainnet, `docs/evidence/export-2026-09-24.md`. "Your memory is yours" with no way to take it is the gap a
    sceptical judge finds first. `GET /api/me/export?format=json|md`, an Export
@@ -197,7 +197,7 @@ freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed
    and the shared memories, with a leave control. **First, track team writes:**
    `/team remember` records nothing in `memory_index`, so a failed team write is
    never noticed after the person was told "Added", and nobody has a list of what
-   they gave a team. Recording them changes `pnpm evidence` (team rows must not
+   they gave a team. Recording them changes `bun run evidence` (team rows must not
    count toward the 3 × 10 requirement), `/memory forget` and the `/me` list, so
    all three move together. Verification: a render test, and a team write whose
    status settles to stored.
@@ -216,7 +216,7 @@ freeze stays Oct 3 (M6 task 5):** anything unfinished by then is cut, not rushed
    `docs/evidence/web-commands-2026-09-24.md`.
 
 **M8 status:** every task is shipped to production and matches `main`. Task 4's
-column went in through `pnpm --filter @hippo/db plan-push`, which showed one
+column went in through `bun run --filter @hippo/db plan-push`, which showed one
 additive statement before applying it.
 
 Not in M8: Discord and Slack go live the moment tokens exist (M4), and needs no
@@ -230,7 +230,7 @@ so this is what can still move the judging criteria without them. Feature
 freeze stays Oct 3.
 
 1. **A measured before/after — DONE 2026-09-24**, passed in every run since. `docs/evidence/latency-2026-09-24.md`. Criterion one asks for a convincing before and
-   after, and the only "before" so far was asserted, never run. `pnpm demo`
+   after, and the only "before" so far was asserted, never run. `bun run demo`
    asks the same session-two questions with memory off, on the same model, and
    fails if a memory-off answer knows a taught fact. Then the article states
    the measured result instead of nothing.
@@ -276,14 +276,14 @@ call; this makes sure what they file and what a judge clones hold up.
 2. **The judge's path — DONE.** The first fresh clone on Node 20 could not start
    the server (a blank `SURVEY_URL=` in `.env.example`, broken for every clone
    since 2026-09-22), the dev web app could not reach the API, and the CLI exited
-   13. All fixed; the second fresh clone ran clean end to end, `pnpm demo` in
+   13. All fixed; the second fresh clone ran clean end to end, `bun run demo` in
    4 min 38 s (`docs/evidence/clean-clone-2026-09-25.md`).
 3. **SDK 0.1.8 — measured, not merged.** Everything passes and it dropped no more
    recalls than 0.1.7, but the relayer was degraded for the whole measurement and
    the two 0.1.8 benches landed either side of 0.1.7's, so "no slower" is not
    shown. It waits on the `sdk-0.1.8` branch for a healthy hour
    (`docs/evidence/sdk-0.1.8-2026-09-25.md`).
-4. **Real-use readiness — DONE.** `pnpm evidence:daily` opens with `pnpm ops`:
+4. **Real-use readiness — DONE.** `bun run evidence:daily` opens with `bun run ops`:
    failed and stuck writes, dropped and given-up recalls, failed turns and
    commands and crashes, from `memory_index` and Railway's logs, with no memory
    text. Its first run found 22 production crashes in a day, a Telegram 409 on
@@ -297,9 +297,9 @@ call; this makes sure what they file and what a judge clones hold up.
 
 | Judges ask | Where the proof lives |
 |---|---|
-| Does it actually remember? | `pnpm demo` output, revoke demo recording, transcripts with recalled memories cited |
+| Does it actually remember? | `bun run demo` output, revoke demo recording, transcripts with recalled memories cited |
 | Real-world use | `docs/evidence/final.md`, baseline vs memory-on transcripts, user survey (WalForm) |
-| Build quality | README five commands, `pnpm typecheck/lint/test/demo`, docker-compose, `docs/ARCHITECTURE.md` |
+| Build quality | README quickstart, `bun run typecheck/lint/test/demo`, docker-compose, `docs/ARCHITECTURE.md` |
 | Article | `docs/article.md` → Medium + Inkray |
 | Beyond the Big Two | `LLM_MODEL=google/gemini-2.5-flash`, friction notes in article |
 | Bug bounty | `docs/issues/` + GitHub links |

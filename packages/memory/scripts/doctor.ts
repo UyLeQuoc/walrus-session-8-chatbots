@@ -1,5 +1,5 @@
 /**
- * `pnpm diagnose` — say what is configured, what works, and where the chain and
+ * `bun run diagnose` — say what is configured, what works, and where the chain and
  * the relayer disagree.
  *
  * This is the tool we wished existed. A whole afternoon went into a

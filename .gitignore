@@ -11,11 +11,11 @@ dist/
 # React Bits Pro ships its registry documentation as a skill, licensed
 # Proprietary. This repo is public because the hackathon requires it, so the
 # vendor's paid material stays out of it. Reinstall locally with:
-#   pnpm --filter @hippo/web exec shadcn add @reactbits-starter/skill
+#   bunx --bun shadcn add @reactbits-starter/skill
 .claude/skills/react-bits-pro/
 
 # The shadcn MCP server only reaches the paid React Bits registries, so the
 # config is personal tooling rather than part of the project. Recreate with:
-#   cd apps/web && pnpm dlx shadcn@latest mcp init --client claude
+#   cd apps/web && bunx --bun shadcn@latest mcp init --client claude
 .mcp.json
 .DS_Store

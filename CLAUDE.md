@@ -21,12 +21,13 @@ Multi-channel chatbot (web, Telegram, Discord, Slack) where each user owns their
 
 | | |
 |---|---|
-| `pnpm diagnose` | What is configured, what works, and where the chain and the relayer disagree. Run this first when anything looks wrong. |
-| `pnpm demo` | The memory eval: teaches five facts and one correction, drops the conversation, then asserts cross-session recall, that the newer of two conflicting memories wins, style adaptation and cross-channel recall, then a memory-off control on the same questions and the recall cost per turn. |
-| `pnpm evidence` | The numbers the submission form asks for, counting only memories that landed on Walrus. |
-| `pnpm smoke` | Health, identity and (with `--write`) one round trip on mainnet. |
-| `pnpm restore` | Compares the relayer's index against what we wrote, and warns when restore sees nothing. |
-| `pnpm hippo` | The CLI channel, talking to a running server. |
+| `bun run dev` | Starts Postgres, applies the schema, then runs the API and web app in the Turbo TUI. |
+| `bun run diagnose` | What is configured, what works, and where the chain and the relayer disagree. Run this first when anything looks wrong. |
+| `bun run demo` | The memory eval: teaches five facts and one correction, drops the conversation, then asserts cross-session recall, that the newer of two conflicting memories wins, style adaptation and cross-channel recall, then a memory-off control on the same questions and the recall cost per turn. |
+| `bun run evidence` | The numbers the submission form asks for, counting only memories that landed on Walrus. |
+| `bun run smoke` | Health, identity and (with `--write`) one round trip on mainnet. |
+| `bun run restore` | Compares the relayer's index against what we wrote, and warns when restore sees nothing. |
+| `bun run hippo` | The CLI channel, talking to a running server. |
 
 ## Reference clone: `memwal/`
 
@@ -67,22 +68,21 @@ memwal/          reference clone (gitignored)
 
 ## Checks
 
-`pnpm lint` fails on warnings, not just errors, so unused imports and other drift
+`bun run lint` fails on warnings, not just errors, so unused imports and other drift
 do not accumulate. The web pages have jsdom render tests (`apps/web/src/pages/pages.test.tsx`)
 that mount each page with the network stubbed and assert what a reader sees, because
 typecheck and build both pass happily on a component that throws on first paint. `.github/workflows/ci.yml` runs lint, typecheck, test, the web
-build and `pnpm audit` on every push, plus a guard that `.env`, `memwal/` and
-`.turbo/` are never tracked. It failed at pnpm setup on every run until
-2026-09-24, so none of that had actually been checked before then; a local run
-with `.env` present hides failures CI will hit, so reproduce CI in a copy with
-no `.env`, on Node 20. `jsdom` is pinned to 26 because 30 needs Node 22. There is one `pnpm.overrides` entry, for esbuild,
+build and `bun pm scan` on every push, plus a guard that `.env`, `memwal/` and
+`.turbo/` are never tracked. CI uses Bun for package management and Node 20 for
+the application checks. `jsdom` is pinned to 26 because 30 needs Node 22. There is one
+`overrides` entry, for esbuild,
 because `drizzle-kit` still pulls a version with a dev-server advisory it never
 uses; the reasoning is in `package.json`. Tests that read the real mainnet account skip themselves when
 credentials are absent, so a fork gets a green run without secrets.
 
 ## Conventions
 
-- TypeScript strict, pnpm workspaces, Node 20.
+- TypeScript strict, Bun workspaces, Turbo, Node 20 runtime.
 - Channel adapters contain no memory or LLM logic; they only translate messages to and from `packages/core`.
 - Memory text format: `[type] [by:@user] [#channel]? [YYYY-MM-DD] fact` (see `docs/ARCHITECTURE.md` §5).
 - Secrets only in `.env` files, which are gitignored. Keep `.env.example` current.

@@ -1,5 +1,5 @@
 /**
- * `pnpm evidence` — the numbers the submission form and the article need.
+ * `bun run evidence` — the numbers the submission form and the article need.
  * Everything here is read from Postgres plus the relayer, never invented.
  */
 import { desc, memoryIndex, people, sql, turnLog } from "@hippo/db";

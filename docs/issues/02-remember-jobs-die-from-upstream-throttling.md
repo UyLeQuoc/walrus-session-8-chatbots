@@ -41,7 +41,7 @@ Write steadily to one account for a few minutes while anything else uses the sam
 mainnet relayer. In our case:
 
 ```bash
-pnpm demo        # teaches five facts, waits, asks four questions
+bun run demo        # teaches five facts, waits, asks four questions
 ```
 
 Failed jobs and their error text land in our `memory_index` table:

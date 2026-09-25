@@ -58,7 +58,7 @@ definitions. `SKILL.md`'s recall section is where someone deciding how to handle
   a second recall fetches the person's corrections whenever something
   correctable came back.
 
-With all three, `pnpm demo` teaches a fact, corrects it, and checks that no
+With all three, `bun run demo` teaches a fact, corrects it, and checks that no
 answer in a fresh session states the old value. It passed three runs in a row
 on mainnet; before, the correction was either never stored or never recalled.
 

@@ -1,5 +1,5 @@
 /**
- * `pnpm --filter @hippo/core bench:recall <namespace-person-id>` — what a
+ * `bun run --filter @hippo/core bench:recall <namespace-person-id>` — what a
  * session's first turn spends on recall, the old way against the new.
  *
  * Old: the message, then three natural-language pulls for profile, style and

@@ -5,7 +5,7 @@
 > long draft is the source it was cut from and keeps everything measured.
 
 Honest over polished. Sections marked `[M6]` need the real-user numbers from
-`pnpm evidence` before publishing.
+`bun run evidence` before publishing.
 
 **Length.** The draft body is now about 1,950 words, well past the 500 to 800 I first aimed
 at. The retraction section is the reason and it earns its space, so if this needs
@@ -82,7 +82,7 @@ bot claims to remember you, you should be able to check.
 
 ### Before and after
 
-`pnpm demo` in the repo is the honest version of a demo. It teaches hippo five
+`bun run demo` in the repo is the honest version of a demo. It teaches hippo five
 things, then changes its mind about one of them ("we moved from pnpm to bun"),
 throws the conversation away, and asks four questions in a session that has never
 seen them:
@@ -271,7 +271,7 @@ theirs.
 ```bash
 git clone https://github.com/UyLeQuoc/walrus-session-8-chatbots
 cp .env.example .env && docker compose up -d
-pnpm install && pnpm db:push && pnpm demo
+bun install && bun run db:push && bun run demo
 ```
 
 Built with Gemini 2.5 Flash through OpenRouter on the Vercel AI SDK, Walrus

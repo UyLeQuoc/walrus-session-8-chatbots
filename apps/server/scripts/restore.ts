@@ -1,14 +1,14 @@
 /**
- * `pnpm restore` — rebuild the relayer's search index from Walrus.
+ * `bun run restore` — rebuild the relayer's search index from Walrus.
  *
  * The memories themselves live on Walrus, but recall runs against a vector
  * index in the relayer's database. If that index is lost or reset, every memory
  * still exists and none of them can be found. This walks the namespaces hippo
  * has written to and asks the relayer to re-index each one.
  *
- *   pnpm restore                 # dry run: what would be restored, per namespace
- *   pnpm restore --run           # actually restore
- *   pnpm restore --run --limit 50
+ *   bun run restore                 # dry run: what would be restored, per namespace
+ *   bun run restore --run           # actually restore
+ *   bun run restore --run --limit 50
  *
  * `restore` has no pagination cursor: it tops up the N newest blobs per call, so
  * a large namespace needs repeated calls with a rising limit. The loop below

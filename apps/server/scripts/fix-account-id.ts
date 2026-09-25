@@ -7,7 +7,7 @@
  * send. So every guest memory went to the operator's account in the deployment
  * `GET /config` reports, while our env named the superseded deployment's
  * account for a week (docs/issues/11). The blobs are fine; only this column is
- * wrong, and leaving it wrong would make `pnpm evidence` report two accounts.
+ * wrong, and leaving it wrong would make `bun run evidence` report two accounts.
  *
  *   tsx scripts/fix-account-id.ts            # report only
  *   tsx scripts/fix-account-id.ts --apply    # write

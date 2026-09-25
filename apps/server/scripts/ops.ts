@@ -1,15 +1,15 @@
 /**
- * `pnpm ops` — did anybody hit a failure in production over the last day?
+ * `bun run ops` — did anybody hit a failure in production over the last day?
  *
- * Run every morning of the real-use week by `pnpm evidence:daily`, against the
+ * Run every morning of the real-use week by `bun run evidence:daily`, against the
  * production database. Writes come from `memory_index`; recall drops, give-ups
  * and command errors are only ever logged, so they are counted from Railway's
  * logs for every deployment that ran in the window. No memory text is read or
  * printed: log lines are counted by prefix, write errors are SDK and relayer
  * messages already stored in Postgres, masked before printing.
  *
- *   pnpm ops                 the last 24 hours
- *   pnpm ops --hours 72      a longer window, e.g. after a weekend
+ *   bun run ops                 the last 24 hours
+ *   bun run ops --hours 72      a longer window, e.g. after a weekend
  *
  * If the logs cannot be read (no Railway CLI, not logged in, not linked), the
  * report says so and exits 1 rather than printing zeros that look like a clean

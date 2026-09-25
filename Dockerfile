@@ -5,20 +5,21 @@
 # TypeScript through tsx, so there is no artefact to copy out. Deliberately no
 # typecheck or tests either; CI runs those on every push, and re-running them
 # here only makes a deploy fail for reasons a deploy cannot fix.
-FROM node:20-slim
+FROM oven/bun:1.3.14 AS bun
 
-ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
-RUN corepack enable
+FROM node:20-slim
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
 WORKDIR /app
 
 # Manifests first, so a change to source does not re-resolve the dependency graph.
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
+COPY bun.lock package.json turbo.json tsconfig.base.json ./
 COPY packages/db/package.json packages/db/
 COPY packages/memory/package.json packages/memory/
 COPY packages/core/package.json packages/core/
 COPY apps/server/package.json apps/server/
-RUN pnpm install --frozen-lockfile --filter @hippo/server...
+COPY apps/web/package.json apps/web/
+RUN bun install --frozen-lockfile
 
 COPY packages packages
 COPY apps/server apps/server
@@ -30,4 +31,4 @@ EXPOSE 8787
 # which is the failure this image can actually have.
 RUN node --experimental-strip-types --version >/dev/null 2>&1 || true
 
-CMD ["pnpm", "--filter", "@hippo/server", "start"]
+CMD ["bun", "run", "--filter", "@hippo/server", "start"]

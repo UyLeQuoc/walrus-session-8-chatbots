@@ -1,9 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
+    "push": { "cache": false },
     "typecheck": { "dependsOn": ["^typecheck"] },
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
     "test": { "dependsOn": ["^build"] },
-    "dev": { "cache": false, "persistent": true }
+    "dev": {
+      "dependsOn": ["@hippo/db#push"],
+      "cache": false,
+      "persistent": true
+    }
   }
 }

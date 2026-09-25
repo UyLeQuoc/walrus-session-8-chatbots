@@ -43,8 +43,8 @@ reach the target schema, and this database holds real users' encrypted delegate
 keys. Look at the diff first, then apply it only if it is purely additive:
 
 ```bash
-pnpm --filter @hippo/db plan-push ../../.env.production           # prints the plan
-pnpm --filter @hippo/db plan-push ../../.env.production --apply   # applies it
+bun run --filter @hippo/db plan-push ../../.env.production           # prints the plan
+bun run --filter @hippo/db plan-push ../../.env.production --apply   # applies it
 ```
 
 `plan-push` uses drizzle-kit's own diff (`pushSchema`) but refuses to apply
@@ -59,7 +59,7 @@ local `.env`.
 
 | Variable | Where it comes from |
 |---|---|
-| `MEMWAL_ACCOUNT_ID` | local `.env` (`pnpm diagnose` prints it) |
+| `MEMWAL_ACCOUNT_ID` | local `.env` (`bun run diagnose` prints it) |
 | `MEMWAL_PRIVATE_KEY` | local `.env` |
 | `MEMWAL_SERVER_URL` | `https://relayer.memory.walrus.xyz` |
 | `MEMWAL_PACKAGE_ID` | local `.env` |
@@ -116,7 +116,7 @@ here, so watch the Railway logs while you send it.
 `apps/web/ws-resources.json` is ready. Needs WAL and SUI in the Sessions wallet.
 
 ```bash
-pnpm --filter @hippo/web build
+bun run --filter @hippo/web build
 site-builder deploy apps/web/dist
 ```
 

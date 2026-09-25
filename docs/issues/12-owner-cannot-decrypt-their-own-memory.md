@@ -93,8 +93,8 @@ retract (`docs/issues/08`).
 
 ```bash
 # a blob id this account owns
-pnpm --filter @hippo/memory exec tsx scripts/probe-blobid.ts
-pnpm --filter @hippo/memory exec tsx scripts/spike-decrypt.ts <blob-id>
+bun run packages/memory/scripts/probe-blobid.ts
+bun run packages/memory/scripts/spike-decrypt.ts <blob-id>
 ```
 
 The script takes the key servers and threshold from the ciphertext rather than

@@ -48,9 +48,9 @@ reason, and no guidance anywhere a developer reads.
 
 ```bash
 git clone https://github.com/UyLeQuoc/walrus-session-8-chatbots
-cd walrus-session-8-chatbots && pnpm install
+bun install
 cp .env.example .env    # fill MEMWAL_ACCOUNT_ID and MEMWAL_PRIVATE_KEY
-pnpm --filter @hippo/memory exec tsx scripts/spike-recall.ts
+bun run packages/memory/scripts/spike-recall.ts
 ```
 
 The script writes ten facts, waits for indexing, then runs ten queries. During

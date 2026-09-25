@@ -2,40 +2,50 @@
   "name": "hippo",
   "private": true,
   "version": "0.0.1",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "bun@1.3.14",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "dev:server": "pnpm --filter @hippo/server dev",
-    "dev:web": "pnpm --filter @hippo/web dev",
-    "hippo": "pnpm --filter @hippo/core hippo",
-    "smoke": "pnpm --filter @hippo/memory smoke",
-    "db:push": "pnpm --filter @hippo/db push",
-    "db:studio": "pnpm --filter @hippo/db studio",
+    "dev": "docker compose up -d --wait && turbo run dev --filter=@hippo/server --filter=@hippo/web --ui=tui",
+    "dev:server": "bun run --filter @hippo/server dev",
+    "dev:web": "bun run --filter @hippo/web dev",
+    "hippo": "bun run --filter @hippo/core hippo",
+    "smoke": "bun run --filter @hippo/memory smoke",
+    "db:push": "bun run --filter @hippo/db push",
+    "db:studio": "bun run --filter @hippo/db studio",
     "typecheck": "turbo run typecheck",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "biome check --error-on-warnings .",
     "format": "biome format --write .",
-    "demo": "pnpm --filter @hippo/core demo",
-    "evidence": "pnpm --filter @hippo/server evidence",
-    "restore": "pnpm --filter @hippo/server restore",
-    "diagnose": "pnpm --filter @hippo/memory diagnose",
-    "prune:people": "pnpm --filter @hippo/server prune:people",
-    "capacity": "pnpm --filter @hippo/server capacity",
-    "ops": "pnpm --filter @hippo/server ops",
+    "demo": "bun run --filter @hippo/core demo",
+    "evidence": "bun run --filter @hippo/server evidence",
+    "restore": "bun run --filter @hippo/server restore",
+    "diagnose": "bun run --filter @hippo/memory diagnose",
+    "prune:people": "bun run --filter @hippo/server prune:people",
+    "capacity": "bun run --filter @hippo/server capacity",
+    "ops": "bun run --filter @hippo/server ops",
     "evidence:daily": "bash scripts/evidence-daily.sh",
-    "measure:corrections": "pnpm --filter @hippo/core measure:corrections"
+    "measure:corrections": "bun run --filter @hippo/core measure:corrections"
   },
   "devDependencies": {
+    "@bun-security-scanner/osv": "^1.0.0",
     "@biomejs/biome": "^2.5.14",
     "turbo": "^2.11.2",
     "typescript": "^5.9.3"
   },
-  "pnpm": {
-    "overrides": {
-      "esbuild": ">=0.25.0"
-    }
-  }
+  "overrides": {
+    "esbuild": ">=0.25.0"
+  },
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "@tailwindcss/oxide",
+    "@mysten/walrus-wasm",
+    "esbuild"
+  ],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }

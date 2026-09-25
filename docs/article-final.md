@@ -33,7 +33,7 @@ Every web reply lists the memories it used, each linked to its encrypted blob.
 
 ### Before and after
 
-`pnpm demo` teaches hippo five things, changes one ("we moved from pnpm to
+`bun run demo` teaches hippo five things, changes one ("we moved from pnpm to
 bun"), throws the conversation away, then asks questions in a fresh session:
 
 ```
@@ -97,7 +97,7 @@ These are filed with repros at github.com/MystenLabs/MemWal/issues
 ```bash
 git clone https://github.com/UyLeQuoc/walrus-session-8-chatbots
 cp .env.example .env && docker compose up -d
-pnpm install && pnpm db:push && pnpm demo
+bun install && bun run db:push && bun run demo
 ```
 
 Gemini 2.5 Flash through OpenRouter on the Vercel AI SDK, Walrus Memory on Sui

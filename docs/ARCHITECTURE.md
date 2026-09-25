@@ -25,7 +25,7 @@ One core, many channels. Every channel adapter turns an inbound message into `ha
                     └────────────────┘   Walrus mainnet (SEAL-encrypted blobs)
 ```
 
-Monorepo (pnpm workspaces + turborepo):
+Monorepo (Bun workspaces + Turborepo):
 
 | Path | Purpose |
 |---|---|
@@ -42,7 +42,7 @@ A `person` is the unit of memory. Channel identities (`telegram:123`, `discord:4
 
 Web identity: an anonymous session cookie creates a guest `person` on first message. Signing in with a wallet attaches `wallet:<address>` to that person, or resolves to the person that already owns the wallet. No passwords.
 
-The sign-in is deliberately narrow. The server issues a nonce, the wallet signs a readable message containing it, and **the address is recovered from the signature** rather than taken from the request. The nonce is single-use and burned before anything else happens, so a replay loses the race. If the browser's anonymous person has no memories it is folded into the wallet's person, so an anonymous conversation is not lost; if it has memories, nothing is merged, because taking them would repeat the mistake `/link` refuses. `packages/memory/src/wallet.ts` and `apps/server/src/auth.ts`, with the flow exercised end to end by `pnpm --filter @hippo/server probe:signin` using a throwaway keypair.
+The sign-in is deliberately narrow. The server issues a nonce, the wallet signs a readable message containing it, and **the address is recovered from the signature** rather than taken from the request. The nonce is single-use and burned before anything else happens, so a replay loses the race. If the browser's anonymous person has no memories it is folded into the wallet's person, so an anonymous conversation is not lost; if it has memories, nothing is merged, because taking them would repeat the mistake `/link` refuses. `packages/memory/src/wallet.ts` and `apps/server/src/auth.ts`, with the flow exercised end to end by `bun run --filter @hippo/server probe:signin` using a throwaway keypair.
 
 **zkLogin caveat** (`memwal/docs/reference/console-identity-link.md`): a zkLogin address depends on the OAuth client ID, so the same Google account yields a different Sui address in hippo than on memory.walrus.xyz. Google users get a real owned account, but they will not see hippo in the Walrus dashboard and cannot share that account with Claude Code. The portability and dashboard demos therefore use a Slush wallet user. Say so in the article; it is also feedback for Walrus (Enoki Connect would fix it).
 
@@ -181,7 +181,7 @@ Defined once in `apps/server/src/commands.ts`; every adapter routes through `han
 | `/memory forget` | `POST /api/forget` on the namespace (index only, blobs persist). Explain that in the reply. |
 | `/memory off` / `on` | Per-user toggle used for the baseline phase. Logged for the article. |
 | `/proof` | Blob IDs used in the last answer, with Walrus explorer links. On the web this is also inline: every reply carries its recalled memories as stream metadata and the page shows them under the answer. |
-| CLI | `pnpm hippo chat` runs the same core in a terminal. Counts as a channel under the rules and is the fastest way to test and record evals. |
+| CLI | `bun run hippo chat` runs the same core in a terminal. Counts as a channel under the rules and is the fastest way to test and record evals. |
 | `/me` (web) | Memory list by type and date with storage expiry and blob links, wallet sign-in so a Telegram user can see the same memory here, "Use in Claude Code" steps, and a plain statement that a memory can be made unrecallable but not deleted. |
 
 ## 7. Known limitations and how we present them
@@ -220,7 +220,7 @@ than papering over it.
   because the owner-wide candidate fetch is capped below the 197 Walrus blobs
   this account owns. So the honest answer to "what if the relayer loses its
   index" is: the blobs are safe on Walrus and there is no working tool to
-  re-index them. `pnpm restore` ships anyway, prints what we wrote beside what
+  re-index them. `bun run restore` ships anyway, prints what we wrote beside what
   the relayer claims, and warns on a mismatch. See `docs/issues/10`.
 - **Recall can silently return nothing.** The relayer sometimes answers with an
   empty result and a non-zero `dropped_count`: it found matches and discarded
@@ -244,7 +244,7 @@ than papering over it.
   one and `/config` for the other silently mixes deployments: sponsorship fails
   with an opaque 502, and an owner lookup resolves to a real but wrong account.
   Both bit us. `MEMWAL_REGISTRY_ID` and `MEMWAL_ACCOUNT_ID` must name the
-  deployment `/config` reports, and `pnpm diagnose` now checks that the chain and
+  deployment `/config` reports, and `bun run diagnose` now checks that the chain and
   the relayer agree. See `docs/issues/11`.
 - **Relayer sees plaintext** during embedding and encryption. Ownership here is
   about access control and portability, not about hiding data from the relayer
@@ -266,7 +266,7 @@ than papering over it.
 
 | Piece | Choice | Why |
 |---|---|---|
-| Runtime | Node 20, TypeScript strict, pnpm workspaces, turborepo | Matches MemWal monorepo. |
+| Runtime | Node 20, TypeScript strict, Bun workspaces, Turborepo | Matches MemWal monorepo. |
 | API + bots | Hono on `@hono/node-server`, one process | Streaming responses, tiny, and the bot gateways need a long-lived process anyway. |
 | LLM | OpenRouter via `@openrouter/ai-sdk-provider` + Vercel AI SDK (`ai` v7). Primary `google/gemini-2.5-flash`, fallback `qwen/qwen3-235b-a22b` | One key, model switch by env. Primary model is not OpenAI/Anthropic (Beyond the Big Two). State model + runtime in the article. |
 | Memory | `@mysten-incubation/memwal` (`MemWal`, `/account`, `formatUntrustedMemories` from `/ai`) | Official SDK. |
@@ -344,13 +344,13 @@ Original list:
 
 | Command | What it is for |
 |---|---|
-| `pnpm diagnose` | Config, relayer health, package id against `/config`, account id against the registry, chain-versus-relayer delegate comparison, storage expiry. Exits non-zero when something is broken, so it can gate a deploy. It is the tool we wished the SDK shipped (`docs/issues/05`). |
-| `pnpm demo` | The memory eval. Asserts cross-session recall, style adaptation and cross-channel recall. |
-| `pnpm evidence` | The submission numbers, counting only memories that landed and excluding slash commands from the turn counts. |
-| `pnpm smoke` | Health, identity, and with `--write` one round trip on mainnet. |
-| `pnpm restore` | Relayer index versus what we wrote, with a warning when restore sees nothing (`docs/issues/10`). |
+| `bun run diagnose` | Config, relayer health, package id against `/config`, account id against the registry, chain-versus-relayer delegate comparison, storage expiry. Exits non-zero when something is broken, so it can gate a deploy. It is the tool we wished the SDK shipped (`docs/issues/05`). |
+| `bun run demo` | The memory eval. Asserts cross-session recall, style adaptation and cross-channel recall. |
+| `bun run evidence` | The submission numbers, counting only memories that landed and excluding slash commands from the turn counts. |
+| `bun run smoke` | Health, identity, and with `--write` one round trip on mainnet. |
+| `bun run restore` | Relayer index versus what we wrote, with a warning when restore sees nothing (`docs/issues/10`). |
 | `scripts/file-issues.sh` | Files the drafted reports that still stand, skipping those marked retracted, not reproduced, resolved or on hold; `--dry-run` first. |
-| `pnpm --filter @hippo/server discord:commands <guildId>` | Publishes the slash commands to Discord. |
+| `bun run --filter @hippo/server discord:commands <guildId>` | Publishes the slash commands to Discord. |
 
 
 `turn_log` stores per turn: person, channel, memory on/off, mode, memories injected (blob IDs, distances and types), model. Slash commands are recorded with mode `command` so they count against the rate limit without polluting the before/after. `memory_index` stores one row per write, inserted at accept time with status `pending` and updated to `stored` or `failed` when the blob lands, so a restart inside the 25-second write window cannot lose the record of a memory the user was already told about.

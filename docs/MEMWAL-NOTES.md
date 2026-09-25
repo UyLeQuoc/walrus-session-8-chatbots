@@ -22,7 +22,7 @@ Deeper reference than `BRIEF.md` §5, distilled from `memwal/` (SDK 0.1.8 source
 - Max 20 delegate keys. Duplicate key → error 0. Removal bumps the rotation counter so old SEAL keys stop working for new writes.
 - Mainnet registry: `0x0da982cefa26864ae834a8a0504b904233d49e20fcc17c373c8bed99c75a7edd`.
 - **Mainnet package: read it from `GET /config`.** The published docs give the original package `0xcee7a6fd8de52ce645c38332bde23d4a30fd9426bc4681409733dd50958a24c6`; the relayer runs an upgrade at `0xe7c16fbea0560e7057e2bf7422feaa4fb313749fc69c9e9092fac7a33b81d7f5`. Existing objects keep the original in their type, which is normal after a Move upgrade, but **Move calls must target the newer package** or the sponsorship allowlist rejects them. `fetchRelayerConfig()` does this. See `docs/issues/04`.
-- Two deployments are live on mainnet and they are separate packages, not an upgrade. `GET /config` gives the current `packageId` but **no registry id**, and the documented registry belongs to the superseded deployment. Mixing them fails in two ways that both look like something else: `/sponsor` answers `502 sponsor_upstream_error`, and an owner lookup returns a real account from the wrong deployment. Check with `pnpm diagnose`, which fails if the chain and the relayer disagree. See `docs/issues/11`.
+- Two deployments are live on mainnet and they are separate packages, not an upgrade. `GET /config` gives the current `packageId` but **no registry id**, and the documented registry belongs to the superseded deployment. Mixing them fails in two ways that both look like something else: `/sponsor` answers `502 sponsor_upstream_error`, and an owner lookup returns a real account from the wrong deployment. Check with `bun run diagnose`, which fails if the chain and the relayer disagree. See `docs/issues/11`.
 - Removing a delegate key on chain **does** end relayer access, after a delay. Measured at 32 seconds, still accepted at 15. See `docs/evidence/revocation-2026-09-22.md`.
 
 ## Sponsored transactions (gasless)
@@ -113,7 +113,7 @@ hippo runs `ai` v7, because `@openrouter/ai-sdk-provider` 3.x requires it and no
 
 ## What we would tell someone starting today
 
-1. Run something like `pnpm diagnose` before writing a feature. A wrong `MEMWAL_ACCOUNT_ID` works on mainnet and fails on testnet, so a broken config looks fine (`docs/issues/05`).
+1. Run something like `bun run diagnose` before writing a feature. A wrong `MEMWAL_ACCOUNT_ID` works on mainnet and fails on testnet, so a broken config looks fine (`docs/issues/05`).
 2. Read the package id from `GET /config`, not the docs.
 3. Measure your own recall distances. True positives ran 0.449 to 0.777 for question-shaped queries, and `withMemWal`'s default relevance threshold works out to a 0.6 cutoff that would drop half of them.
 4. Treat the relayer's search index as the fragile part and Walrus as the durable part, and do not count on `restore()` to bridge them.

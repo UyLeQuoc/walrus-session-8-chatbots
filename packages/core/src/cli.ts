@@ -1,5 +1,5 @@
 /**
- * `pnpm hippo` — hippo in the terminal, and a real channel like any other.
+ * `bun run hippo` — hippo in the terminal, and a real channel like any other.
  *
  * It talks to the running server rather than the memory layer directly, so the
  * CLI is the same person as the web chat once they are linked, and every slash
@@ -111,7 +111,7 @@ async function send(
 async function main() {
   const health = await fetch(`${API_URL}/api/health`).catch(() => null);
   if (!health?.ok) {
-    console.error(`No hippo server at ${API_URL}. Start one with: pnpm dev:server`);
+    console.error(`No hippo server at ${API_URL}. Start one with: bun run dev`);
     process.exit(1);
   }
   const info = (await health.json()) as { model?: string };
@@ -122,7 +122,7 @@ async function main() {
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   // Ctrl+D closes the input, and a question pending on a closed interface never
-  // settles, so Node exited with status 13 and pnpm printed a failure block.
+  // settles, so Node exited with status 13 and the package manager printed a failure block.
   rl.on("close", () => process.exit(0));
   const messages: Array<{ id: string; role: string; parts: UIPart[] }> = [];
   let sessionStart = true;
