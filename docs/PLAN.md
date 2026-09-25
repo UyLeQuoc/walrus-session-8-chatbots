@@ -59,6 +59,15 @@ call. All were re-run on 2026-09-25 against the redeployed relayer and SDK
 `scripts/file-issues.sh --dry-run` shows exactly what would be posted and skips
 the four that must not be.
 
+Friction measured later on 2026-09-25, folded into 01 rather than a new draft:
+for about an hour recall ran at 9 to 60 s medians instead of 2 s, `/health` said
+`write_ready: false`, and SDK 0.1.8, which sends its deadline, got
+`504 RECALL_TIMEOUT` naming `seal_decrypt` as the stalled stage. Repro: `ROUNDS=10
+pnpm --filter @hippo/core bench:recall <demo-namespace-id>`, which now counts
+failed recalls instead of dying on the first. SDK 0.1.8 itself: read, measured,
+and left on a branch until a healthy hour can show it is no slower
+(`docs/evidence/sdk-0.1.8-2026-09-25.md`).
+
 ## Article outline (Medium + Inkray)
 
 Title candidates, written for search intent:

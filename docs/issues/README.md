@@ -35,7 +35,7 @@ Date:     2026-09-21 to 2026-09-22
 
 | # | Title | Status, re-verified 2026-09-25 |
 |---|---|---|
-| 1 | `recall()` returns an empty list while reporting it dropped the matches | **File.** Intermittent; last seen 2026-09-24. Corrected: the SDK does type `dropped_count` |
+| 1 | `recall()` returns an empty list while reporting it dropped the matches | **File.** Intermittent; seen again on 2026-09-25 on SDK 0.1.7 and 0.1.8, with 0.1.8 naming the stalled stage as `seal_decrypt`. Corrected: the SDK does type `dropped_count` |
 | 2 | `remember` jobs die from the relayer's own Sui RPC throttling | **On hold.** Not seen since 2026-09-21; upstream added retries that day |
 | 3 | The two documented `recall()` call forms are not equivalent | **Do not file.** Not reproduced; it was an instance of 1 |
 | 4 | Published mainnet contract IDs are stale | **File.** Still reproduces |

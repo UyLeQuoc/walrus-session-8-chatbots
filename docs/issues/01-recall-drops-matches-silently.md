@@ -1,9 +1,17 @@
 # `recall()` returns an empty result set while reporting it dropped the matches
 
 > **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0)
-> and SDK 0.1.7 and 0.1.8. **Still intermittent, corrected.** Last observed
-> 2026-09-24: one all-dropped recall in each of two eval runs. None in about forty
-> recalls on 2026-09-25, after that relayer redeploy.
+> and SDK 0.1.7 and 0.1.8. **Still intermittent, corrected.** None in about forty
+> recalls that morning, after a relayer redeploy; one all-dropped recall in each
+> of two eval runs on 2026-09-24.
+>
+> **Seen again later on 2026-09-25**, on both SDKs, while recall was slow
+> (medians of 9 to 60 s against a usual 2 s): 7 all-dropped attempts on 0.1.8
+> (two eval runs and 120 bench recalls) and 3 on 0.1.7 (60 bench recalls). On
+> 0.1.8, which sends the relayer its deadline, the recalls that stalled outright
+> came back as `504 {"code":"RECALL_TIMEOUT","stage":"seal_decrypt"}`, so the
+> slow step was SEAL decryption, the same step the relayer blames for drops.
+> Measurements in hippo's `docs/evidence/sdk-0.1.8-2026-09-25.md`.
 
 ## Summary
 
