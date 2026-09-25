@@ -74,45 +74,51 @@ https://suiscan.xyz/mainnet/object/0x5a257802b4881641b49ea3ad3e460a4387f9262b4f9
 
 **Feedback: GitHub tickets.** Drafted with repros in `docs/issues/`. File with `scripts/file-issues.sh`, which writes each resulting URL back into its draft, then paste the links here.
 
+Every draft was re-run against the mainnet relayer and SDK 0.1.7 and 0.1.8 on
+2026-09-25, and each carries that result at the top. Nine still stand and are the
+ones to file:
+
 | # | Title |
 |---|---|
-| 1 | `recall()` returns an empty list while reporting it dropped the matches |
-| 2 | `remember` jobs die from the relayer's own Sui RPC throttling |
-| 3 | The two documented `recall()` call forms are not equivalent |
-| 4 | Published mainnet contract IDs are stale |
+| 1 | `recall()` returns an empty result set while reporting it dropped the matches |
+| 4 | Published mainnet contract IDs are stale, and following them breaks sponsored transactions |
 | 5 | A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet |
-| 6 | Write rate limit is 60/min, not the documented 30/min, weights unpublished |
-| 7 | `GET /api/whoami` 404s; `GET /v1/owners/:owner/agents` is flaky and miscounts |
-| 9 | No way to permanently delete a memory, even as the owner |
+| 6 | The documented delegate-key limit is 30/min, the deployed one is 60, and the documented weights disagree with the code |
+| 9 | There is no way to permanently delete a memory, even as the account owner |
 | 10 | `restore()` reports `total: 0` and `truncated: false` for a namespace that has memories |
-| 11 | `GET /config` names a package but not its registry, and the mismatch surfaces as `502 Sponsor service error` |
-| 12 | Mainnet memories are sealed by a committee key server the SDK does not default to, and its aggregator needs an API key |
+| 11 | `/config` names a package but not its registry, and the mismatch surfaces as "Sponsor service error" |
+| 12 | The mainnet relayer seals with a committee key server, so an owner cannot decrypt their own memory |
+| 13 | Deduplicating by distance, as SKILL.md suggests, silently discards corrections |
 
-Draft 8 is deliberately absent. It claimed the relayer authorizes delegate keys
-the chain does not list. It does not; we were reading an account in the
-superseded deployment. The draft stays in our repo under a retraction because
-the mistake is instructive, and `scripts/file-issues.sh` refuses to post any
-draft whose heading begins with RETRACTED.
+Four are deliberately absent, each marked in its first line, and
+`scripts/file-issues.sh` skips anything so marked. Draft 8 is **retracted**: it
+claimed the relayer authorizes delegate keys the chain does not list, and it
+does not; we were reading an account in the superseded deployment. It stays in
+our repo because the mistake is instructive. Draft 7 was **resolved before
+filing** (`whoami` answers now, and its miscount was that same wrong account),
+draft 3 was **not reproduced** (it was an instance of 1), and draft 2 is **on
+hold** (not seen since the relayer added retries on 2026-09-21).
 
 **One bug or friction point you hit.**
 
 > `recall()` can return `{"results": [], "total": 0, "dropped_count": 5}`: it
-> found five matches and discarded all five, with HTTP 200 and no error. The
-> SDK's `RecallResult` type does not expose `dropped_count`, so the caller sees
-> an ordinary empty result and concludes the user has no memories. For a memory
-> product this is the worst possible silent failure, and during one run of our
-> four-question eval it fired four times. We now retry three times before
-> believing an empty result that had candidates.
+> found five matches and discarded all five, with HTTP 200 and no error. The SDK
+> types `dropped_count`, but nothing tells a caller that an empty page with a
+> nonzero count is transient rather than an answer, so a caller reading
+> `results` concludes the user has no memories. For a memory product this is the
+> worst possible silent failure: during one run of our four-question eval it
+> fired four times, and it was still firing on 2026-09-24. We retry up to three
+> times before believing an empty result that had candidates.
 
 **A second friction worth naming, if the form allows more than one.**
 
 > `restore()` is the documented answer to "what happens if the relayer loses its
 > index", and on our account it reports `total: 0` with `truncated: false` for
-> namespaces whose memories recall returns right now. Re-measured on 2026-09-23
-> against the corrected account id: the read API lists 149 memories for this
-> owner while `restore()` sees zero, at limits of 10, 50 and 100. Those two
-> relayer endpoints cannot both be describing this account. A recovery tool that
-> silently sees nothing is worse than one that errors.
+> namespaces whose memories recall returns right now. Re-measured on 2026-09-25
+> on the correct account: one namespace still gives `total: 0`, and another,
+> where recall sees 11 memories, gives `total: 2, truncated: false`, two of
+> eleven reported as complete. A recovery tool that silently sees part of the
+> data, and says it saw all of it, is worse than one that errors.
 
 **One improvement idea.**
 

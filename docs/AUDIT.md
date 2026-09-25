@@ -75,8 +75,9 @@ only the account owner can provide; **n/a** superseded by a finding.
 Everything is ready and nothing can start. `RUNBOOK.md` holds the invite text,
 consent rules and daily checklist. Telegram is live and has never received a
 message, which needs a Telegram account. This is now the only unmet judging
-criterion: `pnpm evidence` against production reads 5 people and 13 memories,
-where the session asks for 3 people with 10 each.
+criterion: `pnpm evidence:daily` against production on 2026-09-24 read 8 people
+and 19 stored memories, none with 10, where the session asks for 3 people with
+10 each. Every turn so far came from the web; Telegram has had none.
 
 ## M7 — Article, promo, submission
 
@@ -128,6 +129,16 @@ now. Production does not deploy on push, which left it a day behind `main`.
 | 4 | A followable article | **done**: the three SDK calls hippo makes, run as printed on mainnet (`docs/evidence/article-snippet-2026-09-25.md`); 794 words |
 | 5 | Re-measure | **done**: `pnpm demo` passed everything including the memory-off control, no dropped recalls; `bench:recall` 4.34s → 2.30s median (10 rounds), slowest 12.43s → 3.78s. A first memory-on turn is 4.9s, from 7.1s before M9. Recorded in `docs/evidence/latency-2026-09-24.md` |
 
+## M11 — Ready to be judged and to file
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Re-verify every issue draft | **done**: thirteen re-run on 2026-09-25, each dated at the top. Nine to file; 02 on hold, 03 not reproduced, 07 resolved before filing, 08 retracted. Our own wrong claims in 01 and 06 corrected. `file-issues.sh --dry-run` posts exactly the nine |
+| 2 | The judge's path | **done**: two fresh clones on Node 20. The first found the server refusing a freshly copied `.env` (broken since 2026-09-22), no dev proxy for `/api`, the CLI exiting 13, and a README that named none of the four values to fill. The second ran clean, including the three-click demo in a browser and `pnpm demo`. `docs/evidence/clean-clone-2026-09-25.md` |
+| 3 | SDK 0.1.8 | **measured, not merged**: all tests and both demos pass, no more drops than 0.1.7, fewer failed recalls; but the relayer was degraded (9–60 s medians) and 0.1.8's two benches fell either side of 0.1.7's, so "no slower" is unproven. On branch `sdk-0.1.8`. `docs/evidence/sdk-0.1.8-2026-09-25.md` |
+| 4 | Real-use readiness | **done**: `pnpm ops` opens `pnpm evidence:daily`, counted from `memory_index` and Railway's logs across every deployment in the window, never printing a line. It found 22 crashes in 24 hours on its first run: an unhandled Telegram 409 on every deploy, against a restart policy that stops after five. Fixed and deployed; documented in `RUNBOOK.md` |
+| 5 | Keep the story true | **done**: README, submission (the ticket table listed the old eleven, and repeated the `dropped_count` claim task 1 found wrong), RUNBOOK, PLAN, GOAL, CLAUDE.md, this file. The CI guard now catches `.turbo` and `.env` files in any directory; four `.turbo` logs had been tracked since the scaffold |
+
 ## Conclusion
 
 Every task that does not require the account owner or real people is done. The
@@ -144,5 +155,6 @@ What is left, in order of value:
 2. A spare Slush wallet, to **film** connect and disconnect through a real wallet
    popup. The mechanics are proven; this is for the video.
 3. A SuiNS name pointed at the Walrus Site object, so `wal.app` serves it.
-4. Filing the eleven issue drafts and publishing the article. Both are
-   outward-facing and wait on the owner's word.
+4. Filing the nine issue drafts that still stand and publishing the article.
+   Both are outward-facing and wait on the owner's word.
+5. Merging SDK 0.1.8, once a bench on a healthy relayer shows it is no slower.

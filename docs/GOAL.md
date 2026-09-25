@@ -263,18 +263,35 @@ a message. Feature freeze stays Oct 3.
    hippo really makes, inside 800 words.
 5. **Re-measure — DONE**: all passes; session-start recall 4.34s → 2.30s median on a second day, first memory-on turn 4.9s (was 7.1s before M9).
 
-### M11 — Ready to be judged and to file — IN PROGRESS
+### M11 — Ready to be judged and to file — SHIPPED
 
 Added 2026-09-25. Nothing is filed or published, and that stays the owner's
 call; this makes sure what they file and what a judge clones hold up.
 
-1. **Re-verify every issue draft** against today's relayer and the latest SDK,
-   and mark each: still reproduces, changed, or fixed upstream. File nothing.
-2. **The judge's path**: a fresh clone on Node 20, following the README
-   literally, until it runs clean.
-3. **SDK 0.1.8** on a branch, merged only if it is no worse.
-4. **Real-use readiness**: `pnpm evidence:daily` reports what real users hit.
-5. **Keep the story true.**
+1. **Re-verify every issue draft — DONE.** All thirteen re-run against relayer
+   `5b27683` and SDK 0.1.7 and 0.1.8, each dated at the top. Nine still stand;
+   02 on hold, 03 not reproduced, 07 resolved before filing, 08 retracted. Two
+   claims in our own drafts were wrong and are corrected. The dry run posts
+   exactly the nine. File nothing.
+2. **The judge's path — DONE.** The first fresh clone on Node 20 could not start
+   the server (a blank `SURVEY_URL=` in `.env.example`, broken for every clone
+   since 2026-09-22), the dev web app could not reach the API, and the CLI exited
+   13. All fixed; the second fresh clone ran clean end to end, `pnpm demo` in
+   4 min 38 s (`docs/evidence/clean-clone-2026-09-25.md`).
+3. **SDK 0.1.8 — measured, not merged.** Everything passes and it dropped no more
+   recalls than 0.1.7, but the relayer was degraded for the whole measurement and
+   the two 0.1.8 benches landed either side of 0.1.7's, so "no slower" is not
+   shown. It waits on the `sdk-0.1.8` branch for a healthy hour
+   (`docs/evidence/sdk-0.1.8-2026-09-25.md`).
+4. **Real-use readiness — DONE.** `pnpm evidence:daily` opens with `pnpm ops`:
+   failed and stuck writes, dropped and given-up recalls, failed turns and
+   commands and crashes, from `memory_index` and Railway's logs, with no memory
+   text. Its first run found 22 production crashes in a day, a Telegram 409 on
+   every deploy; fixed and deployed.
+5. **Keep the story true — DONE.** README, submission, RUNBOOK, PLAN, AUDIT and
+   this file. Also found: four `.turbo` logs tracked since the scaffold, because
+   the CI guard only looked at the root; untracked, and the guard now checks
+   every directory for `.turbo` and `.env` files.
 
 ## Rubric → artifact map
 
