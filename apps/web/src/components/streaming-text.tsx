@@ -17,6 +17,7 @@
  */
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { Loader } from "@/components/prompt-kit/loader";
 
 /** How fast the buffer closes a gap, and the floor so it never stalls. */
 const CATCH_UP_MS = 180;
@@ -107,14 +108,13 @@ export function Thinking() {
   return (
     // role="status" so the label is announced and is valid on the element; a
     // bare span supports no aria-label at all.
-    <span role="status" aria-label="hippo is thinking" className="flex h-5 items-center gap-1.5">
-      {[0, 150, 300].map((delay) => (
-        <span
-          key={delay}
-          className="size-1.5 animate-pulse rounded-full bg-muted-foreground motion-reduce:animate-none"
-          style={{ animationDelay: `${delay}ms` }}
-        />
-      ))}
+    <span
+      role="status"
+      aria-label="hippo is thinking"
+      className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+    >
+      <Loader />
+      Thinking
     </span>
   );
 }

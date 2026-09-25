@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 export function Layout() {
   return (
     <div className="min-h-dvh flex flex-col">
-      <header className="border-b">
+      <header className="site-header border-b">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <Link to="/" className="flex items-center gap-2">
             <Logo size={22} />
@@ -26,7 +26,7 @@ export function Layout() {
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
+      <main className="site-main mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6">
         <Outlet />
       </main>
       <Toaster />

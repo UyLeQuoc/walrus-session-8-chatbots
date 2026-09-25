@@ -6,8 +6,9 @@
  * exactly what a judge clicking the live URL would hit. Each test mounts a page
  * with the network stubbed and asserts something a user would actually see.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useSyncExternalStore } from "react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Layout } from "../components/layout.tsx";
@@ -23,14 +24,38 @@ import { NotFoundPage } from "./not-found.tsx";
  */
 let chatMessages: unknown[] = [];
 let chatStatus = "ready";
+let chatVersion = 0;
+const chatSubscribers = new Set<() => void>();
 const chatSend = vi.fn();
+
+function publishChat() {
+  chatVersion += 1;
+  for (const subscriber of chatSubscribers) subscriber();
+}
+
 vi.mock("@ai-sdk/react", () => ({
-  useChat: () => ({
-    messages: chatMessages,
-    sendMessage: chatSend,
-    status: chatStatus,
-    error: undefined,
-  }),
+  useChat: () => {
+    // New chat calls setMessages. The page has to re-render from that, the
+    // same way the real hook does, or the empty state never comes back.
+    useSyncExternalStore(
+      (cb) => {
+        chatSubscribers.add(cb);
+        return () => chatSubscribers.delete(cb);
+      },
+      () => chatVersion,
+      () => chatVersion,
+    );
+    return {
+      messages: chatMessages,
+      sendMessage: chatSend,
+      setMessages: (next: unknown[] | ((prev: unknown[]) => unknown[])) => {
+        chatMessages = typeof next === "function" ? next(chatMessages) : next;
+        publishChat();
+      },
+      status: chatStatus,
+      error: undefined,
+    };
+  },
 }));
 
 /**
@@ -88,6 +113,7 @@ function stubFetch(routes: Record<string, unknown>) {
 beforeEach(() => {
   chatMessages = [];
   chatStatus = "ready";
+  chatVersion = 0;
   chatSend.mockClear();
   wallet = null;
   signAndExecute.mockClear();
@@ -358,6 +384,111 @@ describe("chat page", () => {
     const seen = container.textContent ?? "";
     expect(seen).toMatch(/Noted\./);
     expect(seen).not.toMatch(/memory you own/i);
+  });
+
+  function mountChat() {
+    return render(
+      <MemoryRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<ChatPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it("fills the page with a rail, the public mark, and a composer", () => {
+    const { container } = mountChat();
+    const rail = screen.getByRole("complementary", { name: /sidebar/i });
+    const logos = screen.getAllByRole("img", { name: /hippo/i });
+    expect(
+      logos.some((img) => /\/logo-(black|white)\.svg$/.test(img.getAttribute("src") ?? "")),
+    ).toBe(true);
+    expect(screen.getByRole("textbox")).toBeDefined();
+    expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
+    expect(
+      within(rail)
+        .getByRole("link", { name: /my memory/i })
+        .getAttribute("href"),
+    ).toBe("/me");
+    const seen = container.textContent ?? "";
+    expect(seen).toMatch(/memory you own/i);
+    expect(seen).toMatch(/Take ownership/i);
+    expect(seen).toMatch(/Take it away/i);
+    expect(seen).toMatch(/public storage network/i);
+    expect(seen).toMatch(/anyone can download/i);
+    expect(seen).toMatch(/seven months/i);
+    expect(seen).toMatch(/\/memory off/);
+    expect(seen).toMatch(/cannot delete the bytes early/i);
+    expect(screen.getByRole("button", { name: /only use pnpm/i })).toBeDefined();
+  });
+
+  it("sends from the button and from Enter, and Shift+Enter does not", async () => {
+    const user = userEvent.setup();
+    mountChat();
+    const box = screen.getByRole("textbox");
+
+    await user.type(box, "hello from the button");
+    await user.click(screen.getByRole("button", { name: /send/i }));
+    expect(chatSend).toHaveBeenCalledWith({ text: "hello from the button" });
+
+    chatSend.mockClear();
+    await user.clear(box);
+    await user.type(box, "hello from enter{Enter}");
+    expect(chatSend).toHaveBeenCalledWith({ text: "hello from enter" });
+
+    chatSend.mockClear();
+    await user.type(box, "keep this{Shift>}{Enter}{/Shift}");
+    expect(chatSend).not.toHaveBeenCalled();
+  });
+
+  it("keeps the assistant off the user bubble and shows thinking before words", () => {
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "I use pnpm" }] },
+      { id: "2", role: "assistant", parts: [{ type: "text", text: "Noted." }], metadata: {} },
+    ];
+    const { container } = mountChat();
+    const bubbles = container.querySelectorAll(".ml-auto.bg-muted, .bg-muted.ml-auto");
+    expect(bubbles).toHaveLength(1);
+    expect(bubbles[0]?.textContent).toBe("I use pnpm");
+    const noted = screen.getByText("Noted.");
+    expect(noted.closest(".ml-auto")).toBeNull();
+    expect(screen.getByRole("button", { name: /scroll to bottom/i })).toBeDefined();
+  });
+
+  it("returns to the empty thread when new chat is clicked", async () => {
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "I use pnpm" }] },
+      { id: "2", role: "assistant", parts: [{ type: "text", text: "Noted." }], metadata: {} },
+    ];
+    const { container } = mountChat();
+    expect(container.textContent ?? "").toMatch(/Noted\./);
+    await userEvent.click(screen.getByRole("button", { name: /new chat/i }));
+    const seen = container.textContent ?? "";
+    expect(seen).toMatch(/memory you own/i);
+    expect(seen).not.toMatch(/Noted\./);
+    expect(seen).not.toMatch(/I use pnpm/);
+  });
+
+  it("opens and closes the rail on a narrow viewport", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: String(query).includes("max-width"),
+        media: String(query),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      })),
+    );
+    mountChat();
+    expect(screen.queryByRole("complementary", { name: /sidebar/i })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /open sidebar/i }));
+    expect(screen.getByRole("complementary", { name: /sidebar/i })).toBeDefined();
+    await userEvent.click(screen.getByRole("button", { name: /close sidebar/i }));
+    expect(screen.queryByRole("complementary", { name: /sidebar/i })).toBeNull();
   });
 });
 

@@ -1,13 +1,26 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { ArrowUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ChatFrame } from "@/components/chat-frame";
 import { Examples, rememberPendingAsk, takePendingAsk } from "@/components/examples";
 import { Landing } from "@/components/landing";
+import {
+  ChatContainerContent,
+  ChatContainerRoot,
+  ChatContainerScrollAnchor,
+} from "@/components/prompt-kit/chat-container";
+import { MessageContent } from "@/components/prompt-kit/message";
+import {
+  PromptInput,
+  PromptInputActions,
+  PromptInputTextarea,
+} from "@/components/prompt-kit/prompt-input";
+import { ScrollButton } from "@/components/prompt-kit/scroll-button";
 import { Recalled, type RecalledMemory } from "@/components/recalled";
-import { StreamingWords, Thinking, useSmoothedText } from "@/components/streaming-text";
+import { Thinking, useSmoothedText } from "@/components/streaming-text";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { API_URL, identityHeaders } from "@/lib/api";
 
 export function ChatPage() {
@@ -20,7 +33,7 @@ export function ChatPage() {
       }),
     [],
   );
-  const { messages, sendMessage, status, error } = useChat({ transport });
+  const { messages, sendMessage, setMessages, status, error } = useChat({ transport });
   const [text, setText] = useState("");
   const [operatorAccountId, setOperatorAccountId] = useState<string | undefined>();
   const busy = status === "submitted" || status === "streaming";
@@ -66,47 +79,95 @@ export function ChatPage() {
     setText("");
   };
 
-  return (
-    <div className="flex h-[calc(100dvh-8rem)] flex-col gap-3">
-      <div className="flex-1 space-y-5 overflow-y-auto rounded-lg border p-4">
-        {messages.length === 0 && <Landing operatorAccountId={operatorAccountId} />}
-        {messages.map((m) => (
-          <Message
-            key={m.id}
-            message={m}
-            live={m.id === lastId && busy}
-            streaming={m.id === lastId && status === "streaming"}
-          />
-        ))}
-      </div>
-      <Examples
-        taught={taught}
-        onPick={send}
-        onReloadAndAsk={(value) => {
-          rememberPendingAsk(value);
-          window.location.reload();
-        }}
-      />
+  // Nothing on the server lists past threads. Clearing is local: the next
+  // message starts a fresh turn, and anything hippo kept is still on Walrus.
+  const newChat = () => {
+    setMessages([]);
+    setText("");
+  };
 
-      <form
-        className="flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(text);
-        }}
-      >
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Say something…"
-          disabled={busy}
+  const title = useMemo(() => threadTitle(messages), [messages]);
+
+  return (
+    <ChatFrame title={title} onNewChat={newChat}>
+      {messages.length === 0 ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-3xl px-4 py-8">
+            <Landing operatorAccountId={operatorAccountId} />
+          </div>
+        </div>
+      ) : (
+        <ChatContainerRoot>
+          <ChatContainerContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
+            {messages.map((m) => (
+              <Message
+                key={m.id}
+                message={m}
+                live={m.id === lastId && busy}
+                streaming={m.id === lastId && status === "streaming"}
+              />
+            ))}
+            <ChatContainerScrollAnchor />
+          </ChatContainerContent>
+          <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center">
+            <ScrollButton />
+          </div>
+        </ChatContainerRoot>
+      )}
+
+      <div className="mx-auto w-full max-w-3xl shrink-0 space-y-2 px-4 pb-4">
+        <Examples
+          taught={taught}
+          onPick={send}
+          onReloadAndAsk={(value) => {
+            rememberPendingAsk(value);
+            window.location.reload();
+          }}
         />
-        <Button type="submit" disabled={busy}>
-          Send
-        </Button>
-      </form>
-    </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(text);
+          }}
+        >
+          <PromptInput
+            value={text}
+            onValueChange={setText}
+            onSubmit={() => send(text)}
+            isLoading={busy}
+            disabled={busy}
+          >
+            <PromptInputTextarea placeholder="Message hippo…" />
+            <PromptInputActions className="justify-end px-1">
+              <Button
+                type="submit"
+                size="icon"
+                aria-label="Send"
+                disabled={busy || text.trim() === ""}
+                className="size-8 rounded-full"
+              >
+                <ArrowUp className="size-4" />
+              </Button>
+            </PromptInputActions>
+          </PromptInput>
+        </form>
+      </div>
+    </ChatFrame>
   );
+}
+
+function threadTitle(messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>) {
+  const firstUser = messages.find((m) => m.role === "user");
+  const line = textOf(firstUser?.parts).split("\n")[0]?.trim() ?? "";
+  if (!line) return "New chat";
+  return line.length > 48 ? `${line.slice(0, 48)}…` : line;
+}
+
+function textOf(parts: Array<Record<string, unknown>> | undefined): string {
+  return (parts ?? [])
+    .filter((p) => p.type === "text")
+    .map((p) => String(p.text ?? ""))
+    .join("");
 }
 
 /**
@@ -132,45 +193,40 @@ function Message({
   live: boolean;
   streaming: boolean;
 }) {
-  const parts: Array<Record<string, unknown>> = message.parts ?? [];
-  const spoken = parts
-    .filter((p) => p.type === "text")
-    .map((p) => String(p.text ?? ""))
-    .join("");
+  const spoken = textOf(message.parts);
   const smoothed = useSmoothedText(spoken, !streaming);
   const shown = streaming ? smoothed : spoken;
 
   if (message.role === "user") {
     return (
       <div className="flex">
-        <div className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-lg bg-muted px-3 py-2 text-sm">
+        <MessageContent className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-3xl bg-muted px-4 py-2.5 text-sm">
           {spoken}
-        </div>
+        </MessageContent>
       </div>
     );
   }
 
   const recalled =
     (message.metadata as { recalled?: RecalledMemory[] } | undefined)?.recalled ?? [];
-  const tools = parts.filter((p) => p.type === "tool-remember" || p.type === "tool-recall");
+  const tools = (message.parts ?? []).filter(
+    (p) => p.type === "tool-remember" || p.type === "tool-recall",
+  );
+  const command = Boolean((message.metadata as { command?: boolean } | undefined)?.command);
 
   return (
-    <div className="space-y-1.5 text-sm">
+    <div className="space-y-2 text-sm">
       {tools.map((p, i) => (
-        <ToolLine key={`${p.type as string}-${i}`} part={p} />
+        <ToolLine key={`${String(p.type)}-${i}`} part={p} />
       ))}
       {shown ? (
-        // A command's answer is a table in plain text (/help, /memory); in a
-        // proportional font its columns do not line up.
-        <p
-          className={
-            (message.metadata as { command?: boolean } | undefined)?.command
-              ? "whitespace-pre-wrap font-mono text-xs leading-relaxed"
-              : "whitespace-pre-wrap leading-relaxed"
-          }
-        >
-          {streaming ? <StreamingWords text={shown} /> : shown}
-        </p>
+        command ? (
+          // A command's answer is a table in plain text (/help, /memory); in a
+          // proportional font its columns do not line up.
+          <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">{shown}</pre>
+        ) : (
+          <MessageContent markdown>{shown}</MessageContent>
+        )
       ) : (
         live && <Thinking />
       )}

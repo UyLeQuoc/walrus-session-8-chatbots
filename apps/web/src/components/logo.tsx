@@ -1,33 +1,35 @@
 /**
- * The mark. A hippo shows you its eyes and keeps the rest below the waterline,
- * which is also what the memory does: held somewhere else, surfaced on ask.
+ * The public mark in `apps/web/public`. Light pages use the black wordmark and
+ * dark pages the white one. Both sit in the tree and the theme class picks
+ * which one is shown, so the swap does not wait on a React render.
  *
- * Drawn in `currentColor` so it inherits the theme rather than needing a second
- * asset for dark mode. Five candidates are in `docs/brand/`; swapping is a
- * matter of replacing the paths here and in `public/favicon.svg`.
+ * The file is a wide silhouette, so the box follows the artwork instead of
+ * squeezing it into a square.
  */
-export function Logo({ className, size = 20 }: { className?: string; size?: number }) {
+import { cn } from "@/lib/utils";
+
+export function Logo({ className, size = 22 }: { className?: string; size?: number }) {
+  const height = size;
+  const width = Math.round(size * 1.74);
+  const frame = cn("w-auto object-contain", className);
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.6}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      role="img"
-      aria-label="hippo"
-    >
-      <path d="M6 9.5a2 2 0 1 1 1.6-3.2" />
-      <path d="M18 9.5a2 2 0 1 0-1.6-3.2" />
-      <path d="M4.5 14c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6" />
-      <circle cx="9.3" cy="11.6" r="0.9" fill="currentColor" stroke="none" />
-      <circle cx="14.7" cy="11.6" r="0.9" fill="currentColor" stroke="none" />
-      <path d="M2 14h20" />
-      <path d="M5 17.5h3M10.5 17.5h3M16 17.5h3" opacity="0.45" />
-    </svg>
+    <span className="inline-flex items-center" style={{ height }}>
+      <img
+        src="/logo-black.svg"
+        alt="hippo"
+        width={width}
+        height={height}
+        style={{ height }}
+        className={cn(frame, "dark:hidden")}
+      />
+      <img
+        src="/logo-white.svg"
+        alt="hippo"
+        width={width}
+        height={height}
+        style={{ height }}
+        className={cn(frame, "hidden dark:block")}
+      />
+    </span>
   );
 }

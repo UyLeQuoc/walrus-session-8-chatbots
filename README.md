@@ -185,6 +185,11 @@ stand; the rest are marked with what became of them), and
 `docs/evidence/security-review-2026-09-21.md` is an adversarial review of this
 repo with its findings fixed.
 
+For each web action from browser to API, Postgres, Sui and Walrus, see
+[`docs/WEB-DATA-FLOWS.md`](docs/WEB-DATA-FLOWS.md). It also maps the slash commands
+available in the web chat and records where the current code differs from older
+architecture plans.
+
 Three limits worth knowing before you rely on this. A memory can be made
 unrecallable but not deleted. The relayer's `restore()` does not currently
 re-index this account, so treat the search index as the fragile part and Walrus

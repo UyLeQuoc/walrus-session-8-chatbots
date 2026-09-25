@@ -102,7 +102,7 @@ function Chip({ onClick, children }: { onClick: () => void; children: React.Reac
       variant="outline"
       size="sm"
       onClick={onClick}
-      className="h-auto whitespace-normal py-1 text-left text-xs font-normal"
+      className="h-auto rounded-full whitespace-normal py-1 text-left text-xs font-normal"
     >
       {children}
     </Button>
