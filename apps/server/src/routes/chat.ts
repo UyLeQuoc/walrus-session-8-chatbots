@@ -1,11 +1,18 @@
 import { gatherContext, runTurn } from "@hippo/core";
 import { and, delegateKeys, desc, eq, memoryIndex } from "@hippo/db";
 import { createSuiClient, explorer, NAMESPACE, RelayerExtras, readAccount } from "@hippo/memory";
-import { convertToModelMessages, type UIMessage } from "ai";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import { type CommandContext, handleCommand } from "../chat/commands.ts";
+import {
+  appendAssistant,
+  appendUser,
+  claimWebConversation,
+  modelMessages,
+  openChannelThread,
+  storedAnswer,
+} from "../chat/history.ts";
 import { tooLong } from "../chat/limits.ts";
 import { checkRate, noteCommand } from "../chat/ratelimit.ts";
 import { startConnect, startDisconnect } from "../connect/tokens.ts";
@@ -25,7 +32,7 @@ import {
 import { meIdentity } from "../identity/predicates.ts";
 import { currentTeam, inviteToTeam, leaveTeam } from "../identity/teams.ts";
 import { asDownload, exportFor } from "../memory/export-person.ts";
-import { plainReply } from "./reply.ts";
+import { plainReply, textReply } from "./reply.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
 const CHANNEL = "web";
@@ -91,31 +98,28 @@ async function webPerson(
 }
 
 const chatBody = z.object({
-  messages: z.array(
-    z.custom<UIMessage>(
-      (value) =>
-        typeof value === "object" &&
-        value !== null &&
-        "role" in value &&
-        "parts" in value &&
-        Array.isArray(value.parts),
-    ),
-  ),
-  sessionStart: z.boolean().optional(),
+  text: z.string().trim().min(1),
+  conversationId: z.uuid().optional(),
+  clientMessageId: z.string().trim().min(1).max(128).optional(),
+  regenerate: z.boolean().optional(),
 });
+
+const UNSAVED = "I could not save that message, so I did not answer. Try again.";
 
 const visibilityBody = z.object({
   blobId: z.string().min(1),
   hidden: z.boolean(),
 });
 
-function lastUserText(messages: UIMessage[]): string {
-  const last = [...messages].reverse().find((m) => m.role === "user");
+function spokenText(
+  out: Array<{ role: string; parts: Array<{ type: string; text?: string }> }>,
+): string {
+  const last = [...out].reverse().find((m) => m.role === "assistant");
   if (!last) return "";
   return last.parts
-    .filter((p): p is { type: "text"; text: string } => p.type === "text")
-    .map((p) => p.text)
-    .join(" ")
+    .filter((p) => p.type === "text" && typeof p.text === "string")
+    .map((p) => p.text ?? "")
+    .join("")
     .trim();
 }
 
@@ -124,7 +128,7 @@ function lastUserText(messages: UIMessage[]): string {
  * A session header that does not resolve no longer counts: it used to let the
  * request through and mint a new person for it (see `meIdentity`).
  */
-async function mePerson(c: Context): Promise<Person | null> {
+export async function mePerson(c: Context): Promise<Person | null> {
   const sessionId = readSessionId(c);
   const sessionPerson = sessionId ? await personFromSession(sessionId) : null;
   const guestId = readGuestId(c);
@@ -154,7 +158,7 @@ export const chatRoutes = new Hono()
       }),
     );
 
-    const text = lastUserText(body.messages);
+    const text = body.text;
     const oversize = tooLong(text);
     if (oversize) return plainReply(channel, oversize);
 
@@ -172,14 +176,74 @@ export const chatRoutes = new Hono()
     const gate = await checkRate(person.id);
     if (!gate.allowed) return plainReply(channel, gate.message);
 
-    const command = await handleCommand(ctx, text);
-    if (command) {
-      await noteCommand(person.id, channel);
-      return plainReply(channel, command.text, command.files);
+    let conversationId: string;
+    try {
+      if (channel === "web") {
+        if (!body.conversationId) return c.json({ error: "Send a message to continue." }, 400);
+        const owned = await claimWebConversation(person.id, body.conversationId);
+        if (!owned) return c.json({ error: "That chat is gone." }, 404);
+        conversationId = body.conversationId;
+      } else {
+        conversationId = await openChannelThread({
+          personId: person.id,
+          channel,
+          threadKey: "cli",
+        });
+      }
+    } catch (err) {
+      console.error(`[${channel}] history`, err);
+      return plainReply(channel, UNSAVED);
     }
 
+    if (body.clientMessageId && !body.regenerate) {
+      const prior = await storedAnswer(conversationId, body.clientMessageId);
+      if (prior) {
+        return prior.kind === "command" ? plainReply(channel, prior.text) : textReply(prior.text);
+      }
+    }
+
+    const command = await handleCommand(ctx, text);
+    if (command) {
+      const saved = await appendUser({
+        conversationId,
+        personId: person.id,
+        text,
+        kind: "command",
+        clientId: body.clientMessageId,
+      }).catch((err) => {
+        console.error(`[${channel}] history`, err);
+        return null;
+      });
+      if (saved?.ok && !saved.alreadyAnswered) {
+        await appendAssistant(conversationId, command.text, "command").catch((err) =>
+          console.error(`[${channel}] history`, err),
+        );
+      }
+      await noteCommand(person.id, channel);
+      const shown =
+        saved?.ok && saved.alreadyAnswered && saved.answer ? saved.answer : command.text;
+      return plainReply(channel, shown, command.files);
+    }
+
+    let placed: Awaited<ReturnType<typeof appendUser>>;
+    try {
+      placed = await appendUser({
+        conversationId,
+        personId: person.id,
+        text,
+        kind: "turn",
+        clientId: body.clientMessageId,
+        regenerate: body.regenerate,
+      });
+    } catch (err) {
+      console.error(`[${channel}] history`, err);
+      return plainReply(channel, UNSAVED);
+    }
+    if (!placed.ok) return plainReply(channel, UNSAVED);
+    if (placed.alreadyAnswered) return textReply(placed.answer ?? "…");
+
     const port = await portFor(person, channel);
-    const messages = await convertToModelMessages(body.messages);
+    const messages = await modelMessages(conversationId);
     const input = {
       model,
       port,
@@ -187,7 +251,7 @@ export const chatRoutes = new Hono()
       channel,
       userHandle: person.displayName ?? "web",
       memoryEnabled: person.memoryEnabled,
-      sessionStart: body.sessionStart ?? body.messages.length <= 1,
+      sessionStart: placed.sessionStart,
       hasCorrections: await hasCorrections(person.id),
     };
     const turnCtx = await gatherContext(input);
@@ -222,6 +286,9 @@ export const chatRoutes = new Hono()
           : undefined,
       onFinish: async ({ messages: out }) => {
         const writes = out.flatMap((m) => m.parts).filter((p) => p.type === "tool-remember").length;
+        await appendAssistant(conversationId, spokenText(out), "turn").catch((e) =>
+          console.error(`[${channel}] history`, e),
+        );
         await logTurn(person, channel, turnCtx, writes, model.id).catch((e) =>
           console.error("[web] logTurn", e),
         );

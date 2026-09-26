@@ -5,6 +5,10 @@
  * the half that matters: reload, then ask. The reload is the point, because a
  * page with no history cannot be answering from context.
  *
+ * A normal reload restores the open chat. The reload button clears that id
+ * first, so the empty page still has to answer from Walrus. Do not "fix" this
+ * by opening the latest chat on `/`.
+ *
  * The old labels and the explanation under them made the empty chat read like
  * a manual, so they stay here as comments and are not rendered:
  * "Try one"

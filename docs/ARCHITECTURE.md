@@ -354,3 +354,5 @@ Original list:
 
 
 `turn_log` stores per turn: person, channel, memory on/off, mode, memories injected (blob IDs, distances and types), model. Slash commands are recorded with mode `command` so they count against the rate limit without polluting the before/after. `memory_index` stores one row per write, inserted at accept time with status `pending` and updated to `stored` or `failed` when the blob lands, so a restart inside the 25-second write window cannot lose the record of a memory the user was already told about.
+
+`conversations` and `messages` store the chat itself, not the memory. The body and the title are AES-256-GCM under `KEY_ENCRYPTION_KEY`. Memory text is still not a column: a recalled fact stays on Walrus. The model sees at most the last 20 turns or 12,000 characters, and commands are left out of that window. A channel thread closes after six hours of silence; a web thread stays until the person deletes it. Deleting a chat removes it from Postgres. It does not remove a Walrus memory.

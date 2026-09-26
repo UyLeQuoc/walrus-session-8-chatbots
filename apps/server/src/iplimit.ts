@@ -58,7 +58,13 @@ export interface IpDecision {
 export function isUnmetered(method: string, path: string): boolean {
   if (path.startsWith("/api/health") || path === "/api/config" || path === "/api/stats")
     return true;
-  return method === "GET" && (path === "/api/me" || path === "/api/me/memories");
+  return (
+    method === "GET" &&
+    (path === "/api/me" ||
+      path === "/api/me/memories" ||
+      path === "/api/conversations" ||
+      path.startsWith("/api/conversations/"))
+  );
 }
 
 export function clientAddress(headers: { get(name: string): string | null | undefined }): string {

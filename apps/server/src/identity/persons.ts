@@ -2,9 +2,11 @@ import type { TurnContext } from "@hippo/core";
 import {
   and,
   channelIdentities,
+  conversations,
   delegateKeys,
   eq,
   isNotNull,
+  isNull,
   memoryIndex,
   people,
   sql,
@@ -315,6 +317,29 @@ export async function mergePersons(winnerId: string, loserId: string): Promise<v
       .set({ personId: winnerId })
       .where(eq(memoryIndex.personId, loserId));
     await tx.update(turnLog).set({ personId: winnerId }).where(eq(turnLog.personId, loserId));
+    // An open thread is unique per person, channel and key. Close only the
+    // loser's open threads that would collide, then move the rest across.
+    const winnerOpen = await tx
+      .select({ channel: conversations.channel, threadKey: conversations.threadKey })
+      .from(conversations)
+      .where(and(eq(conversations.personId, winnerId), isNull(conversations.closedAt)));
+    for (const row of winnerOpen) {
+      await tx
+        .update(conversations)
+        .set({ closedAt: new Date() })
+        .where(
+          and(
+            eq(conversations.personId, loserId),
+            eq(conversations.channel, row.channel),
+            eq(conversations.threadKey, row.threadKey),
+            isNull(conversations.closedAt),
+          ),
+        );
+    }
+    await tx
+      .update(conversations)
+      .set({ personId: winnerId })
+      .where(eq(conversations.personId, loserId));
     await tx.delete(people).where(eq(people.id, loserId));
   });
 }

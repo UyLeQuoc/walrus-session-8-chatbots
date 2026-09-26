@@ -1,4 +1,4 @@
-import { Library, SquarePen } from "lucide-react";
+import { Library, SquarePen, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 import { WalletAccount } from "@/app/wallet-account";
 import { Logo } from "@/components/logo";
@@ -8,16 +8,28 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useConversations } from "@/features/chat/use-conversations";
 
-export function AppSidebar({ onNewChat }: { onNewChat: () => void }) {
+export function AppSidebar({
+  onNewChat,
+  onOpenChat,
+  activeChatId,
+}: {
+  onNewChat: () => void;
+  onOpenChat: (id: string) => void;
+  activeChatId: string | null;
+}) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { items, remove } = useConversations();
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -47,6 +59,37 @@ export function AppSidebar({ onNewChat }: { onNewChat: () => void }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {!collapsed && items.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Chats</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {items.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      type="button"
+                      isActive={item.id === activeChatId}
+                      onClick={() => onOpenChat(item.id)}
+                    >
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                    <SidebarMenuAction
+                      aria-label={`Delete ${item.title}`}
+                      showOnHover
+                      onClick={() => {
+                        void remove(item.id).then((ok) => {
+                          if (ok && item.id === activeChatId) onNewChat();
+                        });
+                      }}
+                    >
+                      <Trash2 />
+                    </SidebarMenuAction>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <WalletAccount />

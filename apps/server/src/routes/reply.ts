@@ -21,12 +21,18 @@ export interface ReplyFile {
 
 export function plainReply(channel: string, text: string, files?: ReplyFile[]): Response {
   if (channel === "cli") return Response.json({ command: true, text, files });
+  return textReply(text, true);
+}
+
+/** A stored answer replayed as a stream, so a retry does not call the model again. */
+export function textReply(text: string, command = false): Response {
   const id = "reply";
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
-      // Marked, so the page can tell a command's answer from something the
-      // model said after being taught a fact.
-      writer.write({ type: "start", messageMetadata: { command: true } });
+      writer.write({
+        type: "start",
+        ...(command ? { messageMetadata: { command: true } } : {}),
+      });
       writer.write({ type: "text-start", id });
       writer.write({ type: "text-delta", id, delta: text });
       writer.write({ type: "text-end", id });

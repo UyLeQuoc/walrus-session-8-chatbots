@@ -37,10 +37,7 @@ interface UIPart {
 
 let cookie = loadCookie();
 
-async function send(
-  messages: Array<{ id: string; role: string; parts: UIPart[] }>,
-  sessionStart: boolean,
-) {
+async function send(text: string, clientMessageId: string) {
   const res = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
     headers: {
@@ -48,7 +45,7 @@ async function send(
       "x-hippo-channel": "cli",
       ...(cookie ? { cookie } : {}),
     },
-    body: JSON.stringify({ messages, sessionStart }),
+    body: JSON.stringify({ text, clientMessageId }),
   });
   const setCookie = res.headers.get("set-cookie");
   if (setCookie) {
@@ -124,20 +121,12 @@ async function main() {
   // Ctrl+D closes the input, and a question pending on a closed interface never
   // settles, so Node exited with status 13 and the package manager printed a failure block.
   rl.on("close", () => process.exit(0));
-  const messages: Array<{ id: string; role: string; parts: UIPart[] }> = [];
-  let sessionStart = true;
-
   for (;;) {
     const line = (await rl.question("you › ")).trim();
     if (!line) continue;
     if (line === "/quit" || line === "/exit") break;
-    messages.push({
-      id: String(messages.length + 1),
-      role: "user",
-      parts: [{ type: "text", text: line }],
-    });
     try {
-      const { text, streamed, files } = await send(messages, sessionStart);
+      const { text, streamed, files } = await send(line, crypto.randomUUID());
       if (!streamed) console.log(`hippo › ${text}\n`);
       else console.log();
       // `/export` hands back files; the terminal is where they are kept. The
@@ -147,15 +136,8 @@ async function main() {
         writeFileSync(path, f.content);
         console.log(`  saved ${path}\n`);
       }
-      messages.push({
-        id: `a${messages.length}`,
-        role: "assistant",
-        parts: [{ type: "text", text }],
-      });
-      sessionStart = false;
     } catch (err) {
       console.error(`  ${err instanceof Error ? err.message : err}\n`);
-      messages.pop();
     }
   }
   rl.close();

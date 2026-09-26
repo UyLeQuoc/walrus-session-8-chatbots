@@ -405,6 +405,28 @@ describe("chat page", () => {
     expect(container.querySelector(".scroll-fade-b, .scroll-fade, .scroll-fade-y")).toBeTruthy();
   });
 
+  it("lists a saved chat and opens it", async () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/conversations": {
+          conversations: [{ id, title: "Postgres on 5433", updatedAt: "2026-09-26T00:00:00.000Z" }],
+        },
+        [`/api/conversations/${id}/messages`]: {
+          messages: [
+            { id: "m1", role: "assistant", kind: "turn", text: "Noted from history.", seq: 1 },
+          ],
+        },
+      }),
+    );
+    const { container } = mountChat();
+    const saved = await screen.findByRole("button", { name: "Postgres on 5433" });
+    await userEvent.click(saved);
+    expect(await screen.findByText("Noted from history.")).toBeDefined();
+    expect(container.textContent ?? "").toContain("Noted from history.");
+  });
+
   it("returns to the empty thread when new chat is clicked", async () => {
     chatMessages = [
       { id: "1", role: "user", parts: [{ type: "text", text: "I use pnpm" }] },

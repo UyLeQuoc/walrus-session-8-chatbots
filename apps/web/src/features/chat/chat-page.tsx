@@ -1,9 +1,9 @@
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { ArrowUp } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useNewChatTick, useShellTitle } from "@/app/shell";
+import { useAdoptChat, useNewChatTick, useOpenTick, useShellTitle } from "@/app/shell";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import {
   InputGroup,
@@ -20,21 +20,54 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
+import { clearActiveChat, readActiveChat, writeActiveChat } from "@/features/chat/active-chat";
 import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
 import { greetingFor } from "@/features/chat/greeting";
 import { Markdown } from "@/features/chat/markdown";
 import { MemoryStrip } from "@/features/chat/memory-strip";
 import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
+import { bumpConversations } from "@/features/chat/use-conversations";
+import { useTranscript } from "@/features/chat/use-transcript";
 import { API_URL, identityHeaders } from "@/lib/api";
 
+function textOfMessage(
+  message: { parts?: Array<{ type: string; text?: string }> } | undefined,
+): string {
+  return (message?.parts ?? [])
+    .filter((p) => p.type === "text")
+    .map((p) => p.text ?? "")
+    .join("");
+}
+
 export function ChatPage() {
+  const idRef = useRef<string | null>(readActiveChat());
+  const adoptChat = useAdoptChat();
+  const adoptRef = useRef(adoptChat);
+  adoptRef.current = adoptChat;
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: `${API_URL}/api/chat`,
         credentials: "include",
         headers: identityHeaders,
+        prepareSendMessagesRequest: ({ messages, trigger, messageId }) => {
+          const source = outboundMessage(messages, trigger, messageId);
+          if (!idRef.current) {
+            const id = crypto.randomUUID();
+            idRef.current = id;
+            writeActiveChat(id);
+            adoptRef.current(id);
+          }
+          return {
+            body: {
+              text: textOfMessage(source),
+              conversationId: idRef.current,
+              clientMessageId: source?.id,
+              regenerate: trigger === "regenerate-message",
+            },
+          };
+        },
       }),
     [],
   );
@@ -42,9 +75,15 @@ export function ChatPage() {
     transport,
   });
   const [text, setText] = useState("");
+  const [loadId, setLoadId] = useState<string | null>(() => readActiveChat());
+  const transcript = useTranscript(loadId);
   const busy = status === "submitted" || status === "streaming";
   const newChatTick = useNewChatTick();
+  const openTick = useOpenTick();
   const seenTick = useRef(newChatTick);
+  const seenOpen = useRef(openTick);
+  const applied = useRef(0);
+  const wasBusy = useRef(false);
 
   useEffect(() => {
     if (error) toast.error(error.message);
@@ -58,14 +97,51 @@ export function ChatPage() {
   useEffect(() => {
     if (seenTick.current === newChatTick) return;
     seenTick.current = newChatTick;
+    idRef.current = null;
+    setLoadId(null);
     setMessages([]);
     setText("");
   }, [newChatTick, setMessages]);
+
+  useEffect(() => {
+    if (openTick === 0 || seenOpen.current === openTick) return;
+    seenOpen.current = openTick;
+    const id = readActiveChat();
+    idRef.current = id;
+    setLoadId(id);
+    if (!id) setMessages([]);
+  }, [openTick, setMessages]);
+
+  useEffect(() => {
+    if (transcript.generation === 0 || applied.current === transcript.generation) return;
+    applied.current = transcript.generation;
+    if (transcript.messages) setMessages(transcript.messages);
+  }, [transcript.generation, transcript.messages, setMessages]);
+
+  useEffect(() => {
+    if (transcript.error) toast.error(transcript.error);
+  }, [transcript.error]);
+
+  useEffect(() => {
+    if (busy) {
+      wasBusy.current = true;
+      return;
+    }
+    if (!wasBusy.current) return;
+    wasBusy.current = false;
+    bumpConversations();
+  }, [busy]);
 
   const lastId = messages.at(-1)?.id;
 
   const send = (value: string) => {
     if (!value.trim() || busy) return;
+    if (!idRef.current) {
+      const id = crypto.randomUUID();
+      idRef.current = id;
+      writeActiveChat(id);
+      adoptChat(id);
+    }
     void sendMessage({ text: value });
     setText("");
   };
@@ -74,6 +150,7 @@ export function ChatPage() {
   useShellTitle(title);
 
   const reloadAndAsk = (value: string) => {
+    clearActiveChat();
     rememberPendingAsk(value);
     window.location.reload();
   };
@@ -191,6 +268,17 @@ function Composer({
       </InputGroup>
     </form>
   );
+}
+
+function outboundMessage(
+  messages: UIMessage[],
+  trigger: "submit-message" | "regenerate-message",
+  messageId: string | undefined,
+): UIMessage | undefined {
+  if (trigger !== "regenerate-message") return messages.at(-1);
+  const idx = messageId ? messages.findIndex((m) => m.id === messageId) : -1;
+  const prior = idx >= 0 ? messages.slice(0, idx + 1) : messages;
+  return [...prior].reverse().find((m) => m.role === "user") ?? messages.at(-1);
 }
 
 function threadTitle(messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>) {

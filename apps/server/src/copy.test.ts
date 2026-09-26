@@ -64,6 +64,13 @@ describe("/privacy", () => {
     expect(PRIVACY).toMatch(/leaving does not take it back out/i);
   });
 
+  it("says chat transcripts stay on the server, encrypted, and can be deleted", () => {
+    expect(PRIVACY).toMatch(/not written to Walrus/i);
+    expect(PRIVACY).toMatch(/other agents cannot recall it/i);
+    expect(PRIVACY).toMatch(/delete a chat from the sidebar/i);
+    expect(PRIVACY).toMatch(/\/memory off does not delete those chats/);
+  });
+
   it("says that memories from before connecting stay in hippo's account", () => {
     // They cannot be moved and cannot be deleted, so hippo can still read them
     // after a revoke. Discovering that afterwards would feel like a betrayal of

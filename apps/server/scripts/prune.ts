@@ -31,12 +31,32 @@ const candidates = sql`
     and p.account_id is null
     and not exists (select 1 from memory_index m where m.person_id = p.id)
     and not exists (select 1 from turn_log t where t.person_id = p.id)
+    and not exists (select 1 from conversations c where c.person_id = p.id)
     and not exists (select 1 from delegate_keys d where d.person_id = p.id)
     and not exists (
       select 1 from channel_identities c
       where c.person_id = p.id and c.channel = 'wallet'
     )
 `;
+
+const staleChats = sql`
+  select c.id
+  from conversations c
+  where c.updated_at < now() - interval '90 days'
+    and c.id not in (
+      select id from (
+        select id, row_number() over (partition by person_id order by updated_at desc) as n
+        from conversations
+      ) ranked
+      where n <= 100
+    )
+`;
+const staleRows = (await db.execute(
+  sql`select count(*)::int as n from (${staleChats}) as s`,
+)) as unknown as Array<{ n: number }> | { rows?: Array<{ n: number }> };
+const staleList = Array.isArray(staleRows) ? staleRows : (staleRows.rows ?? []);
+const staleCount = staleList[0]?.n ?? 0;
+console.log(`${staleCount} conversation(s) older than 90 days and outside the newest 100`);
 
 const rows = (await db.execute(candidates)) as unknown as Array<{ id: string; created_at: string }>;
 const list = Array.isArray(rows) ? rows : ((rows as { rows?: typeof rows }).rows ?? []);
@@ -49,6 +69,14 @@ if (!run) {
   console.log("\nDry run. Pass --run to delete.");
   process.exit(0);
 }
+
+if (staleCount > 0) {
+  await db.execute(
+    sql`delete from conversations where id in (select id from (${staleChats}) as s)`,
+  );
+  console.log(`Deleted ${staleCount} conversation(s).`);
+}
+
 if (list.length === 0) process.exit(0);
 
 // Cascades clean up channel_identities and connect_tokens.

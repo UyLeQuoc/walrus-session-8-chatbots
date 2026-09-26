@@ -11,6 +11,7 @@ import { checkAddress, clientAddress, isUnmetered, refusal } from "./iplimit.ts"
 import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chat.ts";
 import { connectRoutes } from "./routes/connect.ts";
+import { conversationRoutes } from "./routes/conversations.ts";
 import { healthRoutes } from "./routes/health.ts";
 
 const app = new Hono();
@@ -48,6 +49,7 @@ app.use("/api/*", async (c, next) => {
 
 app.route("/", healthRoutes);
 app.route("/", chatRoutes);
+app.route("/", conversationRoutes);
 app.route("/", connectRoutes);
 app.route("/", authRoutes);
 
