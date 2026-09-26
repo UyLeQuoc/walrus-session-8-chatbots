@@ -7,11 +7,13 @@
  * them where to go.
  */
 import { Link } from "react-router";
+import { useShellTitle } from "@/app/shell";
 import { Button } from "@/components/ui/button";
 
 export function NotFoundPage() {
+  useShellTitle("Not found");
   return (
-    <div className="space-y-3">
+    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-6">
       <h1 className="text-xl font-semibold tracking-tight">Nothing here</h1>
       <p className="text-sm text-muted-foreground">
         That address is not a page. If you followed a <code>/connect</code> or{" "}

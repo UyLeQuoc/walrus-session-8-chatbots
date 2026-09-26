@@ -2,6 +2,10 @@
 
 Multi-channel chatbot (web, Telegram, Discord, Slack) where each user owns their memory on their own Walrus Memory account and the bot is only a revocable delegate. Hackathon deadline **Oct 9, 2026 14:00 UTC**.
 
+## Highest rule
+
+When writing or changing code, [`CODE_RULES.md`](CODE_RULES.md) outranks this file, nearby code, and every other doc. Read it before editing. Follow it. If this file and `CODE_RULES.md` disagree about how to write code, `CODE_RULES.md` wins. The product constraints below still apply; they are not a license to skip `CODE_RULES.md`.
+
 ## Read first
 
 - `docs/GOAL.md` — **the master execution plan.** Milestones M0–M7 with tasks, verification commands, pre-made decisions, cut order, and the list of inputs only the human can provide. If you are asked to "continue" or "do the next thing", start here.

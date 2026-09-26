@@ -6,7 +6,13 @@
  * it, and these assert the properties that make it one.
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { checkAddress, clientAddress, refusal, resetAddressLimits } from "./iplimit.ts";
+import {
+  checkAddress,
+  clientAddress,
+  isUnmetered,
+  refusal,
+  resetAddressLimits,
+} from "./iplimit.ts";
 
 const start = 1_700_000_000_000;
 
@@ -48,6 +54,21 @@ describe("the per-address ceiling", () => {
     expect(clientAddress(headers)).toBe("203.0.113.7");
     expect(clientAddress(new Headers({ "x-real-ip": "198.51.100.2" }))).toBe("198.51.100.2");
     expect(clientAddress(new Headers())).toBe("unknown");
+  });
+});
+
+describe("isUnmetered", () => {
+  it("lets the page read who you are without spending the ceiling", () => {
+    expect(isUnmetered("GET", "/api/me")).toBe(true);
+    expect(isUnmetered("GET", "/api/me/memories")).toBe(true);
+    expect(isUnmetered("GET", "/api/health")).toBe(true);
+  });
+
+  it("still counts search, export, and anything that writes", () => {
+    expect(isUnmetered("GET", "/api/me/search")).toBe(false);
+    expect(isUnmetered("GET", "/api/me/export")).toBe(false);
+    expect(isUnmetered("POST", "/api/me")).toBe(false);
+    expect(isUnmetered("POST", "/api/chat")).toBe(false);
   });
 });
 

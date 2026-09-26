@@ -5,76 +5,24 @@
  * Teammates are never named here. A shared memory says only whether you added
  * it: the page is about what hippo holds, not about who said what.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/features/me/copy-button";
 import { Hash } from "@/features/me/hash";
-import { ago } from "@/features/me/memory-list";
+import { ago } from "@/features/me/memory";
 import { Section } from "@/features/me/section";
-import { API_URL, identityHeaders } from "@/lib/api";
-
-interface TeamMemory {
-  id: string;
-  type: string;
-  status: "pending" | "stored" | "failed";
-  createdAt: string;
-  blobId: string | null;
-  explorerUrl: string | null;
-  mine: boolean;
-}
-
-interface Team {
-  name: string;
-  memberCount: number;
-  memories: TeamMemory[];
-}
-
-async function post<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: identityHeaders(),
-  });
-  const body = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(body.error ?? `That failed (${res.status}).`);
-  return body;
-}
+import { useTeam } from "@/features/me/use-team";
 
 export function TeamPanel({ onError }: { onError: (message: string) => void }) {
-  const [team, setTeam] = useState<Team | null | undefined>(undefined);
-  const [invite, setInvite] = useState<{ code: string; expiresInMinutes: number } | null>(null);
+  const { team, invite, busy, createInvite, leave } = useTeam(onError);
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  const load = useCallback(() => {
-    void fetch(`${API_URL}/api/me/team`, { credentials: "include", headers: identityHeaders() })
-      .then((r) => r.json() as Promise<{ team?: Team | null }>)
-      // A shape we did not expect is "no team", never a crash on first paint.
-      .then((d) => setTeam(d?.team && Array.isArray(d.team.memories) ? d.team : null))
-      .catch(() => setTeam(null));
-  }, []);
-  useEffect(load, [load]);
-
-  const act = async (fn: () => Promise<void>) => {
-    setBusy(true);
-    try {
-      await fn();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "That failed.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   if (team === undefined) return null;
 
   if (!team) {
     return (
-      <Section
-        title="Team memory"
-        description="Share a memory with a few people. Only what you add on purpose is shared; your own memory stays yours."
-      >
+      <Section title="Team memory">
         <p className="text-sm text-muted-foreground">
           In the chat, <code className="font-mono text-xs">/team new &lt;name&gt;</code> starts one
           and <code className="font-mono text-xs">/team join &lt;code&gt;</code> joins one somebody
@@ -88,20 +36,9 @@ export function TeamPanel({ onError }: { onError: (message: string) => void }) {
   return (
     <Section
       title={`Team: ${team.name}`}
-      description={`${team.memberCount} ${team.memberCount === 1 ? "member" : "members"}. Everyone in it recalls what the team holds; what you say in ordinary conversation stays yours. The shared memory lives in hippo's account, so no member owns it yet.`}
+      description={`${team.memberCount} ${team.memberCount === 1 ? "member" : "members"}. The shared memory lives in hippo's account, so no member owns it yet.`}
       action={
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={busy}
-          onClick={() =>
-            void act(async () =>
-              setInvite(
-                await post<{ code: string; expiresInMinutes: number }>("/api/me/team/invite"),
-              ),
-            )
-          }
-        >
+        <Button variant="outline" disabled={busy} onClick={createInvite}>
           Invite
         </Button>
       }
@@ -158,25 +95,21 @@ export function TeamPanel({ onError }: { onError: (message: string) => void }) {
           </span>
           <Button
             variant="outline"
-            size="sm"
             disabled={busy}
-            onClick={() =>
-              void act(async () => {
-                await post("/api/me/team/leave");
-                setConfirmLeave(false);
-                setInvite(null);
-                load();
-              })
-            }
+            onClick={() => {
+              void leave().then((left) => {
+                if (left) setConfirmLeave(false);
+              });
+            }}
           >
             Leave
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setConfirmLeave(false)}>
+          <Button variant="ghost" onClick={() => setConfirmLeave(false)}>
             Stay
           </Button>
         </div>
       ) : (
-        <Button variant="ghost" size="sm" onClick={() => setConfirmLeave(true)}>
+        <Button variant="ghost" onClick={() => setConfirmLeave(true)}>
           Leave the team
         </Button>
       )}

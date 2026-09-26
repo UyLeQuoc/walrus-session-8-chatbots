@@ -4,6 +4,7 @@ import { createSuiClient, explorer, NAMESPACE, RelayerExtras, readAccount } from
 import { convertToModelMessages, type UIMessage } from "ai";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
+import { z } from "zod";
 import { type CommandContext, handleCommand } from "../chat/commands.ts";
 import { tooLong } from "../chat/limits.ts";
 import { checkRate, noteCommand } from "../chat/ratelimit.ts";
@@ -89,6 +90,25 @@ async function webPerson(
   return resolvePerson(channel, id, channel);
 }
 
+const chatBody = z.object({
+  messages: z.array(
+    z.custom<UIMessage>(
+      (value) =>
+        typeof value === "object" &&
+        value !== null &&
+        "role" in value &&
+        "parts" in value &&
+        Array.isArray(value.parts),
+    ),
+  ),
+  sessionStart: z.boolean().optional(),
+});
+
+const visibilityBody = z.object({
+  blobId: z.string().min(1),
+  hidden: z.boolean(),
+});
+
 function lastUserText(messages: UIMessage[]): string {
   const last = [...messages].reverse().find((m) => m.role === "user");
   if (!last) return "";
@@ -120,7 +140,9 @@ async function mePerson(c: Context): Promise<Person | null> {
 
 export const chatRoutes = new Hono()
   .post("/api/chat", async (c) => {
-    const body = (await c.req.json()) as { messages: UIMessage[]; sessionStart?: boolean };
+    const parsed = chatBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "Send a message to continue." }, 400);
+    const body = parsed.data;
     const channel = c.req.header("x-hippo-channel") === "cli" ? "cli" : CHANNEL;
     const person = await webPerson(c, channel, readGuestId(c), (id) =>
       setCookie(c, COOKIE, id, {
@@ -261,10 +283,9 @@ export const chatRoutes = new Hono()
   .post("/api/me/memories/visibility", async (c) => {
     const person = await mePerson(c);
     if (!person) return c.json({ error: "Say something first." }, 401);
-    const body = (await c.req.json().catch(() => ({}))) as { blobId?: unknown; hidden?: unknown };
-    if (typeof body.blobId !== "string" || typeof body.hidden !== "boolean") {
-      return c.json({ error: "blobId and hidden are required." }, 400);
-    }
+    const parsed = visibilityBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "blobId and hidden are required." }, 400);
+    const body = parsed.data;
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ error: gate.message }, 429);
     await noteCommand(person.id, CHANNEL);

@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 export interface RecalledMemory {
@@ -20,14 +21,15 @@ export function Recalled({ memories }: { memories: RecalledMemory[] }) {
   if (memories.length === 0) return null;
 
   return (
-    <div className="mt-2 text-xs">
+    <div className="mt-2">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        className="inline-flex items-center gap-1 p-0 text-sm text-muted-foreground hover:text-foreground"
       >
         {open ? "hide" : "recalled"} {memories.length}{" "}
         {memories.length === 1 ? "memory" : "memories"}
+        <ChevronDown className={open ? "size-3.5 rotate-180" : "size-3.5"} />
       </button>
       {open && (
         <ul className="mt-1 space-y-1 border-l pl-3">

@@ -10,7 +10,7 @@ Two forms of the same brief. Update the State line in both as milestones land.
 ```
 Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
 
-Read CLAUDE.md, docs/GOAL.md and docs/AUDIT.md first, then docs/ARCHITECTURE.md §11, the threat model table. This session is about whether that table is true.
+Read AGENTS.md, docs/GOAL.md and docs/AUDIT.md first, then docs/ARCHITECTURE.md §11, the threat model table. This session is about whether that table is true.
 
 State (2026-09-23): live in production, feature-complete, writing corrected, pre-flight done. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, Telegram @walrussession8_bot. 64 tests, CI green, clean tree. Model is google/gemini-2.5-flash with qwen/qwen3.7-flash as a fallback, both chosen by measurement (docs/evidence/model-bakeoff-2026-09-23.md). M6 is the only unmet judging criterion and starts when I message the bot.
 
@@ -26,7 +26,7 @@ Every defence below is claimed in the threat model and none has ever been attack
 
 5. The rate limiter is the only thing between one person and a relayer budget shared by every guest. It has no test file.
 
-6. Prove a delegate private key never reaches a log line, a chat reply, an API response or the browser. This is a CLAUDE.md hard constraint and is currently only a convention.
+6. Prove a delegate private key never reaches a log line, a chat reply, an API response or the browser. This is an AGENTS.md hard constraint and is currently only a convention.
 
 Rules.
 - Do not ask me what to do next. If a choice comes up, pick the option that protects owned mode, the revoke demo and Telegram, write one line in docs/DECISIONS.md, and keep going.
@@ -50,7 +50,7 @@ seven times too high, and that the fallback model had never been wired.
 ```
 Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
 
-Read CLAUDE.md, docs/GOAL.md and docs/AUDIT.md first, then docs/RUNBOOK.md, which is the week this session exists to protect.
+Read AGENTS.md, docs/GOAL.md and docs/AUDIT.md first, then docs/RUNBOOK.md, which is the week this session exists to protect.
 
 State (2026-09-23): live in production, feature-complete, and the writing is corrected. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, Neon, Telegram @walrussession8_bot polling. 42 tests, CI green, clean tree. M0 to M5 done, M7 drafted and fact-checked. M6 is the only unmet judging criterion: 5 people and 13 memories in production against a requirement of 3 people with 10 each.
 
@@ -90,7 +90,7 @@ superseded deployment.
 ```
 Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
 
-Read CLAUDE.md, docs/GOAL.md and docs/AUDIT.md first. Then read docs/SPIKES.md §I and §J and docs/issues/11 and 12, because everything below depends on what they record.
+Read AGENTS.md, docs/GOAL.md and docs/AUDIT.md first. Then read docs/SPIKES.md §I and §J and docs/issues/11 and 12, because everything below depends on what they record.
 
 State (2026-09-23): live in production and feature-complete for a submission. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, Neon, Telegram @walrussession8_bot polling. 42 tests, CI green, clean tree. The web UI landed on 2026-09-22 and was checked in a browser (docs/evidence/web-ui-2026-09-22.md).
 
@@ -131,7 +131,7 @@ All six tasks landed and were checked in a browser against production
 ```
 Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
 
-Read CLAUDE.md, docs/GOAL.md and docs/AUDIT.md first. AUDIT.md checks every task against the codebase and was refreshed 2026-09-22; read it before concluding unblocked work is exhausted, because auditing has turned up real gaps every time. docs/SPIKES.md is what we measured on mainnet and §I and §J are the newest and most important. docs/BLOCKERS.md is what only I can provide.
+Read AGENTS.md, docs/GOAL.md and docs/AUDIT.md first. AUDIT.md checks every task against the codebase and was refreshed 2026-09-22; read it before concluding unblocked work is exhausted, because auditing has turned up real gaps every time. docs/SPIKES.md is what we measured on mainnet and §I and §J are the newest and most important. docs/BLOCKERS.md is what only I can provide.
 
 State (2026-09-22): live in production. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, Neon database, Telegram @walrussession8_bot polling. M0, M1, M2 and M5 done. M3 is proven on mainnet: an account was created, a delegate key added, used and revoked, all sponsored, and the relayer refused the removed key after about 32 seconds. M4 partly done. M6 waits on real people. M7 drafted. 29 tests, CI green, clean tree.
 
@@ -168,7 +168,7 @@ Start by reading the docs above, then task 1.
 ```
 Continue hippo, my entry for Walrus Session 8 "Chatbots That Remember". Deadline Oct 9, 2026 14:00 UTC.
 
-Read CLAUDE.md and docs/GOAL.md first. GOAL.md is the master plan, every milestone marked with its real status, and docs/AUDIT.md checks each task against the codebase: read it before concluding unblocked work is exhausted, because auditing has turned up real gaps every time. docs/SPIKES.md is what we measured on mainnet. docs/BLOCKERS.md is what only I can provide. docs/DECISIONS.md is the decision log. docs/RUNBOOK.md is how to run the real-use week. docs/DEPLOY.md is the deployment.
+Read AGENTS.md and docs/GOAL.md first. GOAL.md is the master plan, every milestone marked with its real status, and docs/AUDIT.md checks each task against the codebase: read it before concluding unblocked work is exhausted, because auditing has turned up real gaps every time. docs/SPIKES.md is what we measured on mainnet. docs/BLOCKERS.md is what only I can provide. docs/DECISIONS.md is the decision log. docs/RUNBOOK.md is how to run the real-use week. docs/DEPLOY.md is the deployment.
 
 State (2026-09-22): live in production. Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, database on Neon, Telegram @walrussession8_bot polling from production. M0, M1, M2, M5 done. M3 is written, security-reviewed and now proven on mainnet by script; only the browser wallet-popup version is unfilmed. M4 partly done. M6 can start the moment somebody messages the bot. M7 is drafted.
 
@@ -206,7 +206,7 @@ Start by reading the docs above, then pick up the next unblocked task.
 
 You are continuing work on hippo, my entry for Walrus Session 8 "Chatbots That Remember". The deadline is **Oct 9, 2026 14:00 UTC**.
 
-Read `CLAUDE.md` and `docs/GOAL.md` first. `docs/GOAL.md` is the master plan: milestones M0 to M7, each with tasks and the command that verifies them. `docs/SPIKES.md` records what we measured on mainnet and what it changed. `docs/BLOCKERS.md` lists what only I can provide. `docs/DECISIONS.md` is the running decision log.
+Read `AGENTS.md` and `docs/GOAL.md` first. `docs/GOAL.md` is the master plan: milestones M0 to M7, each with tasks and the command that verifies them. `docs/SPIKES.md` records what we measured on mainnet and what it changed. `docs/BLOCKERS.md` lists what only I can provide. `docs/DECISIONS.md` is the running decision log.
 
 **State (2026-09-22): live in production.** Web https://hippo-web-ten-nu.vercel.app, API https://hippo-server-production.up.railway.app, database on Neon, Telegram `@walrussession8_bot` polling from production. M0, M1, M2 and M5 are done. M3 is written, security-reviewed, and now proven on mainnet: an account was created, a delegate key registered, used, and revoked, all sponsored. Only the browser wallet-popup version is unfilmed. M4 is partly done. M6 can start the moment somebody messages the bot. M7 is drafted.
 

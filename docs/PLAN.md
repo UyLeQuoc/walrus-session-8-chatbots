@@ -138,7 +138,7 @@ Do these before writing code. Everything here is free.
 
 **Local tooling**
 - [ ] Node 20 (`nvm use 20`), Bun 1.3.14, `bunx --bun shadcn@latest init` in `apps/web` after Vite + Tailwind v4 are in place.
-- [ ] `memwal/` clone present (see `CLAUDE.md`).
+- [ ] `memwal/` clone present (see `AGENTS.md`).
 
 **Scaffold order**
 1. Bun workspace, `turbo.json`, root `tsconfig.base.json`, biome.

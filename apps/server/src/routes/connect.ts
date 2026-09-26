@@ -13,10 +13,16 @@ import {
 } from "@hippo/db";
 import { createSuiClient, fetchRelayerConfig, readAccount } from "@hippo/memory";
 import { Hono } from "hono";
+import { z } from "zod";
 import { loadToken } from "../connect/tokens.ts";
 import { db } from "../context.ts";
 import { env } from "../env/load.ts";
 import { mergePersons, personByWallet } from "../identity/persons.ts";
+
+const doneBody = z.object({
+  accountId: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  digest: z.string().nullish(),
+});
 
 const sui = createSuiClient(env.SUI_NETWORK);
 
@@ -97,10 +103,9 @@ export const connectRoutes = new Hono()
   .post("/api/connect/:token/done", async (c) => {
     const row = await loadToken(c.req.param("token"));
     if (!row) return c.json({ error: "This link has expired." }, 404);
-    const body = (await c.req.json()) as { accountId?: string; digest?: string };
-    if (!body.accountId || !/^0x[0-9a-fA-F]{64}$/.test(body.accountId)) {
-      return c.json({ error: "accountId missing or malformed." }, 400);
-    }
+    const parsed = doneBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "accountId missing or malformed." }, 400);
+    const body = parsed.data;
     const [key] = row.delegateKeyId
       ? await db.select().from(delegateKeys).where(eq(delegateKeys.id, row.delegateKeyId)).limit(1)
       : [];

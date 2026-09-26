@@ -50,6 +50,17 @@ export interface IpDecision {
  * the client. It is spoofable in general, which is why this is a ceiling on top
  * of the per-person limit rather than a replacement for it.
  */
+/**
+ * Reads the page makes on every visit. Counting them locked a refresh out of
+ * /api/me, and the 429 was shown as signed out. Search, export, and writes
+ * still count.
+ */
+export function isUnmetered(method: string, path: string): boolean {
+  if (path.startsWith("/api/health") || path === "/api/config" || path === "/api/stats")
+    return true;
+  return method === "GET" && (path === "/api/me" || path === "/api/me/memories");
+}
+
 export function clientAddress(headers: { get(name: string): string | null | undefined }): string {
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) {

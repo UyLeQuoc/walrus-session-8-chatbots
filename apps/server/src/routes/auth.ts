@@ -1,18 +1,29 @@
 /**
  * Wallet sign-in endpoints. The address is always derived from the signature.
  */
-import { Hono } from "hono";
+
+import { createSuiClient } from "@hippo/memory";
+import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { z } from "zod";
 import { env } from "../env/load.ts";
 import {
   createChallenge,
+  personFromSession,
   SESSION_TTL_SECONDS,
   signInWithWallet,
   signOut,
 } from "../identity/auth.ts";
+import { personByChannel } from "../identity/persons.ts";
+
+const verifyBody = z.object({
+  nonce: z.string().min(1),
+  signature: z.string().min(1),
+});
 
 const SESSION_COOKIE = "hippo_session";
 const GUEST_COOKIE = "hippo_guest";
+const sui = createSuiClient(env.SUI_NETWORK);
 
 const cookieOptions = {
   httpOnly: true,
@@ -33,19 +44,24 @@ export const authRoutes = new Hono()
    * it is recovered from the signature, so a caller cannot nominate one.
    */
   .post("/api/auth/verify", async (c) => {
-    const body = (await c.req.json()) as { nonce?: string; signature?: string };
-    if (!body.nonce || !body.signature) {
-      return c.json({ error: "nonce and signature are required" }, 400);
-    }
+    const parsed = verifyBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "nonce and signature are required" }, 400);
+    const body = parsed.data;
 
-    const guestCookie = getCookie(c, GUEST_COOKIE);
-    const result = await signInWithWallet(body.nonce, body.signature, undefined);
+    const guestCookie = readGuestId(c);
+    const sessionId = readSessionId(c);
+    const sessionPerson = sessionId ? await personFromSession(sessionId) : null;
+    // The guest is who this browser was before a bad sign-in pointed the
+    // session at an empty wallet person. Prefer that id so the memories win.
+    const guestPerson = guestCookie ? await personByChannel("web", guestCookie) : null;
+    const result = await signInWithWallet(
+      body.nonce,
+      body.signature,
+      guestPerson?.id ?? sessionPerson?.id,
+      sui,
+    );
     if (!result.ok) {
-      const message =
-        result.reason === "signature"
-          ? "That signature does not match the challenge."
-          : "That sign-in link has expired. Ask for a new one.";
-      return c.json({ error: message }, 401);
+      return c.json({ error: verifyFailure(result.reason) }, 401);
     }
 
     setCookie(c, SESSION_COOKIE, result.sessionId, {
@@ -71,5 +87,34 @@ export const authRoutes = new Hono()
     deleteCookie(c, SESSION_COOKIE, { path: "/" });
     return c.json({ ok: true });
   });
+
+function readGuestId(c: Context): string | undefined {
+  const cookie = getCookie(c, GUEST_COOKIE);
+  if (cookie) return cookie;
+  const header = c.req.header("x-hippo-guest");
+  return header && /^[0-9a-f-]{36}$/i.test(header) ? header : undefined;
+}
+
+function readSessionId(c: Context): string | undefined {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  if (cookie) return cookie;
+  const header = c.req.header("x-hippo-session");
+  return header && /^[0-9a-f]{64}$/i.test(header) ? header : undefined;
+}
+
+function verifyFailure(reason: "nonce" | "signature" | "no-account"): string {
+  switch (reason) {
+    case "signature":
+      return "That signature does not match the challenge.";
+    case "no-account":
+      return "Sign-in could not be saved. Try again.";
+    case "nonce":
+      return "That sign-in link has expired. Ask for a new one.";
+    default: {
+      const unexpected: never = reason;
+      return unexpected;
+    }
+  }
+}
 
 export { GUEST_COOKIE, SESSION_COOKIE };

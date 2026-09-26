@@ -1,25 +1,29 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { ArrowUp } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Logo } from "@/components/logo";
+import { useNewChatTick, useShellTitle } from "@/app/shell";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import {
-  ChatContainerContent,
-  ChatContainerRoot,
-  ChatContainerScrollAnchor,
-} from "@/components/prompt-kit/chat-container";
-import { MessageContent } from "@/components/prompt-kit/message";
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@/components/ui/input-group";
+import { Message, MessageContent } from "@/components/ui/message";
 import {
-  PromptInput,
-  PromptInputActions,
-  PromptInputTextarea,
-} from "@/components/prompt-kit/prompt-input";
-import { ScrollButton } from "@/components/prompt-kit/scroll-button";
-import { Button } from "@/components/ui/button";
-import { ChatFrame } from "@/features/chat/chat-frame";
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller";
 import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
 import { greetingFor } from "@/features/chat/greeting";
+import { Markdown } from "@/features/chat/markdown";
+import { MemoryStrip } from "@/features/chat/memory-strip";
 import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
 import { API_URL, identityHeaders } from "@/lib/api";
@@ -34,29 +38,31 @@ export function ChatPage() {
       }),
     [],
   );
-  const { messages, sendMessage, setMessages, status, error } = useChat({ transport });
+  const { messages, sendMessage, setMessages, status, error } = useChat({
+    transport,
+  });
   const [text, setText] = useState("");
   const busy = status === "submitted" || status === "streaming";
+  const newChatTick = useNewChatTick();
+  const seenTick = useRef(newChatTick);
 
-  // A failed turn used to leave a red line under the transcript that nothing
-  // ever cleared, so the next successful answer appeared beneath a stale error.
   useEffect(() => {
     if (error) toast.error(error.message);
   }, [error]);
 
-  // Set before a reload by "Reload, then ask", so the demo is two clicks rather
-  // than a reload plus remembering what to type.
   useEffect(() => {
     const pending = takePendingAsk();
     if (pending) setText(pending);
   }, []);
 
+  useEffect(() => {
+    if (seenTick.current === newChatTick) return;
+    seenTick.current = newChatTick;
+    setMessages([]);
+    setText("");
+  }, [newChatTick, setMessages]);
+
   const lastId = messages.at(-1)?.id;
-  // A command's answer (/help, /memory) teaches nothing, so it must not switch
-  // the examples to "now prove it".
-  const taught = messages.some(
-    (m) => m.role === "assistant" && !(m.metadata as { command?: boolean } | undefined)?.command,
-  );
 
   const send = (value: string) => {
     if (!value.trim() || busy) return;
@@ -64,60 +70,78 @@ export function ChatPage() {
     setText("");
   };
 
-  // Nothing on the server lists past threads. Clearing is local: the next
-  // message starts a fresh turn, and anything hippo kept is still on Walrus.
-  const newChat = () => {
-    setMessages([]);
-    setText("");
-  };
-
   const title = useMemo(() => threadTitle(messages), [messages]);
+  useShellTitle(title);
+
   const reloadAndAsk = (value: string) => {
     rememberPendingAsk(value);
     window.location.reload();
   };
 
   return (
-    <ChatFrame title={title} onNewChat={newChat}>
+    <div className="flex min-h-0 flex-1 flex-col">
       {messages.length === 0 ? (
         <div className="flex min-h-0 flex-1 items-center justify-center px-4">
-          <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-2">
-            <div data-slot="greeting" className="flex items-center gap-3">
-              <Logo variant="mark" wordSize={40} alt="" />
-              <p className="text-3xl font-medium tracking-tight">{greetingFor(new Date())}</p>
+          <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-10">
+            <div data-slot="greeting" className="text-center">
+              <p className="font-greeting text-2xl leading-tight tracking-tight sm:text-5xl">
+                {greetingFor(new Date())}
+              </p>
             </div>
-            <Composer text={text} setText={setText} send={send} busy={busy} />
-            <Examples taught={false} onPick={send} onReloadAndAsk={reloadAndAsk} />
+            <ComposerDock text={text} setText={setText} send={send} busy={busy} />
+            <div className="flex flex-col items-start gap-3">
+              <Examples taught={false} onPick={send} onReloadAndAsk={reloadAndAsk} />
+            </div>
           </div>
         </div>
       ) : (
         <>
-          <ChatContainerRoot>
-            <ChatContainerContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
-              {messages.map((m) => (
-                <Message
-                  key={m.id}
-                  message={m}
-                  live={m.id === lastId && busy}
-                  streaming={m.id === lastId && status === "streaming"}
-                />
-              ))}
-              <ChatContainerScrollAnchor />
-            </ChatContainerContent>
-            <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center">
-              <ScrollButton />
-            </div>
-          </ChatContainerRoot>
+          <MessageScrollerProvider>
+            <MessageScroller className="min-h-0 flex-1">
+              <MessageScrollerViewport>
+                <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
+                  {messages.map((m) => (
+                    <MessageScrollerItem key={m.id} scrollAnchor={m.role === "user"}>
+                      <ChatTurn
+                        message={m}
+                        live={m.id === lastId && busy}
+                        streaming={m.id === lastId && status === "streaming"}
+                      />
+                    </MessageScrollerItem>
+                  ))}
+                </MessageScrollerContent>
+              </MessageScrollerViewport>
+              <MessageScrollerButton />
+            </MessageScroller>
+          </MessageScrollerProvider>
           <div
             data-slot="composer-dock"
-            className="mx-auto flex w-full max-w-3xl shrink-0 flex-col gap-1 px-4 pb-4"
+            className="mx-auto flex w-full max-w-3xl shrink-0 flex-col px-4 pb-4"
           >
-            {taught ? <Examples taught onPick={send} onReloadAndAsk={reloadAndAsk} /> : null}
-            <Composer text={text} setText={setText} send={send} busy={busy} />
+            <ComposerDock text={text} setText={setText} send={send} busy={busy} />
           </div>
         </>
       )}
-    </ChatFrame>
+    </div>
+  );
+}
+
+function ComposerDock({
+  text,
+  setText,
+  send,
+  busy,
+}: {
+  text: string;
+  setText: (value: string) => void;
+  send: (value: string) => void;
+  busy: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <Composer text={text} setText={setText} send={send} busy={busy} />
+      <MemoryStrip />
+    </div>
   );
 }
 
@@ -139,26 +163,32 @@ function Composer({
         send(text);
       }}
     >
-      <PromptInput
-        value={text}
-        onValueChange={setText}
-        onSubmit={() => send(text)}
-        isLoading={busy}
-        disabled={busy}
-      >
-        <PromptInputTextarea placeholder="Message hippo…" />
-        <PromptInputActions className="justify-end px-1">
-          <Button
+      <InputGroup className="overflow-hidden rounded-3xl">
+        <InputGroupTextarea
+          value={text}
+          placeholder="Message hippo…"
+          disabled={busy}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send(text);
+            }
+          }}
+        />
+        <InputGroupAddon align="block-end" className="p-2">
+          <InputGroupButton
             type="submit"
-            size="icon"
+            variant="default"
+            size="icon-sm"
             aria-label="Send"
             disabled={busy || text.trim() === ""}
-            className="size-8 rounded-full"
+            className="ml-auto size-8 rounded-full p-0"
           >
-            <ArrowUp className="size-4" />
-          </Button>
-        </PromptInputActions>
-      </PromptInput>
+            <ArrowUp />
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
     </form>
   );
 }
@@ -177,13 +207,6 @@ function textOf(parts: Array<Record<string, unknown>> | undefined): string {
     .join("");
 }
 
-/**
- * The user speaks in a bubble; hippo does not.
- *
- * Both sides used to be bubbles, which cramped every answer longer than a line
- * and made the two voices compete. The asymmetry is the convention for a reason:
- * what you said is a quoted artefact, what the assistant says is the page.
- */
 interface ChatMessage {
   id: string;
   role: string;
@@ -191,7 +214,7 @@ interface ChatMessage {
   metadata?: unknown;
 }
 
-function Message({
+function ChatTurn({
   message,
   live,
   streaming,
@@ -206,11 +229,13 @@ function Message({
 
   if (message.role === "user") {
     return (
-      <div className="flex">
-        <MessageContent className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-3xl bg-muted px-4 py-2.5 text-sm">
-          {spoken}
+      <Message align="end">
+        <MessageContent>
+          <Bubble align="end" variant="muted">
+            <BubbleContent className="whitespace-pre-wrap">{spoken}</BubbleContent>
+          </Bubble>
         </MessageContent>
-      </div>
+      </Message>
     );
   }
 
@@ -222,36 +247,35 @@ function Message({
   const command = Boolean((message.metadata as { command?: boolean } | undefined)?.command);
 
   return (
-    <div className="space-y-2 text-sm">
-      {tools.map((p, i) => (
-        <ToolLine key={`${String(p.type)}-${i}`} part={p} />
-      ))}
-      {shown ? (
-        command ? (
-          // A command's answer is a table in plain text (/help, /memory); in a
-          // proportional font its columns do not line up.
-          <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">{shown}</pre>
+    <Message>
+      <MessageContent>
+        <Recalled memories={recalled} />
+        {tools.map((p, i) => (
+          <ToolLine key={`${String(p.type)}-${i}`} part={p} />
+        ))}
+        {shown ? (
+          command ? (
+            <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">{shown}</pre>
+          ) : (
+            <Markdown>{shown}</Markdown>
+          )
         ) : (
-          <MessageContent markdown>{shown}</MessageContent>
-        )
-      ) : (
-        live && <Thinking />
-      )}
-      <Recalled memories={recalled} />
-    </div>
+          live && <Thinking />
+        )}
+      </MessageContent>
+    </Message>
   );
 }
 
-/** What hippo did while answering, in one muted line. */
 function ToolLine({ part }: { part: Record<string, unknown> }) {
   if (part.type === "tool-recall") {
-    return <p className="text-xs text-muted-foreground">⟶ recalled</p>;
+    return <p className="text-sm text-muted-foreground">⟶ recalled</p>;
   }
   const input = part.input as { type?: string; text?: string } | undefined;
   const output = part.output as { saved?: boolean } | undefined;
   const done = part.state === "output-available";
   return (
-    <p className="text-xs text-muted-foreground">
+    <p className="text-sm text-muted-foreground">
       {done && output?.saved === false ? "already knew" : "remembering"}
       {input?.type ? ` [${input.type}]` : ""} {input?.text ?? ""}
     </p>

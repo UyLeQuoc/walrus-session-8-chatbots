@@ -4,6 +4,16 @@ import { fromBase64, fromHex, normalizeSuiAddress, toHex } from "@mysten/sui/uti
 
 const SUI_CLOCK = "0x0000000000000000000000000000000000000000000000000000000000000006";
 
+export interface SuiReadClient {
+  core: {
+    getObject(input: { objectId: string; include: { json: boolean } }): Promise<unknown>;
+    getDynamicField(input: {
+      parentId: string;
+      name: { type: string; bcs: Uint8Array };
+    }): Promise<unknown>;
+  };
+}
+
 export interface ChainConfig {
   network: "mainnet" | "testnet";
   relayerUrl: string;
@@ -61,14 +71,13 @@ export function removeDelegateKeyTx(
 
 /** One MemWalAccount per address, found through the registry's Table<address, ID>. */
 export async function findAccountId(
-  // biome-ignore lint/suspicious/noExplicitAny: dapp-kit's client type varies by transport
-  suiClient: any,
+  suiClient: SuiReadClient,
   registryId: string,
   owner: string,
 ): Promise<string | null> {
-  const reg = await suiClient.core.getObject({ objectId: registryId, include: { json: true } });
-  const raw = (reg?.object?.json?.accounts as { id?: string | { id?: string } } | undefined)?.id;
-  const tableId = typeof raw === "string" ? raw : raw?.id;
+  const tableId = accountTableId(
+    await suiClient.core.getObject({ objectId: registryId, include: { json: true } }),
+  );
   if (!tableId) return null;
   const field = await suiClient.core
     .getDynamicField({
@@ -76,8 +85,37 @@ export async function findAccountId(
       name: { type: "address", bcs: fromHex(normalizeSuiAddress(owner)) },
     })
     .catch(() => null);
-  const bcs = field?.dynamicField?.value?.bcs;
-  const bytes = typeof bcs === "string" ? fromBase64(bcs) : (bcs as Uint8Array | undefined);
+  const bytes = fieldBytes(field);
   if (bytes?.length !== 32) return null;
+  if (!bytes) return null;
   return `0x${toHex(bytes)}`;
+}
+
+function accountTableId(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || !("object" in value)) return null;
+  const object = value.object;
+  if (typeof object !== "object" || object === null || !("json" in object)) return null;
+  const json = object.json;
+  if (typeof json !== "object" || json === null || !("accounts" in json)) return null;
+  const accounts = json.accounts;
+  if (typeof accounts !== "object" || accounts === null || !("id" in accounts)) return null;
+  const id = accounts.id;
+  if (typeof id === "string") return id;
+  if (typeof id === "object" && id !== null && "id" in id && typeof id.id === "string")
+    return id.id;
+  return null;
+}
+
+function fieldBytes(value: unknown): Uint8Array | null {
+  if (typeof value !== "object" || value === null || !("dynamicField" in value)) return null;
+  const dynamicField = value.dynamicField;
+  if (typeof dynamicField !== "object" || dynamicField === null || !("value" in dynamicField)) {
+    return null;
+  }
+  const fieldValue = dynamicField.value;
+  if (typeof fieldValue !== "object" || fieldValue === null || !("bcs" in fieldValue)) return null;
+  const bcs = fieldValue.bcs;
+  if (typeof bcs === "string") return fromBase64(bcs);
+  if (bcs instanceof Uint8Array) return bcs;
+  return null;
 }

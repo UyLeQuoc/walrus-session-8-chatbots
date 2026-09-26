@@ -7,79 +7,19 @@
  * from that exact list. Showing our own `delegate_keys` table here would have
  * been easier and would have proved nothing.
  */
-import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Hash } from "@/features/me/hash";
 import { Section } from "@/features/me/section";
-import { API_URL, identityHeaders } from "@/lib/api";
-
-interface Delegate {
-  label: string;
-  publicKeyHex: string;
-  suiAddress: string;
-  isHippo: boolean;
-}
-
-interface Account {
-  accountId: string;
-  explorerUrl: string;
-  owner?: string;
-  ownerUrl?: string | null;
-  active?: boolean;
-  yours?: boolean;
-  unreadable?: boolean;
-  delegates?: Delegate[];
-}
+import { useAccount } from "@/features/me/use-account";
 
 export function ChainPanel({ owned, onError }: { owned: boolean; onError: (m: string) => void }) {
-  const [account, setAccount] = useState<Account | null | undefined>(undefined);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetch(`${API_URL}/api/me/account`, {
-      credentials: "include",
-      headers: identityHeaders(),
-    })
-      .then((r) => r.json() as Promise<{ account: Account | null }>)
-      .then((d) => {
-        if (!cancelled) setAccount(d.account ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setAccount(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const start = useCallback(
-    async (kind: "connect" | "disconnect") => {
-      setBusy(true);
-      try {
-        const res = await fetch(`${API_URL}/api/me/${kind}`, {
-          method: "POST",
-          credentials: "include",
-          headers: identityHeaders(),
-        });
-        const body = (await res.json()) as { url?: string; error?: string };
-        if (!res.ok || !body.url) throw new Error(body.error ?? "Could not start that.");
-        // Same app, but WEB_BASE_URL is the server's idea of where we live, so
-        // follow it rather than guessing a path.
-        window.location.assign(body.url);
-      } catch (e) {
-        setBusy(false);
-        onError(e instanceof Error ? e.message : "Could not start that.");
-      }
-    },
-    [onError],
-  );
+  const { account, busy, start } = useAccount(onError);
 
   if (account === undefined) {
     return (
-      <Section title="On chain" description="Reading the account from Sui.">
+      <Section title="Account">
         <Skeleton className="h-4 w-64" />
         <Skeleton className="h-4 w-48" />
       </Section>
@@ -89,14 +29,12 @@ export function ChainPanel({ owned, onError }: { owned: boolean; onError: (m: st
   if (account === null) return null;
 
   return (
-    <Section
-      title="On chain"
-      description={
-        account.yours
-          ? "This account is yours. hippo appears below as one delegate key, and nothing it does can remove itself from that list."
-          : "Your memory currently lives in hippo's own account. Connecting a wallet moves it into one you own."
-      }
-    >
+    <Section title="Account" description={owned ? undefined : "Still hippo's own account."}>
+      {owned ? null : (
+        <Button disabled={busy} onClick={() => void start("connect")}>
+          {busy ? "Opening…" : "Own this memory"}
+        </Button>
+      )}
       <dl className="space-y-2 text-sm">
         <div className="flex items-baseline justify-between gap-4">
           <dt className="text-muted-foreground">Account</dt>
@@ -151,26 +89,10 @@ export function ChainPanel({ owned, onError }: { owned: boolean; onError: (m: st
       )}
 
       {owned ? (
-        <div className="space-y-1">
-          <Button variant="destructive" disabled={busy} onClick={() => void start("disconnect")}>
-            {busy ? "Opening…" : "Revoke hippo's access"}
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Removes hippo's key from the list above, on chain. Takes effect within about a minute.
-            Nothing is deleted, and you can grant access again later.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          <Button disabled={busy} onClick={() => void start("connect")}>
-            {busy ? "Opening…" : "Own this memory"}
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            Signs one transaction to create your own Walrus Memory account and give hippo a delegate
-            key. Gas is normally sponsored.
-          </p>
-        </div>
-      )}
+        <Button variant="destructive" disabled={busy} onClick={() => void start("disconnect")}>
+          {busy ? "Opening…" : "Revoke hippo's access"}
+        </Button>
+      ) : null}
     </Section>
   );
 }

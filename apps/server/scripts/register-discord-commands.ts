@@ -12,17 +12,8 @@
  * other channel, so this file only publishes the names.
  */
 import { REST, Routes } from "discord.js";
+import { CHANNEL_COMMANDS } from "../src/chat/command-catalog.ts";
 import { env } from "../src/env/load.ts";
-
-const COMMANDS = [
-  { name: "memory", description: "What I remember about you" },
-  { name: "whoami", description: "Your account and where the memory lives" },
-  { name: "proof", description: "The memories behind my last answer" },
-  { name: "link", description: "Use the same memory on another channel" },
-  { name: "connect", description: "Own your memory in your own Walrus account" },
-  { name: "disconnect", description: "Revoke my access on-chain" },
-  { name: "help", description: "All commands" },
-];
 
 if (!env.DISCORD_TOKEN || !env.DISCORD_CLIENT_ID) {
   console.error("DISCORD_TOKEN and DISCORD_CLIENT_ID must both be set in .env");
@@ -35,7 +26,7 @@ const route = guildId
   ? Routes.applicationGuildCommands(env.DISCORD_CLIENT_ID, guildId)
   : Routes.applicationCommands(env.DISCORD_CLIENT_ID);
 
-const result = (await rest.put(route, { body: COMMANDS })) as Array<{ name: string }>;
+const result = (await rest.put(route, { body: CHANNEL_COMMANDS })) as Array<{ name: string }>;
 console.log(
   `Registered ${result.length} command(s) ${guildId ? `in guild ${guildId}` : "globally"}: ${result.map((c) => c.name).join(", ")}`,
 );

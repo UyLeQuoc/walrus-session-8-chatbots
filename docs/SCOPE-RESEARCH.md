@@ -102,7 +102,7 @@ demo that makes memory feel like infrastructure rather than a chat feature.
 
 ### 5. Team memory
 
-`hippo-team:<id>` is reserved in CLAUDE.md and has never been started. Shared
+`hippo-team:<id>` is reserved in AGENTS.md and has never been started. Shared
 memory across several people in one Slack channel is a different product, and a
 better one, but it needs an access model, a way to join and leave, and a story
 for what happens to a team's memory when a member revokes. Two weeks out, with

@@ -35,14 +35,16 @@ function retryable(status: number): boolean {
   return status === 408 || status === 429 || status === 500 || status === 503 || status === 504;
 }
 
-interface BalanceReader {
-  getBalance?: (input: { owner: string }) => Promise<{ balance?: { balance?: string } }>;
+type TxClient = NonNullable<Parameters<Transaction["build"]>[0]>["client"];
+
+interface BalanceClient {
+  getBalance?(input: { owner: string }): Promise<unknown>;
 }
 
 export interface SponsorDeps {
   relayerUrl: string;
   sender: string;
-  suiClient: unknown;
+  suiClient: TxClient & BalanceClient;
   signTransaction: (input: { transaction: Tx }) => Promise<{ signature: string }>;
   signPersonalMessage: (input: { message: Uint8Array }) => Promise<{ signature: string }>;
   /**
@@ -66,12 +68,28 @@ function toBase64(bytes: Uint8Array): string {
 }
 
 /** MIST held by an address, or null when the balance cannot be read. */
-async function suiBalance(client: unknown, owner: string): Promise<bigint | null> {
-  const reader = client as BalanceReader;
-  if (typeof reader.getBalance !== "function") return null;
+function mistOf(value: unknown): string | null {
+  if (typeof value !== "object" || value === null) return null;
+  if ("totalBalance" in value && typeof value.totalBalance === "string") return value.totalBalance;
+  if (!("balance" in value)) return null;
+  const balance = value.balance;
+  if (typeof balance === "string") return balance;
+  if (
+    typeof balance === "object" &&
+    balance !== null &&
+    "balance" in balance &&
+    typeof balance.balance === "string"
+  ) {
+    return balance.balance;
+  }
+  return null;
+}
+
+async function suiBalance(client: BalanceClient, owner: string): Promise<bigint | null> {
+  if (typeof client.getBalance !== "function") return null;
   try {
-    const res = await reader.getBalance({ owner });
-    return BigInt(res.balance?.balance ?? "0");
+    const mist = mistOf(await client.getBalance({ owner }));
+    return mist === null ? null : BigInt(mist);
   } catch {
     return null;
   }
@@ -116,8 +134,7 @@ async function viaWallet(transaction: Transaction, deps: SponsorDeps): Promise<s
 
 async function viaSponsor(transaction: Transaction, deps: SponsorDeps): Promise<string> {
   const kindBytes = await transaction.build({
-    // biome-ignore lint/suspicious/noExplicitAny: dapp-kit and @mysten/sui disagree on the client type across majors
-    client: deps.suiClient as any,
+    client: deps.suiClient,
     onlyTransactionKind: true,
   });
   const kindBase64 = toBase64(kindBytes);

@@ -319,20 +319,32 @@ export async function mergePersons(winnerId: string, loserId: string): Promise<v
   });
 }
 
-/** The person that owns a wallet, if any. */
-export async function personByWallet(walletAddress: string): Promise<Person | null> {
+/** The person behind a channel identity, if one exists. Does not create one. */
+export async function personByChannel(channel: string, externalId: string): Promise<Person | null> {
   const [row] = await db
     .select({ person: people })
     .from(channelIdentities)
     .innerJoin(people, eq(people.id, channelIdentities.personId))
     .where(
-      and(
-        eq(channelIdentities.channel, "wallet"),
-        eq(channelIdentities.externalId, walletAddress.toLowerCase()),
-      ),
+      and(eq(channelIdentities.channel, channel), eq(channelIdentities.externalId, externalId)),
     )
     .limit(1);
   return row?.person ?? null;
+}
+
+/** The person that owns a wallet, if any. */
+export async function personByWallet(walletAddress: string): Promise<Person | null> {
+  return personByChannel("wallet", walletAddress.toLowerCase());
+}
+
+/** Record that this person controls `address`, without minting a second person. */
+export async function attachWallet(personId: string, address: string): Promise<void> {
+  const externalId = address.toLowerCase();
+  await db
+    .insert(channelIdentities)
+    .values({ personId, channel: "wallet", externalId, displayName: externalId.slice(0, 10) })
+    .onConflictDoNothing();
+  await db.update(people).set({ walletAddress: externalId }).where(eq(people.id, personId));
 }
 
 export async function reloadPerson(personId: string): Promise<Person | null> {

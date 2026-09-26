@@ -1,7 +1,7 @@
 import { createNetworkConfig, SuiClientProvider, WalletProvider } from "@mysten/dapp-kit";
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import "@mysten/dapp-kit/dist/index.css";
 
 const { networkConfig } = createNetworkConfig({
@@ -11,9 +11,14 @@ const { networkConfig } = createNetworkConfig({
 
 const queryClient = new QueryClient();
 
-/** Public fullnodes retired JSON-RPC, so every Sui read here goes over gRPC. */
-function createClient(name: string, cfg: { url: string }) {
-  return new SuiGrpcClient({ network: name as "mainnet" | "testnet", baseUrl: cfg.url });
+type CreateClient = NonNullable<ComponentProps<typeof SuiClientProvider>["createClient"]>;
+
+function createClient(name: string, cfg: { url: string }): ReturnType<CreateClient> {
+  const network = name === "testnet" ? "testnet" : "mainnet";
+  const client = new SuiGrpcClient({ network, baseUrl: cfg.url });
+  // dapp-kit still types this callback as a JSON-RPC client. Public fullnodes retired that transport.
+  if (!("core" in client)) throw new Error("Sui client is missing the core API.");
+  return client as unknown as ReturnType<CreateClient>;
 }
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -22,10 +27,10 @@ export function Providers({ children }: { children: ReactNode }) {
       <SuiClientProvider
         networks={networkConfig}
         defaultNetwork="mainnet"
-        // biome-ignore lint/suspicious/noExplicitAny: dapp-kit types createClient against its JSON-RPC client
-        createClient={createClient as any}
+        createClient={createClient}
       >
-        <WalletProvider autoConnect>{children}</WalletProvider>
+        {/* Reconnect-on-load opens Slush with no picker, and a rejected reconnect marks the wallet disconnected. */}
+        <WalletProvider autoConnect={false}>{children}</WalletProvider>
       </SuiClientProvider>
     </QueryClientProvider>
   );

@@ -16,7 +16,7 @@ import { ChatPage } from "../features/chat/chat-page.tsx";
 import { greetingFor } from "../features/chat/greeting.ts";
 import { ConnectPage } from "../features/connect/connect-page.tsx";
 import { MePage } from "../features/me/me-page.tsx";
-import { Layout } from "./layout.tsx";
+import { AppLayout } from "./app-layout.tsx";
 import { NotFoundPage } from "./not-found.tsx";
 
 /**
@@ -85,6 +85,9 @@ const suiClientStub: { core: Record<string, unknown>; getBalance?: unknown } = {
 vi.mock("@mysten/dapp-kit", () => ({
   ConnectModal: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
   useCurrentAccount: () => wallet,
+  useCurrentWallet: () => ({ currentWallet: null, isConnected: Boolean(wallet) }),
+  useWallets: () => [],
+  useConnectWallet: () => ({ mutateAsync: vi.fn(async () => ({ accounts: [] })) }),
   useSignAndExecuteTransaction: () => ({ mutateAsync: signAndExecute }),
   useSignPersonalMessage: () => ({ mutateAsync: vi.fn(async () => ({ signature: "sig" })) }),
   useSignTransaction: () => ({ mutateAsync: vi.fn(async () => ({ signature: "sig" })) }),
@@ -224,7 +227,7 @@ describe("chat page", () => {
         <ChatPage />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("button", { name: /Reload, then ask/i })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /only use pnpm/i })).toBeNull();
     expect(container.textContent ?? "").not.toMatch(/came back from Walrus, not from the page/i);
   });
@@ -264,7 +267,7 @@ describe("chat page", () => {
     );
     // Both sides used to be bubbles, which cramped every long answer and made
     // the two voices compete. Only the user's turn carries one now.
-    const bubbles = container.querySelectorAll(".bg-muted.ml-auto, .ml-auto.bg-muted");
+    const bubbles = container.querySelectorAll("[data-slot='bubble']");
     expect(bubbles).toHaveLength(1);
     expect(bubbles[0]?.textContent).toBe("I use pnpm");
     expect(container.textContent ?? "").toMatch(/Noted\./);
@@ -306,7 +309,7 @@ describe("chat page", () => {
     return render(
       <MemoryRouter>
         <Routes>
-          <Route element={<Layout />}>
+          <Route element={<AppLayout />}>
             <Route index element={<ChatPage />} />
           </Route>
         </Routes>
@@ -316,8 +319,10 @@ describe("chat page", () => {
 
   it("fills the page with a rail, a composer, and no instruction block", () => {
     const { container } = mountChat();
-    const rail = screen.getByRole("complementary", { name: /sidebar/i });
-    expect(rail.getAttribute("data-variant")).toBe("inset");
+    const shell = container.querySelector("[data-slot='sidebar']") as HTMLElement;
+    const rail = container.querySelector("[data-sidebar='sidebar']") as HTMLElement;
+    if (!shell || !rail) throw new Error("sidebar missing");
+    expect(shell.getAttribute("data-variant")).toBe("inset");
     const railText = rail.textContent ?? "";
     expect(railText.indexOf("New chat")).toBeGreaterThanOrEqual(0);
     expect(railText.indexOf("New chat")).toBeLessThan(railText.indexOf("My memory"));
@@ -333,9 +338,9 @@ describe("chat page", () => {
     const sidebarToggle = container.querySelector(
       "header [data-sidebar='trigger']",
     ) as HTMLButtonElement;
-    expect(sidebarToggle.getAttribute("data-slot")).not.toBe("button");
+    expect(sidebarToggle.getAttribute("data-slot")).toBe("sidebar-trigger");
     expect(sidebarToggle.className).not.toContain("size-9");
-    expect(sidebarToggle.querySelector("svg")?.getAttribute("class")).toContain("size-4");
+    expect(sidebarToggle.querySelector("svg")).toBeTruthy();
     const cluster = container.querySelector("[data-slot='empty-cluster']");
     expect(cluster).toBeTruthy();
     expect(cluster?.parentElement?.className).toMatch(/items-center/);
@@ -349,16 +354,18 @@ describe("chat page", () => {
     });
     expect(greeting.textContent ?? "").toContain(greetingFor(new Date()));
     expect(greeting.textContent ?? "").not.toContain("hippo");
-    expect(greeting.querySelector("img")).toBeTruthy();
+    expect(greeting.querySelector("img")).toBeNull();
+    expect(greeting.className).toContain("text-center");
     expect(greeting.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(box.compareDocumentPosition(suggestion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(suggestion.className).toContain("hover:text-foreground");
-    expect(suggestion.className).not.toMatch(/hover:bg-/);
+    expect(suggestion.getAttribute("data-slot")).not.toBe("button");
+    expect(suggestion.className).toContain("text-sm");
+    expect(suggestion.className).toContain("hover:text-primary");
     expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
     expect(screen.queryByText(/^Try one$/)).toBeNull();
     const seen = container.textContent ?? "";
     for (const phrase of HIDDEN_GUIDANCE) expect(seen).not.toMatch(phrase);
-    const theme = within(rail).getByRole("button", { name: /switch to (dark|light)/i });
+    const theme = screen.getByRole("button", { name: /switch to (dark|light)/i });
     expect(theme.className).toContain("size-9");
   });
 
@@ -387,20 +394,15 @@ describe("chat page", () => {
       { id: "2", role: "assistant", parts: [{ type: "text", text: "Noted." }], metadata: {} },
     ];
     const { container } = mountChat();
-    const bubbles = container.querySelectorAll(".ml-auto.bg-muted, .bg-muted.ml-auto");
+    const bubbles = container.querySelectorAll("[data-slot='bubble']");
     expect(bubbles).toHaveLength(1);
     expect(bubbles[0]?.textContent).toBe("I use pnpm");
     const noted = screen.getByText("Noted.");
-    expect(noted.closest(".ml-auto")).toBeNull();
-    expect(screen.getByRole("button", { name: /scroll to bottom/i })).toBeDefined();
+    expect(noted.closest("[data-slot='bubble']")).toBeNull();
+    expect(screen.getByRole("button", { name: /scroll to end/i })).toBeDefined();
     expect(container.querySelector("[data-slot='greeting']")).toBeNull();
-    const form = container.querySelector("form");
-    const above = form?.previousElementSibling;
-    expect(above?.tagName).toBe("BUTTON");
-    expect(above?.textContent ?? "").toMatch(
-      /Reload, then ask|package manager|\/proof|What do you know/,
-    );
-    expect(container.querySelector(".scroll-fade, .scroll-fade-y")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
+    expect(container.querySelector(".scroll-fade-b, .scroll-fade, .scroll-fade-y")).toBeTruthy();
   });
 
   it("returns to the empty thread when new chat is clicked", async () => {
@@ -573,7 +575,7 @@ describe("me page", () => {
         <MePage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(container.textContent ?? "").toMatch(/My memory/));
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/Right now hippo keeps/));
     expect(screen.queryByRole("button", { name: /full record/i })).toBeNull();
   });
 
@@ -947,7 +949,7 @@ describe("me page, finding a memory", () => {
     render(
       <MemoryRouter>
         <Routes>
-          <Route element={<Layout />}>
+          <Route element={<AppLayout />}>
             <Route index element={<MePage />} />
           </Route>
         </Routes>
@@ -1023,7 +1025,7 @@ describe("theme", () => {
     render(
       <MemoryRouter>
         <Routes>
-          <Route element={<Layout />}>
+          <Route element={<AppLayout />}>
             <Route index element={<p>hello</p>} />
           </Route>
         </Routes>

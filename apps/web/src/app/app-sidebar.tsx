@@ -1,14 +1,7 @@
-/**
- * The chat rail. The shadcn example shipped a whole product nav (dashboard,
- * documents, a fake user). Hippo has two actions, in this order.
- *
- * The sentence that used to sit under them is a comment now:
- * This conversation stays in the tab. What hippo keeps is on Walrus.
- */
 import { Library, SquarePen } from "lucide-react";
 import { Link } from "react-router";
+import { WalletAccount } from "@/app/wallet-account";
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Sidebar,
   SidebarContent,
@@ -56,7 +49,7 @@ export function AppSidebar({ onNewChat }: { onNewChat: () => void }) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <ThemeToggle />
+        <WalletAccount />
       </SidebarFooter>
     </Sidebar>
   );

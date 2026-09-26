@@ -64,3 +64,16 @@ export function identityHeaders(): Record<string, string> {
   if (session) headers["x-hippo-session"] = session;
   return headers;
 }
+
+export function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  for (const [key, value] of Object.entries(identityHeaders())) {
+    if (!headers.has(key)) headers.set(key, value);
+  }
+  return fetch(`${API_URL}${path}`, { ...init, credentials: "include", headers });
+}
+
+export async function errorMessage(res: Response, fallback: string): Promise<string> {
+  const body = (await res.json().catch(() => null)) as { error?: string } | null;
+  return body?.error ?? fallback;
+}

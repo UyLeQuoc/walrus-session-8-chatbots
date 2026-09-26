@@ -25,7 +25,10 @@ function stored(): Choice {
 }
 
 function systemPrefersDark(): boolean {
-  return typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
+  return (
+    typeof matchMedia === "function" &&
+    matchMedia("(prefers-color-scheme: dark)").matches
+  );
 }
 
 function apply(dark: boolean): void {
@@ -33,7 +36,9 @@ function apply(dark: boolean): void {
 }
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(() => stored() === "dark" || (!stored() && systemPrefersDark()));
+  const [dark, setDark] = useState(
+    () => stored() === "dark" || (!stored() && systemPrefersDark()),
+  );
 
   useEffect(() => {
     apply(dark);
@@ -73,13 +78,17 @@ export function ThemeToggle() {
         <Sun
           className={cn(
             "absolute inset-0 size-4 transition-all duration-200",
-            dark ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100",
+            dark
+              ? "rotate-90 scale-0 opacity-0"
+              : "rotate-0 scale-100 opacity-100",
           )}
         />
         <Moon
           className={cn(
             "absolute inset-0 size-4 transition-all duration-200",
-            dark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0",
+            dark
+              ? "rotate-0 scale-100 opacity-100"
+              : "-rotate-90 scale-0 opacity-0",
           )}
         />
       </span>

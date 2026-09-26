@@ -3,6 +3,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme inline {
+  --font-greeting: "Instrument Serif", Georgia, "Times New Roman", serif;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -99,25 +103,6 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground; }
-}
-
-/* The chat route paints its own full-viewport shell. The site header would
-   otherwise sit above it and cap the column at max-w-3xl. */
-html[data-chat-shell],
-html[data-chat-shell] body {
-  height: 100dvh;
-  overflow: hidden;
-}
-html[data-chat-shell] .site-header {
-  display: none;
-}
-html[data-chat-shell] .site-main {
-  max-width: none;
-  width: 100%;
-  height: 100dvh;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
 }
 
 /* Official shadcn scroll-fade: the mask dissolves the content, and

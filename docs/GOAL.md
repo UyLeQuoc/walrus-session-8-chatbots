@@ -1,6 +1,6 @@
 # GOAL — end-to-end execution plan for hippo
 
-This is the master instruction for an agent (or a human) to take hippo from the current scaffold to a submitted, prize-competitive entry in Walrus Session 8 without asking for direction. Every decision that can be made in advance is made here. Read `CLAUDE.md` first, then this file, then the milestone you are on.
+This is the master instruction for an agent (or a human) to take hippo from the current scaffold to a submitted, prize-competitive entry in Walrus Session 8 without asking for direction. Every decision that can be made in advance is made here. Read `AGENTS.md` first, then `CODE_RULES.md` before writing any code, then this file, then the milestone you are on.
 
 ## Mission
 
@@ -240,7 +240,7 @@ freeze stays Oct 3.
    where it does not change the answers, and prove that with the eval.
 3. **Command replies that read as lists — DONE.** `/help` and `/memory` render in a
    proportional font on the web, so their columns do not line up.
-4. **Keep the story true — DONE.** Article (794 words), README, CLAUDE.md and AUDIT carry the new numbers,
+4. **Keep the story true — DONE.** Article (794 words), README, AGENTS.md and AUDIT carry the new numbers,
    with their sample sizes.
 
 ### M10 — Harden what judges and real users touch first — SHIPPED

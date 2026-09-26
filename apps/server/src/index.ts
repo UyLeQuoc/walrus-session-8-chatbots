@@ -7,7 +7,7 @@ import { slackAdapter } from "./channels/slack.ts";
 import { telegramAdapter } from "./channels/telegram.ts";
 import type { ChannelAdapter } from "./channels/types.ts";
 import { env } from "./env/load.ts";
-import { checkAddress, clientAddress, refusal } from "./iplimit.ts";
+import { checkAddress, clientAddress, isUnmetered, refusal } from "./iplimit.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chat.ts";
 import { connectRoutes } from "./routes/connect.ts";
@@ -34,9 +34,7 @@ app.use(
  */
 app.use("/api/*", async (c, next) => {
   const path = c.req.path;
-  if (path.startsWith("/api/health") || path === "/api/config" || path === "/api/stats") {
-    return next();
-  }
+  if (isUnmetered(c.req.method, path)) return next();
   const gate = checkAddress(clientAddress(c.req.raw.headers));
   if (!gate.allowed) {
     const out = refusal(path, gate.message);

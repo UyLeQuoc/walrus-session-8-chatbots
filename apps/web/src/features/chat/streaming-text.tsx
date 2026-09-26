@@ -17,7 +17,7 @@
  */
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { Loader } from "@/components/prompt-kit/loader";
+import { Spinner } from "@/components/ui/spinner";
 
 /** How fast the buffer closes a gap, and the floor so it never stalls. */
 const CATCH_UP_MS = 180;
@@ -113,7 +113,7 @@ export function Thinking() {
       aria-label="hippo is thinking"
       className="inline-flex items-center gap-2 text-sm text-muted-foreground"
     >
-      <Loader />
+      <Spinner aria-hidden className="size-4" />
       Thinking
     </span>
   );

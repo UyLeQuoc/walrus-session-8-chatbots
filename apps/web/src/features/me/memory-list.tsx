@@ -7,75 +7,21 @@
  * from Walrus through a recall. That is the same call `/memory search` makes,
  * and it costs relayer budget, so it happens on submit rather than on keystroke.
  */
-import { type FormEvent, useCallback, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Hash } from "@/features/me/hash";
+import { ago, type Memory } from "@/features/me/memory";
 import { Section } from "@/features/me/section";
-import { API_URL, identityHeaders } from "@/lib/api";
+import { useMemoryActions } from "@/features/me/use-memory-actions";
 
-export interface Memory {
-  id: string;
-  type: string;
-  status: "pending" | "stored" | "failed";
-  channel: string;
-  createdAt: string;
-  blobId: string | null;
-  expiresAt: string | null;
-  ciphertextUrl: string | null;
-  explorerUrl: string | null;
-  /** hippo has been asked to stop using it. The blob is still on Walrus. */
-  hidden?: boolean;
-}
-
-interface Hit {
-  /** False for a team memory: shown, marked, and not the person's to hide. */
-  mine?: boolean;
-  text: string;
-  type: string | null;
-  relevance: number;
-  blobId: string;
-  explorerUrl: string;
-}
+export type { Memory };
 
 function daysUntil(iso: string): number {
   return Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000);
-}
-
-/**
- * "2 days ago", not the same date five times.
- *
- * Every row on this page carried an identical absolute date, which told a
- * reader nothing and made the rows indistinguishable from each other.
- */
-export function ago(iso: string): string {
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return days === 1 ? "yesterday" : `${days}d ago`;
-}
-
-/**
- * Hide or unhide one memory. Hiding is hippo's filter, not a deletion: nothing
- * on Walrus can be deleted yet, and the row says so rather than disappearing.
- */
-async function setVisibility(blobId: string, hidden: boolean): Promise<void> {
-  const res = await fetch(`${API_URL}/api/me/memories/visibility`, {
-    method: "POST",
-    credentials: "include",
-    headers: { ...identityHeaders(), "content-type": "application/json" },
-    body: JSON.stringify({ blobId, hidden }),
-  });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? `That failed (${res.status}).`);
-  }
 }
 
 export function MemoryList({
@@ -90,27 +36,7 @@ export function MemoryList({
 }) {
   const [type, setType] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<Hit[] | null>(null);
-  const [searching, setSearching] = useState(false);
-  const [toggling, setToggling] = useState<string | null>(null);
-
-  const toggle = useCallback(
-    async (blobId: string, hidden: boolean) => {
-      setToggling(blobId);
-      try {
-        await setVisibility(blobId, hidden);
-        // A hidden memory no longer comes back from search, so take it out of
-        // the results rather than leave something recall would not return.
-        if (hidden) setHits((h) => h?.filter((x) => x.blobId !== blobId) ?? null);
-        onChange?.();
-      } catch (err) {
-        onError(err instanceof Error ? err.message : "That failed.");
-      } finally {
-        setToggling(null);
-      }
-    },
-    [onChange, onError],
-  );
+  const { hits, searching, toggling, search, toggle, clear } = useMemoryActions(onError, onChange);
 
   const types = useMemo(() => [...new Set(memories.map((m) => m.type))].sort(), [memories]);
   /** The one expiry figure worth stating, said once rather than on every row. */
@@ -123,42 +49,15 @@ export function MemoryList({
     [memories, type],
   );
 
-  const search = useCallback(
-    async (e: FormEvent) => {
-      e.preventDefault();
-      const q = query.trim();
-      if (!q) {
-        setHits(null);
-        return;
-      }
-      setSearching(true);
-      try {
-        const res = await fetch(`${API_URL}/api/me/search?q=${encodeURIComponent(q)}`, {
-          credentials: "include",
-          headers: identityHeaders(),
-        });
-        const body = (await res.json()) as { results?: Hit[]; error?: string };
-        if (!res.ok) throw new Error(body.error ?? "Search failed.");
-        setHits(body.results ?? []);
-      } catch (err) {
-        onError(err instanceof Error ? err.message : "Search failed.");
-      } finally {
-        setSearching(false);
-      }
-    },
-    [onError, query],
-  );
+  const onSearch = (e: FormEvent) => {
+    e.preventDefault();
+    void search(query);
+  };
 
   return (
     <Section
-      title="What hippo wrote"
-      description={
-        <>
-          Each one is an encrypted blob on Walrus. Anyone can download the ciphertext; only your
-          account can read it.
-          {soonest !== null && <> Storage runs out in about {soonest} days.</>}
-        </>
-      }
+      title="Memories"
+      description={soonest !== null ? `Storage runs out in about ${soonest} days.` : undefined}
     >
       {/*
         Search leads, because it is the only way to read a memory. The text is
@@ -166,7 +65,7 @@ export function MemoryList({
         memory was written and nothing of what it says. Putting the list first
         and the search underneath had that backwards.
       */}
-      <form className="flex gap-2" onSubmit={(e) => void search(e)}>
+      <form className="flex gap-2" onSubmit={onSearch}>
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -181,7 +80,7 @@ export function MemoryList({
             type="button"
             variant="ghost"
             onClick={() => {
-              setHits(null);
+              clear();
               setQuery("");
             }}
           >
@@ -195,10 +94,7 @@ export function MemoryList({
       {hits !== null && !searching && (
         <div className="space-y-2">
           {hits.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing close to that. The words come from Walrus, so a memory that was never written
-              cannot be found here.
-            </p>
+            <p className="text-sm text-muted-foreground">Nothing close to that.</p>
           ) : (
             <ul className="divide-y rounded-lg border text-sm">
               {hits.map((h) => (
@@ -212,14 +108,14 @@ export function MemoryList({
                       blob
                     </a>
                     {h.mine !== false && (
-                      <button
+                      <Button
                         type="button"
-                        className="underline disabled:opacity-50"
+                        variant="ghost"
                         disabled={toggling === h.blobId}
                         onClick={() => void toggle(h.blobId, true)}
                       >
                         stop using this
-                      </button>
+                      </Button>
                     )}
                   </p>
                 </li>
@@ -294,14 +190,14 @@ export function MemoryList({
                           </a>
                         )}
                         {m.blobId && (
-                          <button
+                          <Button
                             type="button"
-                            className="underline disabled:opacity-50"
+                            variant="ghost"
                             disabled={toggling === m.blobId}
                             onClick={() => m.blobId && void toggle(m.blobId, !m.hidden)}
                           >
                             {m.hidden ? "use again" : "hide"}
-                          </button>
+                          </Button>
                         )}
                       </>
                     ) : (
@@ -328,17 +224,13 @@ function FilterChip({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant={active ? "default" : "outline"}
       onClick={onClick}
       aria-pressed={active}
-      className={
-        active
-          ? "rounded border border-transparent bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground"
-          : "rounded border px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
-      }
     >
       {label}
-    </button>
+    </Button>
   );
 }

@@ -14,9 +14,17 @@
  */
 import { randomBytes } from "node:crypto";
 import { and, connectTokens, eq, gt, isNull, webSessions } from "@hippo/db";
-import { addressFromSignature, signInMessage } from "@hippo/memory";
+import { addressFromSignature, type createSuiClient, signInMessage } from "@hippo/memory";
 import { db } from "../context.ts";
-import { mergePersons, type Person, personByWallet, resolvePerson } from "./persons.ts";
+import {
+  attachWallet,
+  mergePersons,
+  type Person,
+  personByWallet,
+  reloadPerson,
+  resolvePerson,
+} from "./persons.ts";
+import { chooseSignInTarget } from "./sign-in-target.ts";
 
 const NONCE_TTL_MS = 5 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -42,17 +50,15 @@ export type SignInResult =
   | { ok: false; reason: "nonce" | "signature" | "no-account" };
 
 /**
- * Verify a signature over a challenge and open a session.
- *
- * `guestPersonId` is the cookie identity already in the browser. If it has no
- * memories it is folded into the wallet's person, so someone who chatted
- * anonymously and then signed in keeps that conversation. If it has memories,
- * nothing is merged: taking them would be the same mistake `/link` refuses.
+ * Verify a signature over a challenge and open a session for the person
+ * `chooseSignInTarget` names. `currentPersonId` is whoever this browser
+ * already is (the session, or else the guest cookie).
  */
 export async function signInWithWallet(
   nonce: string,
   signature: string,
-  guestPersonId?: string,
+  currentPersonId: string | undefined,
+  client: ReturnType<typeof createSuiClient>,
 ): Promise<SignInResult> {
   const token = `challenge:${nonce}`;
   const [row] = await db
@@ -69,7 +75,7 @@ export async function signInWithWallet(
   if (!row) return { ok: false, reason: "nonce" };
 
   // The address comes out of the signature. Nothing the caller sent names it.
-  const address = await addressFromSignature(signInMessage(nonce), signature);
+  const address = await addressFromSignature(signInMessage(nonce), signature, client);
   if (!address) return { ok: false, reason: "signature" };
 
   // Burn the nonce before anything else, so a replay loses the race.
@@ -80,13 +86,24 @@ export async function signInWithWallet(
     .returning({ token: connectTokens.token });
   if (burned.length === 0) return { ok: false, reason: "nonce" };
 
-  const existing = await personByWallet(address);
-  const person = existing ?? (await resolvePerson("wallet", address, address.slice(0, 10)));
+  const walletPerson = await personByWallet(address);
+  const current = currentPersonId ? await reloadPerson(currentPersonId) : null;
+  const both = Boolean(walletPerson && current && walletPerson.id !== current.id);
+  const walletHasMemories =
+    both && walletPerson ? (await personHasMemories(walletPerson.id)).hasMemories : false;
+  const currentHasMemories =
+    both && current ? (await personHasMemories(current.id)).hasMemories : false;
+  const target = chooseSignInTarget({
+    walletPersonId: walletPerson?.id ?? null,
+    currentPersonId: current?.id ?? null,
+    walletHasMemories,
+    currentHasMemories,
+  });
 
-  if (guestPersonId && guestPersonId !== person.id) {
-    const { hasMemories } = await personHasMemories(guestPersonId);
-    if (!hasMemories) await mergePersons(person.id, guestPersonId);
-  }
+  const personId = await personIdFor(target, address);
+  await attachWallet(personId, address);
+  const person = await reloadPerson(personId);
+  if (!person) return { ok: false, reason: "no-account" };
 
   const sessionId = randomBytes(32).toString("hex");
   await db.insert(webSessions).values({
@@ -97,6 +114,27 @@ export async function signInWithWallet(
   return { ok: true, person, sessionId, address };
 }
 
+async function personIdFor(
+  target: ReturnType<typeof chooseSignInTarget>,
+  address: string,
+): Promise<string> {
+  switch (target.action) {
+    case "use":
+      return target.personId;
+    case "merge":
+      await mergePersons(target.winnerId, target.loserId);
+      return target.winnerId;
+    case "attach":
+      return target.personId;
+    case "create":
+      return (await resolvePerson("wallet", address, address.slice(0, 10))).id;
+    default: {
+      const unexpected: never = target;
+      throw new Error(`unexpected sign-in target ${JSON.stringify(unexpected)}`);
+    }
+  }
+}
+
 export async function personFromSession(sessionId: string): Promise<Person | null> {
   const [row] = await db
     .select()
@@ -104,7 +142,6 @@ export async function personFromSession(sessionId: string): Promise<Person | nul
     .where(and(eq(webSessions.id, sessionId), gt(webSessions.expiresAt, new Date())))
     .limit(1);
   if (!row) return null;
-  const { reloadPerson } = await import("./persons.ts");
   return reloadPerson(row.personId);
 }
 

@@ -11,6 +11,7 @@
  * "Now prove it"
  * Reloading throws the conversation away. Anything hippo still knows came back from Walrus, not from the page.
  */
+
 import type { LucideIcon } from "lucide-react";
 import {
   Database,
@@ -78,9 +79,9 @@ export function Examples({
           ? onReloadAndAsk("What do you know about me?")
           : onPick(row.text)
       }
-      className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs text-muted-foreground transition-colors duration-150 hover:text-foreground"
+      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
     >
-      <row.icon className="size-3.5 shrink-0" />
+      <row.icon className="size-4 shrink-0" />
       <span>{row.text}</span>
     </button>
   ));
