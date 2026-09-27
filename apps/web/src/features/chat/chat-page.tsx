@@ -25,6 +25,7 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
+import { Popover, PopoverAnchor } from "@/components/ui/popover";
 import {
   clearActiveChat,
   readActiveChat,
@@ -40,8 +41,10 @@ import { greetingFor } from "@/features/chat/greeting";
 import { Markdown } from "@/features/chat/markdown";
 import { MemoryStrip } from "@/features/chat/memory-strip";
 import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
+import { SlashMenu } from "@/features/chat/slash-menu-panel";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
 import { bumpConversations } from "@/features/chat/use-conversations";
+import { useSlashMenu } from "@/features/chat/use-slash-menu";
 import { useTranscript } from "@/features/chat/use-transcript";
 import { API_URL, identityHeaders } from "@/lib/api";
 
@@ -277,30 +280,43 @@ function Composer({
   stop: () => void;
   busy: boolean;
 }) {
+  const slash = useSlashMenu({ text, busy, send, setText });
   const submit = () => {
     applyComposerAction({ busy, text, send, stop });
   };
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        submit();
+    <Popover
+      open={slash.open}
+      modal={false}
+      onOpenChange={(next) => {
+        if (!next) slash.dismiss();
       }}
     >
-      <InputGroup className="overflow-hidden rounded-3xl">
-        <InputGroupTextarea
-          value={text}
-          placeholder="Message hippo…"
-          disabled={busy}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
+      <PopoverAnchor asChild>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
           }}
-          className="p-4"
-        />
+        >
+          <InputGroup className="overflow-hidden rounded-3xl">
+            <InputGroupTextarea
+              value={text}
+              placeholder="Message hippo…"
+              disabled={busy}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (slash.onKeyDown(e.key) === "handled") {
+                  e.preventDefault();
+                  return;
+                }
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              className="p-4"
+            />
         <InputGroupAddon align="block-end" className="p-2">
           <InputGroupButton
             type="submit"
@@ -314,7 +330,17 @@ function Composer({
           </InputGroupButton>
         </InputGroupAddon>
       </InputGroup>
-    </form>
+        </form>
+      </PopoverAnchor>
+      {slash.open ? (
+        <SlashMenu
+          items={slash.items}
+          active={slash.active}
+          onHighlight={slash.highlight}
+          onRun={slash.run}
+        />
+      ) : null}
+    </Popover>
   );
 }
 

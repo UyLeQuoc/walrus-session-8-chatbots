@@ -148,6 +148,7 @@ beforeEach(() => {
       removeListener: vi.fn(),
     })),
   );
+  Element.prototype.scrollIntoView = vi.fn();
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -389,6 +390,18 @@ describe("chat page", () => {
     chatSend.mockClear();
     await user.type(box, "keep this{Shift>}{Enter}{/Shift}");
     expect(chatSend).not.toHaveBeenCalled();
+  });
+
+  it("runs a slash command from the menu without pressing send", async () => {
+    const user = userEvent.setup();
+    mountChat();
+    const box = screen.getByRole("textbox");
+    await user.type(box, "/");
+    const memory = await screen.findByRole("option", { name: /\/memory what I remember about you/i });
+    expect(screen.getByRole("option", { name: /\/whoami your account/i })).toBeDefined();
+    await user.click(memory);
+    expect(chatSend).toHaveBeenCalledWith({ text: "/memory" });
+    expect(chatSend).toHaveBeenCalledTimes(1);
   });
 
   it("stops the reply instead of sending another line", async () => {
