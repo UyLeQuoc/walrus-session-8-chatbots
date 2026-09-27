@@ -299,7 +299,7 @@ function Composer({
             submit();
           }}
         >
-          <InputGroup className="overflow-hidden rounded-3xl">
+          <InputGroup className="overflow-hidden rounded-3xl bg-background shadow-md dark:bg-input/30 dark:shadow-xs">
             <InputGroupTextarea
               value={text}
               placeholder="Message hippo…"
@@ -396,7 +396,7 @@ function ChatTurn({
       <Message align="end">
         <MessageContent>
           <Bubble align="end" variant="muted">
-            <BubbleContent className="whitespace-pre-wrap">
+            <BubbleContent className="whitespace-pre-wrap bg-[#E8F3FE]! dark:bg-muted!">
               {spoken}
             </BubbleContent>
           </Bubble>
