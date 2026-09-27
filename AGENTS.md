@@ -9,6 +9,7 @@ When writing or changing code, [`CODE_RULES.md`](CODE_RULES.md) outranks this fi
 ## Read first
 
 - `docs/GOAL.md` — **the master execution plan.** Milestones M0–M7 with tasks, verification commands, pre-made decisions, cut order, and the list of inputs only the human can provide. If you are asked to "continue" or "do the next thing", start here.
+- `docs/CHAT-UPGRADE.md` — the chat workspace upgrade (controls, in-chat memory, private Walrus files). If you are asked to continue that upgrade, start here instead of adding a feature to the current chat page.
 - `docs/BRIEF.md` — hackathon rules, judging, prizes, submission checklist. Source of truth for what must ship.
 - `docs/IDEA.md` — the pitch and why it wins.
 - `docs/ARCHITECTURE.md` — components, identity model (guest vs owned), onboarding and revoke flows, memory layer, stack, spikes.
