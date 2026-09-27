@@ -3,7 +3,12 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { ArrowUp } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useAdoptChat, useNewChatTick, useOpenTick, useShellTitle } from "@/app/shell";
+import {
+  useAdoptChat,
+  useNewChatTick,
+  useOpenTick,
+  useShellTitle,
+} from "@/app/shell";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import {
   InputGroup,
@@ -20,8 +25,16 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
-import { clearActiveChat, readActiveChat, writeActiveChat } from "@/features/chat/active-chat";
-import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
+import {
+  clearActiveChat,
+  readActiveChat,
+  writeActiveChat,
+} from "@/features/chat/active-chat";
+import {
+  Examples,
+  rememberPendingAsk,
+  takePendingAsk,
+} from "@/features/chat/examples";
 import { greetingFor } from "@/features/chat/greeting";
 import { Markdown } from "@/features/chat/markdown";
 import { MemoryStrip } from "@/features/chat/memory-strip";
@@ -113,7 +126,11 @@ export function ChatPage() {
   }, [openTick, setMessages]);
 
   useEffect(() => {
-    if (transcript.generation === 0 || applied.current === transcript.generation) return;
+    if (
+      transcript.generation === 0 ||
+      applied.current === transcript.generation
+    )
+      return;
     applied.current = transcript.generation;
     if (transcript.messages) setMessages(transcript.messages);
   }, [transcript.generation, transcript.messages, setMessages]);
@@ -159,15 +176,27 @@ export function ChatPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       {messages.length === 0 ? (
         <div className="flex min-h-0 flex-1 items-center justify-center px-4">
-          <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-10">
+          <div
+            data-slot="empty-cluster"
+            className="flex w-full max-w-xl flex-col gap-10"
+          >
             <div data-slot="greeting" className="text-center">
               <p className="font-greeting text-2xl leading-tight tracking-tight sm:text-5xl">
                 {greetingFor(new Date())}
               </p>
             </div>
-            <ComposerDock text={text} setText={setText} send={send} busy={busy} />
+            <ComposerDock
+              text={text}
+              setText={setText}
+              send={send}
+              busy={busy}
+            />
             <div className="flex flex-col items-start gap-3">
-              <Examples taught={false} onPick={send} onReloadAndAsk={reloadAndAsk} />
+              <Examples
+                taught={false}
+                onPick={send}
+                onReloadAndAsk={reloadAndAsk}
+              />
             </div>
           </div>
         </div>
@@ -178,7 +207,10 @@ export function ChatPage() {
               <MessageScrollerViewport>
                 <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
                   {messages.map((m) => (
-                    <MessageScrollerItem key={m.id} scrollAnchor={m.role === "user"}>
+                    <MessageScrollerItem
+                      key={m.id}
+                      scrollAnchor={m.role === "user"}
+                    >
                       <ChatTurn
                         message={m}
                         live={m.id === lastId && busy}
@@ -195,7 +227,12 @@ export function ChatPage() {
             data-slot="composer-dock"
             className="mx-auto flex w-full max-w-3xl shrink-0 flex-col px-4 pb-4"
           >
-            <ComposerDock text={text} setText={setText} send={send} busy={busy} />
+            <ComposerDock
+              text={text}
+              setText={setText}
+              send={send}
+              busy={busy}
+            />
           </div>
         </>
       )}
@@ -252,6 +289,7 @@ function Composer({
               send(text);
             }
           }}
+          className="p-4"
         />
         <InputGroupAddon align="block-end" className="p-2">
           <InputGroupButton
@@ -281,7 +319,9 @@ function outboundMessage(
   return [...prior].reverse().find((m) => m.role === "user") ?? messages.at(-1);
 }
 
-function threadTitle(messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>) {
+function threadTitle(
+  messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>,
+) {
   const firstUser = messages.find((m) => m.role === "user");
   const line = textOf(firstUser?.parts).split("\n")[0]?.trim() ?? "";
   if (!line) return "New chat";
@@ -320,7 +360,9 @@ function ChatTurn({
       <Message align="end">
         <MessageContent>
           <Bubble align="end" variant="muted">
-            <BubbleContent className="whitespace-pre-wrap">{spoken}</BubbleContent>
+            <BubbleContent className="whitespace-pre-wrap">
+              {spoken}
+            </BubbleContent>
           </Bubble>
         </MessageContent>
       </Message>
@@ -328,11 +370,14 @@ function ChatTurn({
   }
 
   const recalled =
-    (message.metadata as { recalled?: RecalledMemory[] } | undefined)?.recalled ?? [];
+    (message.metadata as { recalled?: RecalledMemory[] } | undefined)
+      ?.recalled ?? [];
   const tools = (message.parts ?? []).filter(
     (p) => p.type === "tool-remember" || p.type === "tool-recall",
   );
-  const command = Boolean((message.metadata as { command?: boolean } | undefined)?.command);
+  const command = Boolean(
+    (message.metadata as { command?: boolean } | undefined)?.command,
+  );
 
   return (
     <Message>
@@ -343,7 +388,9 @@ function ChatTurn({
         ))}
         {shown ? (
           command ? (
-            <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">{shown}</pre>
+            <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+              {shown}
+            </pre>
           ) : (
             <Markdown>{shown}</Markdown>
           )
