@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Section } from "@/features/me/section";
 import { useExport } from "@/features/me/use-export";
 
 export function ExportPanel({ onError }: { onError: (message: string) => void }) {
   const { busy, coverage, download } = useExport(onError);
 
   return (
-    <Section title="Export">
+    <div className="flex flex-col items-start gap-2">
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" disabled={busy !== null} onClick={() => void download("md")}>
           {busy === "md" ? "Reading from Walrus…" : "Download to read (.md)"}
@@ -24,6 +23,6 @@ export function ExportPanel({ onError }: { onError: (message: string) => void })
       <p className="text-sm text-muted-foreground">
         What it cannot do yet: let you decrypt the blobs without hippo.
       </p>
-    </Section>
+    </div>
   );
 }

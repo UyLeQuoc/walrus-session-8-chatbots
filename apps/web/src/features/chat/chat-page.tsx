@@ -1,21 +1,10 @@
 import { useChat } from "@ai-sdk/react";
+import { sanitizeTable } from "@hippo/core/command-table";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowUp } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  useAdoptChat,
-  useNewChatTick,
-  useOpenTick,
-  useShellTitle,
-} from "@/app/shell";
+import { useAdoptChat, useNewChatTick, useOpenTick, useShellTitle } from "@/app/shell";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-} from "@/components/ui/input-group";
 import { Message, MessageContent } from "@/components/ui/message";
 import {
   MessageScroller,
@@ -25,22 +14,22 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
-import {
-  clearActiveChat,
-  readActiveChat,
-  writeActiveChat,
-} from "@/features/chat/active-chat";
-import {
-  Examples,
-  rememberPendingAsk,
-  takePendingAsk,
-} from "@/features/chat/examples";
-import { greetingFor } from "@/features/chat/greeting";
+import { Popover, PopoverAnchor } from "@/components/ui/popover";
+import { clearActiveChat, readActiveChat, writeActiveChat } from "@/features/chat/active-chat";
+import { CommandTableView } from "@/features/chat/command-table";
+import { applyComposerAction } from "@/features/chat/composer-action";
+import { ComposerShell } from "@/features/chat/composer-shell";
+import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
+import { GreetingLine } from "@/features/chat/greeting-line";
 import { Markdown } from "@/features/chat/markdown";
 import { MemoryStrip } from "@/features/chat/memory-strip";
 import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
+import { SlashMenu } from "@/features/chat/slash-menu-panel";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
+import { useComposerMeter } from "@/features/chat/use-composer-meter";
 import { bumpConversations } from "@/features/chat/use-conversations";
+import { useGreeting } from "@/features/chat/use-greeting";
+import { useSlashMenu } from "@/features/chat/use-slash-menu";
 import { useTranscript } from "@/features/chat/use-transcript";
 import { API_URL, identityHeaders } from "@/lib/api";
 
@@ -84,7 +73,7 @@ export function ChatPage() {
       }),
     [],
   );
-  const { messages, sendMessage, setMessages, status, error } = useChat({
+  const { messages, sendMessage, setMessages, status, error, stop } = useChat({
     transport,
   });
   const [text, setText] = useState("");
@@ -126,11 +115,7 @@ export function ChatPage() {
   }, [openTick, setMessages]);
 
   useEffect(() => {
-    if (
-      transcript.generation === 0 ||
-      applied.current === transcript.generation
-    )
-      return;
+    if (transcript.generation === 0 || applied.current === transcript.generation) return;
     applied.current = transcript.generation;
     if (transcript.messages) setMessages(transcript.messages);
   }, [transcript.generation, transcript.messages, setMessages]);
@@ -165,6 +150,7 @@ export function ChatPage() {
 
   const title = useMemo(() => threadTitle(messages), [messages]);
   useShellTitle(title);
+  const greeting = useGreeting();
 
   const reloadAndAsk = (value: string) => {
     clearActiveChat();
@@ -176,27 +162,20 @@ export function ChatPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       {messages.length === 0 ? (
         <div className="flex min-h-0 flex-1 items-center justify-center px-4">
-          <div
-            data-slot="empty-cluster"
-            className="flex w-full max-w-xl flex-col gap-10"
-          >
+          <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-10">
             <div data-slot="greeting" className="text-center">
-              <p className="font-greeting text-2xl leading-tight tracking-tight sm:text-5xl">
-                {greetingFor(new Date())}
-              </p>
+              <GreetingLine text={greeting} />
             </div>
             <ComposerDock
               text={text}
               setText={setText}
               send={send}
+              stop={() => void stop()}
               busy={busy}
+              messages={messages}
             />
             <div className="flex flex-col items-start gap-3">
-              <Examples
-                taught={false}
-                onPick={send}
-                onReloadAndAsk={reloadAndAsk}
-              />
+              <Examples taught={false} onPick={send} onReloadAndAsk={reloadAndAsk} />
             </div>
           </div>
         </div>
@@ -207,10 +186,7 @@ export function ChatPage() {
               <MessageScrollerViewport>
                 <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
                   {messages.map((m) => (
-                    <MessageScrollerItem
-                      key={m.id}
-                      scrollAnchor={m.role === "user"}
-                    >
+                    <MessageScrollerItem key={m.id} scrollAnchor={m.role === "user"}>
                       <ChatTurn
                         message={m}
                         live={m.id === lastId && busy}
@@ -231,7 +207,9 @@ export function ChatPage() {
               text={text}
               setText={setText}
               send={send}
+              stop={() => void stop()}
               busy={busy}
+              messages={messages}
             />
           </div>
         </>
@@ -244,16 +222,27 @@ function ComposerDock({
   text,
   setText,
   send,
+  stop,
   busy,
+  messages,
 }: {
   text: string;
   setText: (value: string) => void;
   send: (value: string) => void;
+  stop: () => void;
   busy: boolean;
+  messages: UIMessage[];
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <Composer text={text} setText={setText} send={send} busy={busy} />
+      <Composer
+        text={text}
+        setText={setText}
+        send={send}
+        stop={stop}
+        busy={busy}
+        messages={messages}
+      />
       <MemoryStrip />
     </div>
   );
@@ -263,48 +252,65 @@ function Composer({
   text,
   setText,
   send,
+  stop,
   busy,
+  messages,
 }: {
   text: string;
   setText: (value: string) => void;
   send: (value: string) => void;
+  stop: () => void;
   busy: boolean;
+  messages: UIMessage[];
 }) {
+  const slash = useSlashMenu({ text, busy, send, setText });
+  const meter = useComposerMeter(messages, text);
+  const submit = () => {
+    applyComposerAction({ busy, text, send, stop });
+  };
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        send(text);
+    <Popover
+      open={slash.open}
+      modal={false}
+      onOpenChange={(next) => {
+        if (!next) slash.dismiss();
       }}
     >
-      <InputGroup className="overflow-hidden rounded-3xl">
-        <InputGroupTextarea
-          value={text}
-          placeholder="Message hippo…"
-          disabled={busy}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send(text);
-            }
+      <PopoverAnchor asChild>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
           }}
-          className="p-4"
+        >
+          <ComposerShell
+            text={text}
+            onText={setText}
+            disabled={busy}
+            busy={busy}
+            meter={meter}
+            onKeyDown={(e) => {
+              if (slash.onKeyDown(e.key) === "handled") {
+                e.preventDefault();
+                return;
+              }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+          />
+        </form>
+      </PopoverAnchor>
+      {slash.open ? (
+        <SlashMenu
+          items={slash.items}
+          active={slash.active}
+          onHighlight={slash.highlight}
+          onRun={slash.run}
         />
-        <InputGroupAddon align="block-end" className="p-2">
-          <InputGroupButton
-            type="submit"
-            variant="default"
-            size="icon-sm"
-            aria-label="Send"
-            disabled={busy || text.trim() === ""}
-            className="ml-auto size-8 rounded-full p-0"
-          >
-            <ArrowUp />
-          </InputGroupButton>
-        </InputGroupAddon>
-      </InputGroup>
-    </form>
+      ) : null}
+    </Popover>
   );
 }
 
@@ -319,9 +325,7 @@ function outboundMessage(
   return [...prior].reverse().find((m) => m.role === "user") ?? messages.at(-1);
 }
 
-function threadTitle(
-  messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>,
-) {
+function threadTitle(messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>) {
   const firstUser = messages.find((m) => m.role === "user");
   const line = textOf(firstUser?.parts).split("\n")[0]?.trim() ?? "";
   if (!line) return "New chat";
@@ -360,7 +364,7 @@ function ChatTurn({
       <Message align="end">
         <MessageContent>
           <Bubble align="end" variant="muted">
-            <BubbleContent className="whitespace-pre-wrap">
+            <BubbleContent className="whitespace-pre-wrap bg-[#E8F3FE]! dark:bg-muted!">
               {spoken}
             </BubbleContent>
           </Bubble>
@@ -370,14 +374,13 @@ function ChatTurn({
   }
 
   const recalled =
-    (message.metadata as { recalled?: RecalledMemory[] } | undefined)
-      ?.recalled ?? [];
+    (message.metadata as { recalled?: RecalledMemory[] } | undefined)?.recalled ?? [];
   const tools = (message.parts ?? []).filter(
     (p) => p.type === "tool-remember" || p.type === "tool-recall",
   );
-  const command = Boolean(
-    (message.metadata as { command?: boolean } | undefined)?.command,
-  );
+  const meta = message.metadata as { command?: boolean; table?: unknown } | undefined;
+  const command = Boolean(meta?.command);
+  const table = sanitizeTable(meta?.table);
 
   return (
     <Message>
@@ -386,11 +389,11 @@ function ChatTurn({
         {tools.map((p, i) => (
           <ToolLine key={`${String(p.type)}-${i}`} part={p} />
         ))}
-        {shown ? (
+        {table ? (
+          <CommandTableView table={table} />
+        ) : shown ? (
           command ? (
-            <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
-              {shown}
-            </pre>
+            <p className="whitespace-pre-wrap text-sm">{shown}</p>
           ) : (
             <Markdown>{shown}</Markdown>
           )

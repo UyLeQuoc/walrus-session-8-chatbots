@@ -76,4 +76,15 @@ describe("gatherContext", () => {
     expect(started.map((s) => s.query)).toContain("[correction]");
     expect(ctx.injected.map((m) => m.parsed?.type)).toEqual(["correction", "profile"]);
   });
+
+  it("does not start a recall after the caller has stopped", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const { port, started } = slowPort(1, () => []);
+    const ctx = await gatherContext(
+      input(port, { abortSignal: controller.signal, sessionStart: true }),
+    );
+    expect(started).toEqual([]);
+    expect(ctx.injected).toEqual([]);
+  });
 });

@@ -28,6 +28,19 @@ describe("plainReply", () => {
     expect(body).toContain('"messageMetadata":{"command":true}');
   });
 
+  it("sends the table with the text on the web, and still not in the CLI json", async () => {
+    const table = {
+      columns: ["Field", "Value"],
+      rows: [{ cells: ["Namespace", "hippo"], copy: "hippo" }],
+    };
+    const web = await plainReply("web", "Mode: guest.", undefined, table).text();
+    expect(streamedText(web)).toBe("Mode: guest.");
+    expect(web).toContain('"command":true');
+    expect(web).toContain('"copy":"hippo"');
+    const cli = await plainReply("cli", "Mode: guest.", undefined, table).json();
+    expect(cli).toEqual({ command: true, text: "Mode: guest." });
+  });
+
   it("keeps JSON for the CLI, with the files /export hands back", async () => {
     const files = [{ name: "hippo-memory.md", mime: "text/markdown", content: "# x" }];
     const res = plainReply("cli", "Your memory, as files you keep.", files);

@@ -4,10 +4,10 @@
  * handler runs and the adapter posts the reply verbatim instead of calling the
  * model.
  */
+import type { CommandTable } from "@hippo/core/command-table";
 import { and, desc, eq, memoryIndex, people, sql, turnLog } from "@hippo/db";
-import { explorer, guestScope, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
+import { guestScope, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
 import { db, operator } from "../context.ts";
-import { HELP, PRIVACY, welcome } from "../copy.ts";
 import { env } from "../env/load.ts";
 import { createLinkCode, redeemLinkCode } from "../identity/link.ts";
 import {
@@ -20,6 +20,29 @@ import {
 } from "../identity/persons.ts";
 import { createTeam, currentTeam, inviteToTeam, joinTeam, leaveTeam } from "../identity/teams.ts";
 import { asDownload, type ExportDownload, exportFor } from "../memory/export-person.ts";
+import {
+  connectLinkView,
+  disconnectLinkView,
+  exportAttachedView,
+  exportElsewhereView,
+  exportSummary,
+  exportWebView,
+  forgetUsageView,
+  helpView,
+  hiddenMemoryView,
+  linkCodeView,
+  memoryListView,
+  privacyView,
+  proofView,
+  searchView,
+  sentence,
+  teamInviteView,
+  teamNoneView,
+  teamStartedView,
+  teamStatusView,
+  welcomeView,
+  whoamiView,
+} from "./command-views.ts";
 
 export interface CommandContext {
   person: Person;
@@ -32,6 +55,8 @@ export interface CommandResult {
   text: string;
   /** Sent as attachments where the channel can (Telegram, the CLI). */
   files?: ExportDownload[];
+  /** Web only. Other channels send `text` and ignore this. */
+  table?: CommandTable;
 }
 
 /** Channels whose adapter delivers `files`. The rest are told where to go. */
@@ -48,28 +73,18 @@ async function exportMemories(ctx: CommandContext): Promise<CommandResult> {
   const file = await exportFor(ctx.person, ctx.channel);
   const c = file.coverage;
   if (!c.memories) {
-    return { text: "Nothing to export yet: I have not written anything about you." };
+    return sentence("Nothing to export yet: I have not written anything about you.");
   }
-  const summary = `${c.memories} memories. Text recovered for ${c.withText} of them, and ${c.verified} match the fingerprint I recorded when I wrote them.`;
-  const caveat =
-    "The file lists every blob on Walrus. It cannot let you decrypt them without me yet; it says why inside.";
+  const summary = exportSummary(c.memories, c.withText, c.verified);
+  const page = `${env.WEB_BASE_URL}/me`;
   if (ATTACHES.has(ctx.channel)) {
     return {
-      text: `Your memory, as files you keep. ${summary}
-
-The .md is for reading, the .json is the complete record. ${caveat}`,
+      ...exportAttachedView(summary),
       files: [asDownload(file, "md"), asDownload(file, "json")],
     };
   }
-  const where =
-    ctx.channel === "web"
-      ? `Download it from the Export button on ${env.WEB_BASE_URL}/me.`
-      : `I cannot send files on this channel yet. /link it to the web chat, then use Export on ${env.WEB_BASE_URL}/me.`;
-  return {
-    text: `${summary}
-
-${where} ${caveat}`,
-  };
+  if (ctx.channel === "web") return exportWebView(summary, page);
+  return exportElsewhereView(summary, page);
 }
 
 /**
@@ -87,37 +102,30 @@ async function team(ctx: CommandContext, arg: string): Promise<CommandResult> {
 
   switch (sub.toLowerCase()) {
     case "": {
-      if (!mine) {
-        return {
-          text: "You are not in a team.\n\n/team new <name>  start one\n/team join <code>  join one somebody else started\n\nA team shares memory that anyone in it can recall. What you say normally stays yours; only /team remember puts something in the shared pile.",
-        };
-      }
-      return {
-        text: `Team: ${mine.name} (${mine.memberCount} ${mine.memberCount === 1 ? "member" : "members"}).\n\nEveryone in it recalls the shared memory. Your own memory is still yours and is not shared.\n\n/team remember <fact>  add to the shared memory\n/team invite           a code for somebody else\n/team leave            stop reading and writing it\n\nThe shared memory lives in my account, not yours, so nobody in the team owns it yet. /privacy has the detail.`,
-      };
+      if (!mine) return teamNoneView();
+      return teamStatusView({ name: mine.name, memberCount: mine.memberCount });
     }
 
     case "new": {
       const outcome = await createTeam(ctx.person, value);
       if (!outcome.ok) {
-        return {
-          text:
-            outcome.reason === "bad-name"
-              ? "Give it a name: /team new Platform"
-              : "You are already in a team. /team leave first.",
-        };
+        return sentence(
+          outcome.reason === "bad-name"
+            ? "Give it a name: /team new Platform"
+            : "You are already in a team. /team leave first.",
+        );
       }
-      return {
-        text: `Started "${outcome.team.name}".\n\nShare this code, it works once and lasts ${outcome.expiresInMinutes} minutes:\n\n${outcome.code}\n\nThey run /team join ${outcome.code} on any channel. Add facts with /team remember <fact>; ordinary conversation stays private to you.`,
-      };
+      return teamStartedView({
+        name: outcome.team.name,
+        code: outcome.code,
+        expiresInMinutes: outcome.expiresInMinutes,
+      });
     }
 
     case "invite": {
-      if (!mine) return { text: "You are not in a team. /team new <name> starts one." };
+      if (!mine) return sentence("You are not in a team. /team new <name> starts one.");
       const invite = await inviteToTeam(ctx.person, mine.teamId);
-      return {
-        text: `${invite.code}\n\nWorks once, for ${invite.expiresInMinutes} minutes. They run /team join ${invite.code}.`,
-      };
+      return teamInviteView({ code: invite.code, expiresInMinutes: invite.expiresInMinutes });
     }
 
     case "join": {
@@ -130,39 +138,39 @@ async function team(ctx: CommandContext, arg: string): Promise<CommandResult> {
           "already-member": "You are already in that team.",
           full: "That team is full.",
         };
-        return { text: why[outcome.reason] ?? (why.unknown as string) };
+        return sentence(why[outcome.reason] ?? "That is not a code. They look like ABC234.");
       }
-      return {
-        text: `Joined "${outcome.team.name}". You will now recall what the team has put in, and /team remember adds to it.\n\nYour own memory stays yours and is not shared.`,
-      };
+      return sentence(
+        `Joined "${outcome.team.name}". You will now recall what the team has put in, and /team remember adds to it.\n\nYour own memory stays yours and is not shared.`,
+      );
     }
 
     case "remember": {
-      if (!mine) return { text: "You are not in a team. /team new <name> starts one." };
-      if (value.trim().length < 3) return { text: "Usage: /team remember <fact>" };
+      if (!mine) return sentence("You are not in a team. /team new <name> starts one.");
+      if (value.trim().length < 3) return sentence("Usage: /team remember <fact>");
       const port = await teamPortFor(ctx.person, ctx.channel, mine.teamId);
       const result = await port.remember({ type: "decision", text: value, channel: ctx.channel });
-      if (!result.saved) return { text: `"${mine.name}" already knows that.` };
+      if (!result.saved) return sentence(`"${mine.name}" already knows that.`);
       const redacted = result.redacted.length
         ? ` I stripped ${result.redacted.join(", ")} out of it first.`
         : "";
-      return {
-        text: `Added to "${mine.name}". Everyone in the team can recall it from now on.${redacted}`,
-      };
+      return sentence(
+        `Added to "${mine.name}". Everyone in the team can recall it from now on.${redacted}`,
+      );
     }
 
     case "leave": {
       const left = await leaveTeam(ctx.person.id);
-      if (!left) return { text: "You are not in a team." };
-      return {
-        text: `Left "${left.name}". I will not read or write its memory for you any more.\n\nWhat you already put in stays: a memory on Walrus cannot be deleted, so the team keeps it. Only add things to a team you are willing to leave behind.`,
-      };
+      if (!left) return sentence("You are not in a team.");
+      return sentence(
+        `Left "${left.name}". I will not read or write its memory for you any more.\n\nWhat you already put in stays: a memory on Walrus cannot be deleted, so the team keeps it. Only add things to a team you are willing to leave behind.`,
+      );
     }
 
     default:
-      return {
-        text: "Try /team, /team new <name>, /team join <code>, /team invite, /team remember <fact>, or /team leave.",
-      };
+      return sentence(
+        "Try /team, /team new <name>, /team join <code>, /team invite, /team remember <fact>, or /team leave.",
+      );
   }
 }
 
@@ -185,32 +193,25 @@ function extrasFor(scope: MemoryScope): RelayerExtras {
 async function whoami(ctx: CommandContext): Promise<CommandResult> {
   const { person } = ctx;
   const port = await portFor(person, ctx.channel);
-  const lines = [
-    person.mode === "owned"
-      ? "Mode: owned. This memory is in your own Walrus Memory account."
-      : "Mode: guest. Your memory sits under hippo's account until you run /connect.",
-    `Namespace: ${port.scope.namespace}`,
-  ];
-  if (person.accountId) {
-    lines.push(`Account: ${person.accountId}`, explorer.object(person.accountId));
-  }
-  if (person.walletAddress) lines.push(`Wallet: ${person.walletAddress}`);
-
   const [{ count } = { count: 0 }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(memoryIndex)
     .where(ownMemoryOf(person.id));
-  lines.push(`Memories written by hippo: ${count}`);
-
+  let relay: { count: number; bytes: number } | null = null;
   try {
     const stats = await extrasFor(port.scope).stats(port.scope.namespace);
-    lines.push(
-      `Namespace total on the relayer: ${stats.memory_count} (${stats.storage_bytes} bytes)`,
-    );
+    relay = { count: stats.memory_count, bytes: stats.storage_bytes };
   } catch {
     // Metadata routes are flaky; the local count above is the reliable one.
   }
-  return { text: lines.join("\n") };
+  return whoamiView({
+    mode: person.mode,
+    namespace: port.scope.namespace,
+    accountId: person.accountId,
+    walletAddress: person.walletAddress,
+    written: count,
+    relay,
+  });
 }
 
 async function listMemories(ctx: CommandContext): Promise<CommandResult> {
@@ -220,48 +221,38 @@ async function listMemories(ctx: CommandContext): Promise<CommandResult> {
     .where(ownMemoryOf(ctx.person.id))
     .orderBy(desc(memoryIndex.createdAt))
     .limit(30);
-  if (!rows.length) {
-    return { text: "I have not written anything about you yet. Tell me something worth keeping." };
-  }
-  const byType = new Map<string, number>();
-  for (const r of rows) byType.set(r.type, (byType.get(r.type) ?? 0) + 1);
-  const summary = [...byType.entries()].map(([t, n]) => `${t} ${n}`).join(", ");
-  const recent = rows
-    .slice(0, 10)
-    .map((r) => {
-      const where = r.blobId ? `blob ${r.blobId.slice(0, 10)}…` : "writing to Walrus…";
-      const hidden = r.hiddenAt ? " · hidden" : "";
-      return `• [${r.type}] ${r.createdAt.toISOString().slice(0, 10)} · ${where}${hidden}`;
-    })
-    .join("\n");
-  return {
-    text: `${rows.length} memories (${summary}).\n\n${recent}\n\nUse /memory search <question> to read them back, and /memory forget <blob> to stop me using one.`,
-  };
+  return memoryListView(
+    rows.map((row) => ({
+      type: row.type,
+      createdAt: row.createdAt,
+      blobId: row.blobId,
+      hidden: row.hiddenAt !== null,
+    })),
+  );
 }
 
 async function searchMemories(ctx: CommandContext, query: string): Promise<CommandResult> {
-  if (!query.trim()) return { text: "Usage: /memory search <question>" };
+  if (!query.trim()) return sentence("Usage: /memory search <question>");
   const port = await portFor(ctx.person, ctx.channel);
   const hits = await port.recall({ query, limit: 8, maxDistance: 0.9 });
-  if (!hits.length) return { text: `Nothing close to "${query}".` };
-  const lines = hits.map((h) => {
-    const relevance = (1 - h.distance).toFixed(2);
-    return `• ${h.parsed?.text ?? h.text}\n  relevance ${relevance} · blob ${h.blob_id.slice(0, 10)}…`;
-  });
-  return { text: lines.join("\n") };
+  return searchView(
+    query,
+    hits.map((hit) => ({
+      text: hit.parsed?.text ?? hit.text,
+      distance: hit.distance,
+      blobId: hit.blob_id,
+    })),
+  );
 }
 
 async function setMemory(ctx: CommandContext, on: boolean): Promise<CommandResult> {
   await db.update(people).set({ memoryEnabled: on }).where(eq(people.id, ctx.person.id));
-  return {
-    text: on
+  return sentence(
+    on
       ? "Memory on. I will remember what matters from now on."
       : "Memory off. I will not read or write memory until you run /memory on. Nothing already stored is deleted.",
-  };
+  );
 }
-
-const FORGET_USAGE =
-  "/memory forget <blob>  stop me using one memory: the blob shown by /memory or /memory search\n/memory forget all     make everything unrecallable\n\nNothing is deleted from Walrus either way; that is not possible yet.";
 
 /**
  * Stop using one memory, or start again.
@@ -272,26 +263,22 @@ const FORGET_USAGE =
  */
 async function hideOne(ctx: CommandContext, target: string, hide: boolean): Promise<CommandResult> {
   const verb = hide ? "forget" : "unhide";
-  if (!target.trim()) return { text: `Usage: /memory ${verb} <blob>, as /memory shows it.` };
+  if (!target.trim()) return sentence(`Usage: /memory ${verb} <blob>, as /memory shows it.`);
   const out = await setHidden(ctx.person.id, target, hide);
   switch (out.kind) {
     case "too-short":
-      return { text: "Give at least the first six characters of the blob, as /memory shows it." };
+      return sentence("Give at least the first six characters of the blob, as /memory shows it.");
     case "none":
-      return { text: `None of your memories has a blob starting "${target.trim()}".` };
+      return sentence(`None of your memories has a blob starting "${target.trim()}".`);
     case "ambiguous":
-      return { text: `That matches ${out.count} of your memories. Give more of the blob.` };
-    case "done": {
-      const short = `${out.blobId.slice(0, 10)}…`;
-      if (!hide) return { text: `I will use that ${out.type} memory again (blob ${short}).` };
-      const elsewhere =
-        ctx.person.mode === "owned"
-          ? " Other apps signed in to your account can still recall it."
-          : "";
-      return {
-        text: `I will not use that ${out.type} memory again (blob ${short}).\n\nIt is still on Walrus, encrypted, because nothing there can be deleted yet.${elsewhere} /memory unhide ${out.blobId.slice(0, 10)} brings it back.`,
-      };
-    }
+      return sentence(`That matches ${out.count} of your memories. Give more of the blob.`);
+    case "done":
+      return hiddenMemoryView({
+        hide,
+        type: out.type,
+        blobId: out.blobId,
+        owned: ctx.person.mode === "owned",
+      });
   }
 }
 
@@ -312,40 +299,38 @@ async function forget(ctx: CommandContext): Promise<CommandResult> {
     let deleted = 0;
     for (const scope of scopes) deleted += (await extrasFor(scope).forget(scope.namespace)).deleted;
     await db.delete(memoryIndex).where(ownMemoryOf(ctx.person.id));
-    return {
-      text: `Removed ${deleted} memories from the search index, so I can no longer recall any of them.\n\nBeing straight with you about the limit: the encrypted blobs stay on Walrus until their storage epochs run out, and there is currently no way to delete them earlier. Nobody can read them without your account's keys, and I can no longer find them, but they are not gone.`,
-    };
+    return sentence(
+      `Removed ${deleted} memories from the search index, so I can no longer recall any of them.\n\nBeing straight with you about the limit: the encrypted blobs stay on Walrus until their storage epochs run out, and there is currently no way to delete them earlier. Nobody can read them without your account's keys, and I can no longer find them, but they are not gone.`,
+    );
   } catch (e) {
-    return { text: `Could not reach the relayer: ${e instanceof Error ? e.message : String(e)}` };
+    return sentence(`Could not reach the relayer: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
 async function link(ctx: CommandContext, arg: string): Promise<CommandResult> {
   if (!arg.trim()) {
     const { code, expiresInMinutes } = await createLinkCode(ctx.person);
-    return {
-      text: `Your link code is ${code}.\n\nOpen hippo on another channel (the web chat, Telegram, Discord, Slack or the CLI) and send:\n/link ${code}\n\nBoth conversations then share one memory. The code works once and expires in ${expiresInMinutes} minutes.\n\nKeep it to yourself. Anyone who redeems it joins your memory.`,
-    };
+    return linkCodeView(code, expiresInMinutes);
   }
   const result = await redeemLinkCode(ctx.person, arg);
   if (result.ok) {
-    return {
-      text: "Linked. This channel and the one that gave you the code now share the same memory.",
-    };
+    return sentence(
+      "Linked. This channel and the one that gave you the code now share the same memory.",
+    );
   }
   switch (result.reason) {
     case "self":
-      return {
-        text: "That code came from this same conversation. Run /link on the other channel instead.",
-      };
+      return sentence(
+        "That code came from this same conversation. Run /link on the other channel instead.",
+      );
     case "expired":
-      return {
-        text: "That code has expired or was already used. Run /link on the other channel for a fresh one.",
-      };
+      return sentence(
+        "That code has expired or was already used. Run /link on the other channel for a fresh one.",
+      );
     default:
-      return {
-        text: "That does not look like a link code. Run /link on the other channel to get one.",
-      };
+      return sentence(
+        "That does not look like a link code. Run /link on the other channel to get one.",
+      );
   }
 }
 
@@ -357,12 +342,13 @@ async function proof(ctx: CommandContext): Promise<CommandResult> {
     .orderBy(desc(turnLog.createdAt))
     .limit(1);
   const injected = last?.injected ?? [];
-  if (!injected.length) return { text: "My last answer used no stored memory." };
-  const lines = injected.map(
-    (m) =>
-      `• ${m.type ?? "memory"} · relevance ${(1 - m.distance).toFixed(2)}\n  ${explorer.blobExplorer(m.blobId)}`,
+  return proofView(
+    injected.map((item) => ({
+      type: item.type ?? "memory",
+      distance: item.distance,
+      blobId: item.blobId,
+    })),
   );
-  return { text: `My last answer used ${injected.length} memories:\n${lines.join("\n")}` };
 }
 
 /** Returns null when the text is not a command, so the adapter runs the model. */
@@ -378,11 +364,11 @@ export async function handleCommand(
 
   switch (cmd) {
     case "start":
-      return { text: welcome(env.SURVEY_URL) };
+      return welcomeView(env.SURVEY_URL);
     case "help":
-      return { text: HELP };
+      return helpView();
     case "privacy":
-      return { text: PRIVACY };
+      return privacyView();
     case "team":
       return team(ctx, arg);
     case "whoami":
@@ -395,18 +381,14 @@ export async function handleCommand(
       return exportMemories(ctx);
     case "connect":
       return ctx.person.mode === "owned"
-        ? {
-            text: "You already own this memory. /whoami shows the account, /disconnect revokes me.",
-          }
-        : {
-            text: `Own your memory in your own Walrus Memory account:\n${await ctx.connectUrl("connect")}\n\nYou sign one transaction, gas is normally sponsored, and you can revoke me at any time. Everything I already know stays readable: it sits in my account and cannot be moved, so I read both from then on. New memories go only to yours.`,
-          };
+        ? sentence(
+            "You already own this memory. /whoami shows the account, /disconnect revokes me.",
+          )
+        : connectLinkView(await ctx.connectUrl("connect"));
     case "disconnect":
       return ctx.person.mode === "owned"
-        ? {
-            text: `Revoke my access on-chain:\n${await ctx.connectUrl("disconnect")}\n\nAfter it lands I cannot read or write anything in your account, within about a minute. What you told me before you connected is the exception: that lives in my account, not yours, and I can still read it. /memory forget all makes it unrecallable.`,
-          }
-        : { text: "Nothing to revoke: you are in guest mode." };
+        ? disconnectLinkView(await ctx.connectUrl("disconnect"))
+        : sentence("Nothing to revoke: you are in guest mode.");
     case "memory": {
       const [sub = "", ...subRest] = arg.split(/\s+/);
       switch (sub.toLowerCase()) {
@@ -420,7 +402,7 @@ export async function handleCommand(
           return setMemory(ctx, false);
         case "forget": {
           const target = subRest.join(" ").trim();
-          if (!target) return { text: FORGET_USAGE };
+          if (!target) return forgetUsageView();
           return target.toLowerCase() === "all" ? forget(ctx) : hideOne(ctx, target, true);
         }
         case "unhide":
@@ -430,7 +412,7 @@ export async function handleCommand(
       }
     }
     default:
-      return { text: `Unknown command. ${HELP}` };
+      return helpView(true);
   }
 }
 

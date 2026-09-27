@@ -7,6 +7,7 @@ import { NotFoundPage } from "./app/not-found";
 import { Providers } from "./app/providers";
 import { ChatPage } from "./features/chat/chat-page";
 import { ConnectPage } from "./features/connect/connect-page";
+import { GuidePage } from "./features/guide/guide-page";
 import { MePage } from "./features/me/me-page";
 
 const root = document.getElementById("root");
@@ -22,6 +23,7 @@ createRoot(root).render(
             <Route path="connect/:token" element={<ConnectPage kind="connect" />} />
             <Route path="disconnect/:token" element={<ConnectPage kind="disconnect" />} />
             <Route path="me" element={<MePage />} />
+            <Route path="guide" element={<GuidePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

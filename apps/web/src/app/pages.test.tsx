@@ -15,6 +15,7 @@ import { Logo } from "../components/logo.tsx";
 import { ChatPage } from "../features/chat/chat-page.tsx";
 import { greetingFor } from "../features/chat/greeting.ts";
 import { ConnectPage } from "../features/connect/connect-page.tsx";
+import { GuidePage } from "../features/guide/guide-page.tsx";
 import { MePage } from "../features/me/me-page.tsx";
 import { AppLayout } from "./app-layout.tsx";
 import { NotFoundPage } from "./not-found.tsx";
@@ -29,6 +30,7 @@ let chatStatus = "ready";
 let chatVersion = 0;
 const chatSubscribers = new Set<() => void>();
 const chatSend = vi.fn();
+const chatStop = vi.fn();
 
 function publishChat() {
   chatVersion += 1;
@@ -50,6 +52,7 @@ vi.mock("@ai-sdk/react", () => ({
     return {
       messages: chatMessages,
       sendMessage: chatSend,
+      stop: chatStop,
       setMessages: (next: unknown[] | ((prev: unknown[]) => unknown[])) => {
         chatMessages = typeof next === "function" ? next(chatMessages) : next;
         publishChat();
@@ -116,10 +119,16 @@ function stubFetch(routes: Record<string, unknown>) {
 }
 
 beforeEach(() => {
+  if (!HTMLElement.prototype.hasPointerCapture) {
+    HTMLElement.prototype.hasPointerCapture = () => false;
+    HTMLElement.prototype.setPointerCapture = () => undefined;
+    HTMLElement.prototype.releasePointerCapture = () => undefined;
+  }
   chatMessages = [];
   chatStatus = "ready";
   chatVersion = 0;
   chatSend.mockClear();
+  chatStop.mockClear();
   wallet = null;
   signAndExecute.mockClear();
   suiClientStub.core = {};
@@ -145,6 +154,7 @@ beforeEach(() => {
       removeListener: vi.fn(),
     })),
   );
+  Element.prototype.scrollIntoView = vi.fn();
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -198,6 +208,11 @@ describe("chat page", () => {
     expect(seen).toContain(greetingFor(new Date()));
     for (const phrase of HIDDEN_GUIDANCE) expect(seen).not.toMatch(phrase);
     expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
+    const add = screen.getByRole("button", { name: "Add" });
+    expect((add as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector("[data-slot='composer-shell']")?.textContent).toContain(
+      "Gemini 2.5 Flash",
+    );
     expect(screen.queryByText(/Try one/)).toBeNull();
   });
 
@@ -232,27 +247,63 @@ describe("chat page", () => {
     expect(container.textContent ?? "").not.toMatch(/came back from Walrus, not from the page/i);
   });
 
-  it("shows a command's answer without treating it as something taught", () => {
-    // Commands used to come back as JSON the chat could not render: /help on
-    // the web showed nothing at all. They now stream, marked as commands.
+  it("shows a command's answer as a table without treating it as something taught", () => {
     chatMessages = [
-      { id: "1", role: "user", parts: [{ type: "text", text: "/help" }] },
+      { id: "1", role: "user", parts: [{ type: "text", text: "/whoami" }] },
       {
         id: "2",
         role: "assistant",
-        parts: [{ type: "text", text: "/memory            what I remember about you" }],
-        metadata: { command: true },
+        parts: [{ type: "text", text: "Mode: owned." }],
+        metadata: {
+          command: true,
+          table: {
+            lead: "Mode: owned.",
+            columns: ["Field", "Value"],
+            rows: [
+              { cells: ["Namespace", "hippo"], copy: "hippo" },
+              {
+                cells: ["Account", "0xabc"],
+                copy: "0xfull",
+                href: "https://suiscan.xyz/mainnet/object/0xfull",
+              },
+            ],
+          },
+        },
       },
     ];
-    render(
+    const { container } = render(
       <MemoryRouter>
         <ChatPage />
       </MemoryRouter>,
     );
-    const reply = screen.getByText(/what I remember about you/);
-    // Monospace, so the command table's columns line up.
-    expect(reply.className).toContain("font-mono");
+    expect(screen.getByRole("table")).toBeDefined();
+    expect(screen.getByText("hippo")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Copy Namespace" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Open Account" }).getAttribute("href")).toBe(
+      "https://suiscan.xyz/mainnet/object/0xfull",
+    );
+    expect(container.querySelector("pre")).toBeNull();
     expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
+  });
+
+  it("leaves a rate-limit sentence as a sentence", () => {
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "/whoami" }] },
+      {
+        id: "2",
+        role: "assistant",
+        parts: [{ type: "text", text: "Give me a minute and ask again." }],
+        metadata: { command: true },
+      },
+    ];
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("Give me a minute and ask again.")).toBeDefined();
+    expect(container.querySelector("table")).toBeNull();
+    expect(container.querySelector("pre")).toBeNull();
   });
 
   it("bubbles what you said and leaves hippo's answer in the page", () => {
@@ -388,6 +439,36 @@ describe("chat page", () => {
     expect(chatSend).not.toHaveBeenCalled();
   });
 
+  it("runs a slash command from the menu without pressing send", async () => {
+    const user = userEvent.setup();
+    mountChat();
+    const box = screen.getByRole("textbox");
+    await user.type(box, "/");
+    const memory = await screen.findByRole("option", {
+      name: /\/memory what I remember about you/i,
+    });
+    expect(screen.getByRole("option", { name: /\/whoami your account/i })).toBeDefined();
+    expect(document.querySelector("[data-slot='command-list']")?.className).toContain(
+      "scroll-fade-y",
+    );
+    await user.click(memory);
+    expect(chatSend).toHaveBeenCalledWith({ text: "/memory" });
+    expect(chatSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops the reply instead of sending another line", async () => {
+    chatStatus = "streaming";
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "hello" }] },
+      { id: "2", role: "assistant", parts: [{ type: "text", text: "Hel" }], metadata: {} },
+    ];
+    mountChat();
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+    expect(chatStop).toHaveBeenCalledOnce();
+    expect(chatSend).not.toHaveBeenCalled();
+  });
+
   it("keeps the assistant off the user bubble and shows thinking before words", () => {
     chatMessages = [
       { id: "1", role: "user", parts: [{ type: "text", text: "I use pnpm" }] },
@@ -460,6 +541,27 @@ describe("logo", () => {
     const markImg = mark.container.querySelector("img");
     expect(markImg?.getAttribute("src") ?? "").toMatch(/\/logo-(black|white)\.svg$/);
     expect(mark.container.textContent ?? "").not.toContain("hippo");
+  });
+});
+
+describe("how it works", () => {
+  it("explains the app and the chain, and does not list memories", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", surveyUrl: null },
+        "/api/me/memories": { memories: [] },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter>
+        <GuidePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/On chain/));
+    expect(container.textContent ?? "").toMatch(/seven months/);
+    expect(container.textContent ?? "").toMatch(/\/connect/);
+    expect(screen.queryByRole("button", { name: /own this memory/i })).toBeNull();
   });
 });
 
@@ -722,9 +824,9 @@ describe("me page", () => {
         <MePage />
       </MemoryRouter>,
     );
-    await screen.findByText("use again");
+    await screen.findByRole("button", { name: "Use again" });
     expect(screen.getByText("hidden")).toBeTruthy();
-    screen.getByRole("button", { name: "hide" }).click();
+    screen.getByRole("button", { name: "Hide" }).click();
     await waitFor(() => expect(posted).toEqual([{ blobId: "keepblob1", hidden: true }]));
   });
 
@@ -811,8 +913,10 @@ describe("me page, on chain", () => {
     expect(seen).toMatch(/hippo \(web:uy\)/);
     expect(seen).toMatch(/MCP Client/);
     // The object must be reachable, or the claim is unverifiable.
-    const link = screen.getByRole("link", { name: new RegExp(account.slice(0, 12), "i") });
-    expect(link.getAttribute("href")).toContain(account);
+    const link = container.querySelector(`a[href*="${account}"]`);
+    expect(link?.getAttribute("href")).toContain(account);
+    expect(link?.textContent ?? "").toMatch(/^0xcd\.\.\./);
+    expect(link?.textContent?.endsWith("cd")).toBe(true);
   });
 
   it("offers revoke when the account is yours", async () => {
@@ -860,7 +964,9 @@ describe("me page, on chain", () => {
       </MemoryRouter>,
     );
     await waitFor(() => expect(container.textContent ?? "").toMatch(/could not be read/i));
-    expect(screen.getByRole("link", { name: new RegExp(account.slice(0, 12), "i") })).toBeDefined();
+    const link = container.querySelector(`a[href*="${account}"]`);
+    expect(link?.textContent ?? "").toMatch(/^0xcd\.\.\./);
+    expect(link?.textContent?.endsWith("cd")).toBe(true);
   });
 });
 
@@ -889,13 +995,12 @@ describe("me page, finding a memory", () => {
         <MePage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(screen.getByRole("button", { name: "style" })).toBeDefined());
-    const rowCount = () => container.querySelectorAll("ul li").length;
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Type" })).toBeDefined());
+    const rowCount = () => container.querySelectorAll("tbody tr").length;
     expect(rowCount()).toBe(2);
 
-    await userEvent.click(screen.getByRole("button", { name: "style" }));
-    expect(screen.getByRole("button", { name: "style" }).getAttribute("aria-pressed")).toBe("true");
-    // The row is gone, not just the chip highlighted. Local filter, no request.
+    await userEvent.click(screen.getByRole("combobox", { name: "Type" }));
+    await userEvent.click(screen.getByRole("option", { name: "style" }));
     expect(rowCount()).toBe(1);
     expect(container.textContent ?? "").toMatch(/style/);
   });
@@ -947,8 +1052,8 @@ describe("me page, finding a memory", () => {
     const teamRow = rows.find((li) => li.textContent?.includes("Staging deploys"));
     const ownRow = rows.find((li) => li.textContent?.includes("Railway"));
     expect(teamRow?.textContent).toMatch(/team/);
-    expect(teamRow?.textContent).not.toMatch(/stop using this/);
-    expect(ownRow?.textContent).toMatch(/stop using this/);
+    expect(teamRow?.querySelector("button")).toBeNull();
+    expect(ownRow?.querySelector("button")?.getAttribute("aria-label")).toBe("stop using this");
   });
 
   it("surfaces a failed search as a toast instead of a stale red line", async () => {
