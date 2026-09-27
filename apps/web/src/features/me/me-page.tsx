@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { useShellTitle } from "@/app/shell";
+import { CopyButton } from "@/components/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { ChainPanel } from "@/features/me/chain-panel";
-import { CopyButton } from "@/features/me/copy-button";
 import { ExportPanel } from "@/features/me/export-panel";
 import { Hash } from "@/features/me/hash";
 import { MemoryList } from "@/features/me/memory-list";
@@ -75,7 +75,7 @@ export function MePage() {
           </span>
           {me.namespace ? (
             <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Hash value={me.namespace} label="namespace" head={16} />
+              <Hash value={me.namespace} label="namespace" />
             </span>
           ) : null}
           {me.signedIn ? (

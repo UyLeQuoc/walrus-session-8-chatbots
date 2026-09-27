@@ -1,4 +1,5 @@
 import { gatherContext, runTurn } from "@hippo/core";
+import { type CommandTable, packCommandBody } from "@hippo/core/command-table";
 import { and, delegateKeys, desc, eq, memoryIndex } from "@hippo/db";
 import { createSuiClient, explorer, NAMESPACE, RelayerExtras, readAccount } from "@hippo/memory";
 import { type Context, Hono } from "hono";
@@ -198,7 +199,9 @@ export const chatRoutes = new Hono()
     if (body.clientMessageId && !body.regenerate) {
       const prior = await storedAnswer(conversationId, body.clientMessageId);
       if (prior) {
-        return prior.kind === "command" ? plainReply(channel, prior.text) : textReply(prior.text);
+        return prior.kind === "command"
+          ? plainReply(channel, prior.text, undefined, channel === "web" ? prior.table : undefined)
+          : textReply(prior.text);
       }
     }
 
@@ -215,14 +218,19 @@ export const chatRoutes = new Hono()
         return null;
       });
       if (saved?.ok && !saved.alreadyAnswered) {
-        await appendAssistant(conversationId, command.text, "command").catch((err) =>
+        const body =
+          channel === "web" && command.table
+            ? packCommandBody(command.text, command.table)
+            : command.text;
+        await appendAssistant(conversationId, body, "command").catch((err) =>
           console.error(`[${channel}] history`, err),
         );
       }
       await noteCommand(person.id, channel);
-      const shown =
-        saved?.ok && saved.alreadyAnswered && saved.answer ? saved.answer : command.text;
-      return plainReply(channel, shown, command.files);
+      const replay = saved?.ok && saved.alreadyAnswered && saved.answer ? saved : null;
+      const shown = replay?.answer ?? command.text;
+      const table: CommandTable | undefined = replay ? replay.table : command.table;
+      return plainReply(channel, shown, command.files, channel === "web" ? table : undefined);
     }
 
     let placed: Awaited<ReturnType<typeof appendUser>>;

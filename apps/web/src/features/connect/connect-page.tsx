@@ -2,6 +2,7 @@ import { useParams } from "react-router";
 import { useShellTitle } from "@/app/shell";
 import { Button } from "@/components/ui/button";
 import { WalletPicker } from "@/components/wallet-picker";
+import { Web3Address } from "@/components/web3-address";
 import { useConnectFlow } from "@/features/connect/use-connect-flow";
 
 export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
@@ -67,8 +68,10 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
             <dd className="font-mono">{info.label}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt>Delegate key</dt>
-            <dd className="font-mono">{info.publicKey.slice(0, 16)}…</dd>
+            <dt className="shrink-0">Delegate key</dt>
+            <dd className="min-w-0 flex-1">
+              <Web3Address value={info.publicKey} />
+            </dd>
           </div>
         </dl>
       )}

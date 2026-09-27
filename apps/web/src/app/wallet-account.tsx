@@ -1,6 +1,7 @@
 import { Link } from "react-router";
-import { shortAddress, WalletAvatar } from "@/app/wallet-avatar";
+import { WalletAvatar } from "@/app/wallet-avatar";
 import { WalletPicker } from "@/components/wallet-picker";
+import { Web3Address } from "@/components/web3-address";
 import { useMe } from "@/features/me/use-me";
 
 export function WalletAccount() {
@@ -13,10 +14,10 @@ export function WalletAccount() {
     return (
       <Link
         to="/me"
-        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent"
+        className="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent"
       >
         <WalletAvatar address={address} />
-        <span className="truncate font-mono text-xs">{shortAddress(address)}</span>
+        <Web3Address value={address} className="text-xs" />
       </Link>
     );
   }

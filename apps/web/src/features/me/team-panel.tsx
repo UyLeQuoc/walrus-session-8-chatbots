@@ -6,9 +6,9 @@
  * it: the page is about what hippo holds, not about who said what.
  */
 import { useState } from "react";
+import { CopyButton } from "@/components/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CopyButton } from "@/features/me/copy-button";
 import { Hash } from "@/features/me/hash";
 import { ago } from "@/features/me/memory";
 import { Section } from "@/features/me/section";
@@ -72,7 +72,7 @@ export function TeamPanel({ onError }: { onError: (message: string) => void }) {
                 <span className="flex min-w-0 items-center gap-2">
                   <Badge>{m.type}</Badge>
                   {m.blobId ? (
-                    <Hash value={m.blobId} href={m.explorerUrl} label="blob id" head={8} subtle />
+                    <Hash value={m.blobId} href={m.explorerUrl} label="blob id" />
                   ) : (
                     <span className="text-xs text-muted-foreground">
                       {m.status === "failed" ? "never reached Walrus" : "not written yet"}

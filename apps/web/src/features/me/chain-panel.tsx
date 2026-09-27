@@ -37,21 +37,16 @@ export function ChainPanel({ owned, onError }: { owned: boolean; onError: (m: st
       )}
       <dl className="space-y-2 text-sm">
         <div className="flex items-baseline justify-between gap-4">
-          <dt className="text-muted-foreground">Account</dt>
-          <dd>
-            <Hash
-              value={account.accountId}
-              href={account.explorerUrl}
-              label="account id"
-              head={18}
-            />
+          <dt className="shrink-0 text-muted-foreground">Account</dt>
+          <dd className="min-w-0 flex-1">
+            <Hash value={account.accountId} href={account.explorerUrl} label="account id" />
           </dd>
         </div>
         {account.owner && (
           <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-muted-foreground">Owner</dt>
-            <dd>
-              <Hash value={account.owner} href={account.ownerUrl} label="owner" head={18} />
+            <dt className="shrink-0 text-muted-foreground">Owner</dt>
+            <dd className="min-w-0 flex-1">
+              <Hash value={account.owner} href={account.ownerUrl} label="owner" />
             </dd>
           </div>
         )}
@@ -76,7 +71,7 @@ export function ChainPanel({ owned, onError }: { owned: boolean; onError: (m: st
                   <span>{d.label || "unlabelled"}</span>
                   {d.isHippo && <Badge variant="accent">hippo</Badge>}
                 </span>
-                <Hash value={d.publicKeyHex} label="public key" head={12} subtle />
+                <Hash value={d.publicKeyHex} label="public key" />
               </li>
             ))}
             {(account.delegates?.length ?? 0) === 0 && (

@@ -5,23 +5,20 @@
  * the rest. A hash you cannot read or copy is decoration.
  */
 
+import { CopyButton } from "@/components/copy-button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CopyButton } from "@/features/me/copy-button";
+import { Web3Address } from "@/components/web3-address";
 
 export function Hash({
   value,
   href,
   label,
-  head = 10,
-  subtle,
 }: {
   value: string;
   href?: string | null;
   label?: string;
-  head?: number;
-  subtle?: boolean;
 }) {
-  const short = value.length > head + 2 ? `${value.slice(0, head)}…` : value;
+  const text = <Web3Address value={value} className="text-xs" />;
 
   return (
     /*
@@ -31,27 +28,27 @@ export function Hash({
      * Nesting providers is allowed and costs nothing.
      */
     <TooltipProvider delayDuration={200}>
-      <span className="inline-flex items-center gap-1.5">
+      <span className="flex min-w-0 max-w-full flex-1 items-center gap-1.5">
         <Tooltip>
           <TooltipTrigger asChild>
             {href ? (
               <a
-                className="font-mono text-xs underline"
+                className="block min-w-0 flex-1 underline"
                 href={href}
                 target="_blank"
                 rel="noreferrer"
               >
-                {short}
+                {text}
               </a>
             ) : (
-              <span className="font-mono text-xs">{short}</span>
+              <span className="block min-w-0 flex-1">{text}</span>
             )}
           </TooltipTrigger>
           <TooltipContent className="max-w-[min(90vw,28rem)] break-all font-mono text-[11px]">
             {value}
           </TooltipContent>
         </Tooltip>
-        <CopyButton value={value} label={label ?? "value"} subtle={subtle} />
+        <CopyButton value={value} label={label ?? "value"} />
       </span>
     </TooltipProvider>
   );

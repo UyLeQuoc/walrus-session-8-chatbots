@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./commands": "./src/command-catalog.ts"
+    "./commands": "./src/command-catalog.ts",
+    "./command-table": "./src/command-table.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

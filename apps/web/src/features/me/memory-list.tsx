@@ -158,7 +158,7 @@ export function MemoryList({
                     {m.hidden && <Badge variant="outline">hidden</Badge>}
                     {/* The blob id is the only thing that differs between rows. */}
                     {m.blobId ? (
-                      <Hash value={m.blobId} href={m.explorerUrl} label="blob id" head={8} subtle />
+                      <Hash value={m.blobId} href={m.explorerUrl} label="blob id" />
                     ) : (
                       <span className="text-xs text-muted-foreground">not written yet</span>
                     )}

@@ -11,6 +11,7 @@
  * JSON, which also carries the files `/export` hands back. No imports from the
  * environment or the database, so this is tested in CI.
  */
+import type { CommandTable } from "@hippo/core/command-table";
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 
 export interface ReplyFile {
@@ -19,19 +20,24 @@ export interface ReplyFile {
   content: string;
 }
 
-export function plainReply(channel: string, text: string, files?: ReplyFile[]): Response {
+export function plainReply(
+  channel: string,
+  text: string,
+  files?: ReplyFile[],
+  table?: CommandTable,
+): Response {
   if (channel === "cli") return Response.json({ command: true, text, files });
-  return textReply(text, true);
+  return textReply(text, true, table);
 }
 
 /** A stored answer replayed as a stream, so a retry does not call the model again. */
-export function textReply(text: string, command = false): Response {
+export function textReply(text: string, command = false, table?: CommandTable): Response {
   const id = "reply";
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
       writer.write({
         type: "start",
-        ...(command ? { messageMetadata: { command: true } } : {}),
+        ...(command ? { messageMetadata: { command: true, ...(table ? { table } : {}) } } : {}),
       });
       writer.write({ type: "text-start", id });
       writer.write({ type: "text-delta", id, delta: text });

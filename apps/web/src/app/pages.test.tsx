@@ -241,27 +241,63 @@ describe("chat page", () => {
     expect(container.textContent ?? "").not.toMatch(/came back from Walrus, not from the page/i);
   });
 
-  it("shows a command's answer without treating it as something taught", () => {
-    // Commands used to come back as JSON the chat could not render: /help on
-    // the web showed nothing at all. They now stream, marked as commands.
+  it("shows a command's answer as a table without treating it as something taught", () => {
     chatMessages = [
-      { id: "1", role: "user", parts: [{ type: "text", text: "/help" }] },
+      { id: "1", role: "user", parts: [{ type: "text", text: "/whoami" }] },
       {
         id: "2",
         role: "assistant",
-        parts: [{ type: "text", text: "/memory            what I remember about you" }],
-        metadata: { command: true },
+        parts: [{ type: "text", text: "Mode: owned." }],
+        metadata: {
+          command: true,
+          table: {
+            lead: "Mode: owned.",
+            columns: ["Field", "Value"],
+            rows: [
+              { cells: ["Namespace", "hippo"], copy: "hippo" },
+              {
+                cells: ["Account", "0xabc"],
+                copy: "0xfull",
+                href: "https://suiscan.xyz/mainnet/object/0xfull",
+              },
+            ],
+          },
+        },
       },
     ];
-    render(
+    const { container } = render(
       <MemoryRouter>
         <ChatPage />
       </MemoryRouter>,
     );
-    const reply = screen.getByText(/what I remember about you/);
-    // Monospace, so the command table's columns line up.
-    expect(reply.className).toContain("font-mono");
+    expect(screen.getByRole("table")).toBeDefined();
+    expect(screen.getByText("hippo")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Copy Namespace" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Open Account" }).getAttribute("href")).toBe(
+      "https://suiscan.xyz/mainnet/object/0xfull",
+    );
+    expect(container.querySelector("pre")).toBeNull();
     expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
+  });
+
+  it("leaves a rate-limit sentence as a sentence", () => {
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "/whoami" }] },
+      {
+        id: "2",
+        role: "assistant",
+        parts: [{ type: "text", text: "Give me a minute and ask again." }],
+        metadata: { command: true },
+      },
+    ];
+    const { container } = render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("Give me a minute and ask again.")).toBeDefined();
+    expect(container.querySelector("table")).toBeNull();
+    expect(container.querySelector("pre")).toBeNull();
   });
 
   it("bubbles what you said and leaves hippo's answer in the page", () => {
@@ -402,7 +438,9 @@ describe("chat page", () => {
     mountChat();
     const box = screen.getByRole("textbox");
     await user.type(box, "/");
-    const memory = await screen.findByRole("option", { name: /\/memory what I remember about you/i });
+    const memory = await screen.findByRole("option", {
+      name: /\/memory what I remember about you/i,
+    });
     expect(screen.getByRole("option", { name: /\/whoami your account/i })).toBeDefined();
     expect(document.querySelector("[data-slot='command-list']")?.className).toContain(
       "scroll-fade-y",
@@ -848,8 +886,10 @@ describe("me page, on chain", () => {
     expect(seen).toMatch(/hippo \(web:uy\)/);
     expect(seen).toMatch(/MCP Client/);
     // The object must be reachable, or the claim is unverifiable.
-    const link = screen.getByRole("link", { name: new RegExp(account.slice(0, 12), "i") });
-    expect(link.getAttribute("href")).toContain(account);
+    const link = container.querySelector(`a[href*="${account}"]`);
+    expect(link?.getAttribute("href")).toContain(account);
+    expect(link?.textContent ?? "").toMatch(/^0xcd\.\.\./);
+    expect(link?.textContent?.endsWith("cd")).toBe(true);
   });
 
   it("offers revoke when the account is yours", async () => {
@@ -897,7 +937,9 @@ describe("me page, on chain", () => {
       </MemoryRouter>,
     );
     await waitFor(() => expect(container.textContent ?? "").toMatch(/could not be read/i));
-    expect(screen.getByRole("link", { name: new RegExp(account.slice(0, 12), "i") })).toBeDefined();
+    const link = container.querySelector(`a[href*="${account}"]`);
+    expect(link?.textContent ?? "").toMatch(/^0xcd\.\.\./);
+    expect(link?.textContent?.endsWith("cd")).toBe(true);
   });
 });
 

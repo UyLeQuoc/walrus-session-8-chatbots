@@ -1,13 +1,9 @@
 import { useChat } from "@ai-sdk/react";
+import { sanitizeTable } from "@hippo/core/command-table";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  useAdoptChat,
-  useNewChatTick,
-  useOpenTick,
-  useShellTitle,
-} from "@/app/shell";
+import { useAdoptChat, useNewChatTick, useOpenTick, useShellTitle } from "@/app/shell";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Message, MessageContent } from "@/components/ui/message";
 import {
@@ -19,18 +15,11 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
 import { Popover, PopoverAnchor } from "@/components/ui/popover";
-import {
-  clearActiveChat,
-  readActiveChat,
-  writeActiveChat,
-} from "@/features/chat/active-chat";
+import { clearActiveChat, readActiveChat, writeActiveChat } from "@/features/chat/active-chat";
+import { CommandTableView } from "@/features/chat/command-table";
 import { applyComposerAction } from "@/features/chat/composer-action";
 import { ComposerShell } from "@/features/chat/composer-shell";
-import {
-  Examples,
-  rememberPendingAsk,
-  takePendingAsk,
-} from "@/features/chat/examples";
+import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
 import { GreetingLine } from "@/features/chat/greeting-line";
 import { Markdown } from "@/features/chat/markdown";
 import { MemoryStrip } from "@/features/chat/memory-strip";
@@ -126,11 +115,7 @@ export function ChatPage() {
   }, [openTick, setMessages]);
 
   useEffect(() => {
-    if (
-      transcript.generation === 0 ||
-      applied.current === transcript.generation
-    )
-      return;
+    if (transcript.generation === 0 || applied.current === transcript.generation) return;
     applied.current = transcript.generation;
     if (transcript.messages) setMessages(transcript.messages);
   }, [transcript.generation, transcript.messages, setMessages]);
@@ -177,10 +162,7 @@ export function ChatPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       {messages.length === 0 ? (
         <div className="flex min-h-0 flex-1 items-center justify-center px-4">
-          <div
-            data-slot="empty-cluster"
-            className="flex w-full max-w-xl flex-col gap-10"
-          >
+          <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-10">
             <div data-slot="greeting" className="text-center">
               <GreetingLine text={greeting} />
             </div>
@@ -193,11 +175,7 @@ export function ChatPage() {
               messages={messages}
             />
             <div className="flex flex-col items-start gap-3">
-              <Examples
-                taught={false}
-                onPick={send}
-                onReloadAndAsk={reloadAndAsk}
-              />
+              <Examples taught={false} onPick={send} onReloadAndAsk={reloadAndAsk} />
             </div>
           </div>
         </div>
@@ -208,10 +186,7 @@ export function ChatPage() {
               <MessageScrollerViewport>
                 <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
                   {messages.map((m) => (
-                    <MessageScrollerItem
-                      key={m.id}
-                      scrollAnchor={m.role === "user"}
-                    >
+                    <MessageScrollerItem key={m.id} scrollAnchor={m.role === "user"}>
                       <ChatTurn
                         message={m}
                         live={m.id === lastId && busy}
@@ -350,9 +325,7 @@ function outboundMessage(
   return [...prior].reverse().find((m) => m.role === "user") ?? messages.at(-1);
 }
 
-function threadTitle(
-  messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>,
-) {
+function threadTitle(messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>) {
   const firstUser = messages.find((m) => m.role === "user");
   const line = textOf(firstUser?.parts).split("\n")[0]?.trim() ?? "";
   if (!line) return "New chat";
@@ -401,14 +374,13 @@ function ChatTurn({
   }
 
   const recalled =
-    (message.metadata as { recalled?: RecalledMemory[] } | undefined)
-      ?.recalled ?? [];
+    (message.metadata as { recalled?: RecalledMemory[] } | undefined)?.recalled ?? [];
   const tools = (message.parts ?? []).filter(
     (p) => p.type === "tool-remember" || p.type === "tool-recall",
   );
-  const command = Boolean(
-    (message.metadata as { command?: boolean } | undefined)?.command,
-  );
+  const meta = message.metadata as { command?: boolean; table?: unknown } | undefined;
+  const command = Boolean(meta?.command);
+  const table = sanitizeTable(meta?.table);
 
   return (
     <Message>
@@ -417,11 +389,11 @@ function ChatTurn({
         {tools.map((p, i) => (
           <ToolLine key={`${String(p.type)}-${i}`} part={p} />
         ))}
-        {shown ? (
+        {table ? (
+          <CommandTableView table={table} />
+        ) : shown ? (
           command ? (
-            <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
-              {shown}
-            </pre>
+            <p className="whitespace-pre-wrap text-sm">{shown}</p>
           ) : (
             <Markdown>{shown}</Markdown>
           )

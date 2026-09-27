@@ -1,15 +1,18 @@
+import { type CommandTable, sanitizeTable } from "@hippo/core/command-table";
+
 export interface StoredMessage {
   id: string;
   role: string;
   kind: string;
   text: string;
+  table?: unknown;
 }
 
 export interface UiMessage {
   id: string;
   role: "user" | "assistant";
   parts: Array<{ type: "text"; text: string }>;
-  metadata?: { command: true };
+  metadata?: { command: true; table?: CommandTable };
 }
 
 export function isStoredMessage(value: unknown): value is StoredMessage {
@@ -27,11 +30,14 @@ export function toUiMessages(rows: unknown[]): UiMessage[] {
   const out: UiMessage[] = [];
   for (const row of rows) {
     if (!isStoredMessage(row)) continue;
+    const table = row.role === "assistant" ? sanitizeTable(row.table) : undefined;
     out.push({
       id: row.id,
       role: row.role as UiMessage["role"],
       parts: [{ type: "text", text: row.text }],
-      ...(row.kind === "command" ? { metadata: { command: true } } : {}),
+      ...(row.kind === "command"
+        ? { metadata: { command: true as const, ...(table ? { table } : {}) } }
+        : {}),
     });
   }
   return out;

@@ -5,6 +5,7 @@
  * reload or a process restart can continue it. The model never sees the whole
  * table: `contextWindow` caps what is loaded.
  */
+import { type CommandTable, presentCommandBody } from "@hippo/core/command-table";
 import { and, conversations, desc, eq, isNotNull, isNull, messages, sql } from "@hippo/db";
 import { decryptSecret, encryptSecret } from "@hippo/memory";
 import type { ModelMessage } from "ai";
@@ -34,15 +35,23 @@ export interface TranscriptMessage {
   kind: TranscriptKind;
   text: string;
   seq: number;
+  table?: CommandTable;
 }
 
 export interface StoredAnswer {
   text: string;
   kind: TranscriptKind;
+  table?: CommandTable;
 }
 
 export type AppendResult =
-  | { ok: true; sessionStart: boolean; alreadyAnswered: boolean; answer: string | null }
+  | {
+      ok: true;
+      sessionStart: boolean;
+      alreadyAnswered: boolean;
+      answer: string | null;
+      table?: CommandTable;
+    }
   | { ok: false; reason: "missing" };
 
 function seal(text: string): string {
@@ -181,7 +190,8 @@ export async function storedAnswer(
   if (!answer) return null;
   const text = unseal(answer.bodyEnc, answer.id);
   if (text === null) return null;
-  return { text, kind: answer.kind };
+  const presented = presentCommandBody("assistant", answer.kind, text);
+  return { text: presented.text, kind: answer.kind, table: presented.table };
 }
 
 export async function appendUser(input: {
@@ -224,7 +234,7 @@ export async function appendUser(input: {
             .where(and(eq(messages.conversationId, conv.id), sql`${messages.seq} > ${prior.seq}`));
         } else {
           const [answer] = await tx
-            .select({ id: messages.id, bodyEnc: messages.bodyEnc })
+            .select({ id: messages.id, kind: messages.kind, bodyEnc: messages.bodyEnc })
             .from(messages)
             .where(
               and(
@@ -238,7 +248,14 @@ export async function appendUser(input: {
           if (answer) {
             const text = unseal(answer.bodyEnc, answer.id);
             if (text !== null) {
-              return { ok: true, sessionStart: false, alreadyAnswered: true, answer: text };
+              const presented = presentCommandBody("assistant", answer.kind, text);
+              return {
+                ok: true,
+                sessionStart: false,
+                alreadyAnswered: true,
+                answer: presented.text,
+                table: presented.table,
+              };
             }
           }
         }
@@ -269,7 +286,13 @@ export async function appendUser(input: {
     if (!isUniqueViolation(err) || !input.clientId) throw err;
     const prior = await storedAnswer(input.conversationId, input.clientId);
     if (!prior) return { ok: true, sessionStart: false, alreadyAnswered: false, answer: null };
-    return { ok: true, sessionStart: false, alreadyAnswered: true, answer: prior.text };
+    return {
+      ok: true,
+      sessionStart: false,
+      alreadyAnswered: true,
+      answer: prior.text,
+      table: prior.table,
+    };
   }
 }
 
@@ -445,11 +468,13 @@ export async function readWebMessages(
   for (const row of page) {
     const text = unseal(row.bodyEnc, row.id);
     if (text === null) continue;
+    const presented = presentCommandBody(row.role, row.kind, text);
     out.push({
       id: row.clientId ?? row.id,
       role: row.role,
       kind: row.kind,
-      text,
+      text: presented.text,
+      ...(presented.table ? { table: presented.table } : {}),
       seq: row.seq,
     });
   }
