@@ -129,3 +129,11 @@ A stranger can, on the web app:
 5. Revoke the file and watch hippo stop using it, including facts it had saved from that file.
 
 `bun run demo` still passes. The article does not claim this feature until those five are true.
+
+## Later
+
+Not specified on purpose. Do these after the chat upgrade above, and do not invent the design before then.
+
+1. The user enters their own API key. Store it with Seal.
+2. The user picks their own model.
+3. Use Jev AI in hippo.
