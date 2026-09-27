@@ -24,7 +24,7 @@ export function SlashMenu({
       className="w-(--radix-popover-trigger-width) p-1"
     >
       <Command shouldFilter={false}>
-        <CommandList aria-label="Commands">
+        <CommandList aria-label="Commands" className="scroll-fade-y">
           {items.map((item, index) => (
             <CommandItem
               key={item.command}

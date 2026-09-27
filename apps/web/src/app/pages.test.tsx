@@ -399,6 +399,9 @@ describe("chat page", () => {
     await user.type(box, "/");
     const memory = await screen.findByRole("option", { name: /\/memory what I remember about you/i });
     expect(screen.getByRole("option", { name: /\/whoami your account/i })).toBeDefined();
+    expect(document.querySelector("[data-slot='command-list']")?.className).toContain(
+      "scroll-fade-y",
+    );
     await user.click(memory);
     expect(chatSend).toHaveBeenCalledWith({ text: "/memory" });
     expect(chatSend).toHaveBeenCalledTimes(1);
