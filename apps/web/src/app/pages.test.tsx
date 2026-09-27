@@ -202,6 +202,11 @@ describe("chat page", () => {
     expect(seen).toContain(greetingFor(new Date()));
     for (const phrase of HIDDEN_GUIDANCE) expect(seen).not.toMatch(phrase);
     expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
+    const add = screen.getByRole("button", { name: "Add" });
+    expect((add as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector("[data-slot='composer-shell']")?.textContent).toContain(
+      "Gemini 2.5 Flash",
+    );
     expect(screen.queryByText(/Try one/)).toBeNull();
   });
 

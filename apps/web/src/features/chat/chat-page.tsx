@@ -1,6 +1,5 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowUp, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -10,12 +9,6 @@ import {
   useShellTitle,
 } from "@/app/shell";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-} from "@/components/ui/input-group";
 import { Message, MessageContent } from "@/components/ui/message";
 import {
   MessageScroller,
@@ -32,18 +25,21 @@ import {
   writeActiveChat,
 } from "@/features/chat/active-chat";
 import { applyComposerAction } from "@/features/chat/composer-action";
+import { ComposerShell } from "@/features/chat/composer-shell";
 import {
   Examples,
   rememberPendingAsk,
   takePendingAsk,
 } from "@/features/chat/examples";
-import { greetingFor } from "@/features/chat/greeting";
+import { GreetingLine } from "@/features/chat/greeting-line";
 import { Markdown } from "@/features/chat/markdown";
 import { MemoryStrip } from "@/features/chat/memory-strip";
 import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
 import { SlashMenu } from "@/features/chat/slash-menu-panel";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
+import { useComposerMeter } from "@/features/chat/use-composer-meter";
 import { bumpConversations } from "@/features/chat/use-conversations";
+import { useGreeting } from "@/features/chat/use-greeting";
 import { useSlashMenu } from "@/features/chat/use-slash-menu";
 import { useTranscript } from "@/features/chat/use-transcript";
 import { API_URL, identityHeaders } from "@/lib/api";
@@ -169,6 +165,7 @@ export function ChatPage() {
 
   const title = useMemo(() => threadTitle(messages), [messages]);
   useShellTitle(title);
+  const greeting = useGreeting();
 
   const reloadAndAsk = (value: string) => {
     clearActiveChat();
@@ -185,9 +182,7 @@ export function ChatPage() {
             className="flex w-full max-w-xl flex-col gap-10"
           >
             <div data-slot="greeting" className="text-center">
-              <p className="font-greeting text-2xl leading-tight tracking-tight sm:text-5xl">
-                {greetingFor(new Date())}
-              </p>
+              <GreetingLine text={greeting} />
             </div>
             <ComposerDock
               text={text}
@@ -195,6 +190,7 @@ export function ChatPage() {
               send={send}
               stop={() => void stop()}
               busy={busy}
+              messages={messages}
             />
             <div className="flex flex-col items-start gap-3">
               <Examples
@@ -238,6 +234,7 @@ export function ChatPage() {
               send={send}
               stop={() => void stop()}
               busy={busy}
+              messages={messages}
             />
           </div>
         </>
@@ -252,16 +249,25 @@ function ComposerDock({
   send,
   stop,
   busy,
+  messages,
 }: {
   text: string;
   setText: (value: string) => void;
   send: (value: string) => void;
   stop: () => void;
   busy: boolean;
+  messages: UIMessage[];
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <Composer text={text} setText={setText} send={send} stop={stop} busy={busy} />
+      <Composer
+        text={text}
+        setText={setText}
+        send={send}
+        stop={stop}
+        busy={busy}
+        messages={messages}
+      />
       <MemoryStrip />
     </div>
   );
@@ -273,14 +279,17 @@ function Composer({
   send,
   stop,
   busy,
+  messages,
 }: {
   text: string;
   setText: (value: string) => void;
   send: (value: string) => void;
   stop: () => void;
   busy: boolean;
+  messages: UIMessage[];
 }) {
   const slash = useSlashMenu({ text, busy, send, setText });
+  const meter = useComposerMeter(messages, text);
   const submit = () => {
     applyComposerAction({ busy, text, send, stop });
   };
@@ -299,37 +308,23 @@ function Composer({
             submit();
           }}
         >
-          <InputGroup className="overflow-hidden rounded-3xl bg-background shadow-md dark:bg-input/30 dark:shadow-xs">
-            <InputGroupTextarea
-              value={text}
-              placeholder="Message hippo…"
-              disabled={busy}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (slash.onKeyDown(e.key) === "handled") {
-                  e.preventDefault();
-                  return;
-                }
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  submit();
-                }
-              }}
-              className="p-4"
-            />
-        <InputGroupAddon align="block-end" className="p-2">
-          <InputGroupButton
-            type="submit"
-            variant="default"
-            size="icon-sm"
-            aria-label={busy ? "Stop" : "Send"}
-            disabled={!busy && text.trim() === ""}
-            className="ml-auto size-8 rounded-full p-0"
-          >
-            {busy ? <Square className="fill-current" /> : <ArrowUp />}
-          </InputGroupButton>
-        </InputGroupAddon>
-      </InputGroup>
+          <ComposerShell
+            text={text}
+            onText={setText}
+            disabled={busy}
+            busy={busy}
+            meter={meter}
+            onKeyDown={(e) => {
+              if (slash.onKeyDown(e.key) === "handled") {
+                e.preventDefault();
+                return;
+              }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+          />
         </form>
       </PopoverAnchor>
       {slash.open ? (

@@ -41,15 +41,21 @@ export const GREETINGS = {
 
 export type Greeting = (typeof GREETINGS)[keyof typeof GREETINGS][number];
 
+type GreetingPeriod = keyof typeof GREETINGS;
+
 function pick<T extends string>(lines: readonly T[], date: Date): T {
   const day = date.getFullYear() * 372 + date.getMonth() * 31 + date.getDate();
   return lines[day % lines.length] ?? lines[0];
 }
 
-export function greetingFor(date: Date): Greeting {
+function greetingPeriod(date: Date): GreetingPeriod {
   const hour = date.getHours();
-  if (hour >= 5 && hour < 12) return pick(GREETINGS.morning, date);
-  if (hour >= 12 && hour < 17) return pick(GREETINGS.afternoon, date);
-  if (hour >= 17 && hour < 21) return pick(GREETINGS.evening, date);
-  return pick(GREETINGS.night, date);
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 17) return "afternoon";
+  if (hour >= 17 && hour < 21) return "evening";
+  return "night";
+}
+
+export function greetingFor(date: Date): Greeting {
+  return pick(GREETINGS[greetingPeriod(date)], date);
 }
