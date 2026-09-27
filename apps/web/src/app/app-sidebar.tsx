@@ -1,5 +1,5 @@
-import { Library, SquarePen, Trash2 } from "lucide-react";
-import { Link } from "react-router";
+import { BookOpen, Library, SquarePen, Trash2 } from "lucide-react";
+import { Link, useLocation } from "react-router";
 import { WalletAccount } from "@/app/wallet-account";
 import { Logo } from "@/components/logo";
 import {
@@ -28,6 +28,7 @@ export function AppSidebar({
   activeChatId: string | null;
 }) {
   const { state } = useSidebar();
+  const { pathname } = useLocation();
   const collapsed = state === "collapsed";
   const { items, remove } = useConversations();
 
@@ -49,10 +50,18 @@ export function AppSidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild isActive={pathname === "/me"}>
                   <Link to="/me">
                     <Library />
                     <span>My memory</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/guide"}>
+                  <Link to="/guide">
+                    <BookOpen />
+                    <span>How it works</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

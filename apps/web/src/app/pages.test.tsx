@@ -15,6 +15,7 @@ import { Logo } from "../components/logo.tsx";
 import { ChatPage } from "../features/chat/chat-page.tsx";
 import { greetingFor } from "../features/chat/greeting.ts";
 import { ConnectPage } from "../features/connect/connect-page.tsx";
+import { GuidePage } from "../features/guide/guide-page.tsx";
 import { MePage } from "../features/me/me-page.tsx";
 import { AppLayout } from "./app-layout.tsx";
 import { NotFoundPage } from "./not-found.tsx";
@@ -118,6 +119,11 @@ function stubFetch(routes: Record<string, unknown>) {
 }
 
 beforeEach(() => {
+  if (!HTMLElement.prototype.hasPointerCapture) {
+    HTMLElement.prototype.hasPointerCapture = () => false;
+    HTMLElement.prototype.setPointerCapture = () => undefined;
+    HTMLElement.prototype.releasePointerCapture = () => undefined;
+  }
   chatMessages = [];
   chatStatus = "ready";
   chatVersion = 0;
@@ -538,6 +544,27 @@ describe("logo", () => {
   });
 });
 
+describe("how it works", () => {
+  it("explains the app and the chain, and does not list memories", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", surveyUrl: null },
+        "/api/me/memories": { memories: [] },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter>
+        <GuidePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/On chain/));
+    expect(container.textContent ?? "").toMatch(/seven months/);
+    expect(container.textContent ?? "").toMatch(/\/connect/);
+    expect(screen.queryByRole("button", { name: /own this memory/i })).toBeNull();
+  });
+});
+
 describe("me page", () => {
   it("points an anonymous visitor at the chat instead of showing an empty table", async () => {
     vi.stubGlobal(
@@ -797,9 +824,9 @@ describe("me page", () => {
         <MePage />
       </MemoryRouter>,
     );
-    await screen.findByText("use again");
+    await screen.findByRole("button", { name: "Use again" });
     expect(screen.getByText("hidden")).toBeTruthy();
-    screen.getByRole("button", { name: "hide" }).click();
+    screen.getByRole("button", { name: "Hide" }).click();
     await waitFor(() => expect(posted).toEqual([{ blobId: "keepblob1", hidden: true }]));
   });
 
@@ -968,13 +995,12 @@ describe("me page, finding a memory", () => {
         <MePage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(screen.getByRole("button", { name: "style" })).toBeDefined());
-    const rowCount = () => container.querySelectorAll("ul li").length;
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Type" })).toBeDefined());
+    const rowCount = () => container.querySelectorAll("tbody tr").length;
     expect(rowCount()).toBe(2);
 
-    await userEvent.click(screen.getByRole("button", { name: "style" }));
-    expect(screen.getByRole("button", { name: "style" }).getAttribute("aria-pressed")).toBe("true");
-    // The row is gone, not just the chip highlighted. Local filter, no request.
+    await userEvent.click(screen.getByRole("combobox", { name: "Type" }));
+    await userEvent.click(screen.getByRole("option", { name: "style" }));
     expect(rowCount()).toBe(1);
     expect(container.textContent ?? "").toMatch(/style/);
   });
@@ -1026,8 +1052,8 @@ describe("me page, finding a memory", () => {
     const teamRow = rows.find((li) => li.textContent?.includes("Staging deploys"));
     const ownRow = rows.find((li) => li.textContent?.includes("Railway"));
     expect(teamRow?.textContent).toMatch(/team/);
-    expect(teamRow?.textContent).not.toMatch(/stop using this/);
-    expect(ownRow?.textContent).toMatch(/stop using this/);
+    expect(teamRow?.querySelector("button")).toBeNull();
+    expect(ownRow?.querySelector("button")?.getAttribute("aria-label")).toBe("stop using this");
   });
 
   it("surfaces a failed search as a toast instead of a stale red line", async () => {
