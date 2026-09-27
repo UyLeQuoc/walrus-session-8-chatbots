@@ -25,6 +25,7 @@ export interface TurnInput {
    * recall runs. Measured 2026-09-24, each recall costs about a second.
    */
   hasCorrections?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 export interface TurnContext {
@@ -83,12 +84,14 @@ export async function gatherContext(input: TurnInput): Promise<TurnContext> {
     );
   }
   for (const job of jobs) {
+    if (input.abortSignal?.aborted) return { injected: [], styleHints: [] };
     try {
       add(await job());
     } catch (err) {
       console.warn("[memory] recall failed", err);
     }
   }
+  if (input.abortSignal?.aborted) return { injected: [], styleHints: [] };
   const relevant = [...seen.values()].sort((a, b) => a.distance - b.distance).slice(0, 10);
   const corrections =
     input.hasCorrections === false ? [] : await recallCorrections(input.port, relevant);
@@ -162,6 +165,7 @@ export function runTurn(input: TurnInput, ctx: TurnContext, useFallback = false)
     messages,
     tools: input.memoryEnabled ? createTools(input.port, input.channel) : undefined,
     stopWhen: stepCountIs(4),
+    abortSignal: input.abortSignal,
   });
 }
 

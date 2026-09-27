@@ -253,8 +253,10 @@ export const chatRoutes = new Hono()
       memoryEnabled: person.memoryEnabled,
       sessionStart: placed.sessionStart,
       hasCorrections: await hasCorrections(person.id),
+      abortSignal: c.req.raw.signal,
     };
     const turnCtx = await gatherContext(input);
+    if (c.req.raw.signal.aborted) return c.body(null, 204);
     const result = runTurn(input, turnCtx);
     return result.toUIMessageStreamResponse({
       /**

@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -30,6 +30,7 @@ import {
   readActiveChat,
   writeActiveChat,
 } from "@/features/chat/active-chat";
+import { applyComposerAction } from "@/features/chat/composer-action";
 import {
   Examples,
   rememberPendingAsk,
@@ -84,7 +85,7 @@ export function ChatPage() {
       }),
     [],
   );
-  const { messages, sendMessage, setMessages, status, error } = useChat({
+  const { messages, sendMessage, setMessages, status, error, stop } = useChat({
     transport,
   });
   const [text, setText] = useState("");
@@ -189,6 +190,7 @@ export function ChatPage() {
               text={text}
               setText={setText}
               send={send}
+              stop={() => void stop()}
               busy={busy}
             />
             <div className="flex flex-col items-start gap-3">
@@ -231,6 +233,7 @@ export function ChatPage() {
               text={text}
               setText={setText}
               send={send}
+              stop={() => void stop()}
               busy={busy}
             />
           </div>
@@ -244,16 +247,18 @@ function ComposerDock({
   text,
   setText,
   send,
+  stop,
   busy,
 }: {
   text: string;
   setText: (value: string) => void;
   send: (value: string) => void;
+  stop: () => void;
   busy: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <Composer text={text} setText={setText} send={send} busy={busy} />
+      <Composer text={text} setText={setText} send={send} stop={stop} busy={busy} />
       <MemoryStrip />
     </div>
   );
@@ -263,18 +268,23 @@ function Composer({
   text,
   setText,
   send,
+  stop,
   busy,
 }: {
   text: string;
   setText: (value: string) => void;
   send: (value: string) => void;
+  stop: () => void;
   busy: boolean;
 }) {
+  const submit = () => {
+    applyComposerAction({ busy, text, send, stop });
+  };
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        send(text);
+        submit();
       }}
     >
       <InputGroup className="overflow-hidden rounded-3xl">
@@ -286,7 +296,7 @@ function Composer({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              send(text);
+              submit();
             }
           }}
           className="p-4"
@@ -296,11 +306,11 @@ function Composer({
             type="submit"
             variant="default"
             size="icon-sm"
-            aria-label="Send"
-            disabled={busy || text.trim() === ""}
+            aria-label={busy ? "Stop" : "Send"}
+            disabled={!busy && text.trim() === ""}
             className="ml-auto size-8 rounded-full p-0"
           >
-            <ArrowUp />
+            {busy ? <Square className="fill-current" /> : <ArrowUp />}
           </InputGroupButton>
         </InputGroupAddon>
       </InputGroup>

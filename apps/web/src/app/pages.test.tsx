@@ -29,6 +29,7 @@ let chatStatus = "ready";
 let chatVersion = 0;
 const chatSubscribers = new Set<() => void>();
 const chatSend = vi.fn();
+const chatStop = vi.fn();
 
 function publishChat() {
   chatVersion += 1;
@@ -50,6 +51,7 @@ vi.mock("@ai-sdk/react", () => ({
     return {
       messages: chatMessages,
       sendMessage: chatSend,
+      stop: chatStop,
       setMessages: (next: unknown[] | ((prev: unknown[]) => unknown[])) => {
         chatMessages = typeof next === "function" ? next(chatMessages) : next;
         publishChat();
@@ -120,6 +122,7 @@ beforeEach(() => {
   chatStatus = "ready";
   chatVersion = 0;
   chatSend.mockClear();
+  chatStop.mockClear();
   wallet = null;
   signAndExecute.mockClear();
   suiClientStub.core = {};
@@ -385,6 +388,19 @@ describe("chat page", () => {
 
     chatSend.mockClear();
     await user.type(box, "keep this{Shift>}{Enter}{/Shift}");
+    expect(chatSend).not.toHaveBeenCalled();
+  });
+
+  it("stops the reply instead of sending another line", async () => {
+    chatStatus = "streaming";
+    chatMessages = [
+      { id: "1", role: "user", parts: [{ type: "text", text: "hello" }] },
+      { id: "2", role: "assistant", parts: [{ type: "text", text: "Hel" }], metadata: {} },
+    ];
+    mountChat();
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+    expect(chatStop).toHaveBeenCalledOnce();
     expect(chatSend).not.toHaveBeenCalled();
   });
 

@@ -67,7 +67,7 @@ Exit: `docs/SPIKES.md` has the four results, and Phase 3 either has a working po
 Goal: the existing chat is usable before any new Walrus surface exists.
 
 1. Extract the chat transport, stop, and retry rules out of `chat-page.tsx` into `apps/web/src/features/chat/use-chat-thread.ts`. The page paints. The hook returns messages, status, and callbacks.
-2. Stop. While a turn is streaming, the send control becomes Stop and aborts the stream. Aborting does not insert a second user row.
+2. Stop. **Done 2026-09-27.** While a turn is streaming, the send control becomes Stop and aborts the stream. Aborting does not insert a second user row. The request signal stops further recalls and is passed into `streamText`.
 3. Retry the last answer. One retry path, shared with edit. A retry must not call `remember` again for a fact this turn already stored. Prove that with a test against the tool result, not against a screenshot.
 4. Edit the last user message and resend. Older messages stay. The replaced answer is the one the transcript keeps.
 5. Copy the answer. Fenced code gets a copy control and a language label. Use the markdown renderer that already exists. Do not add a second markdown stack.
