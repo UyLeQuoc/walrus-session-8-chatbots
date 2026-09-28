@@ -3,6 +3,50 @@ import { PopoverContent } from "@/components/ui/popover";
 import type { SlashItem } from "@/features/chat/slash-menu";
 import { cn } from "@/lib/utils";
 
+export function CommandGuide({
+  lines,
+  onPick,
+}: {
+  lines: Array<{ command: string; description: string }>;
+  onPick: (command: string) => void;
+}) {
+  return (
+    <PopoverContent
+      side="top"
+      align="start"
+      sideOffset={8}
+      onOpenAutoFocus={(event) => event.preventDefault()}
+      onCloseAutoFocus={(event) => event.preventDefault()}
+      className="w-(--radix-popover-trigger-width) p-1"
+    >
+      <Command shouldFilter={false}>
+        <CommandList aria-label="How to use this command">
+          {lines.map((line) => (
+            <CommandItem
+              key={line.command}
+              value={line.command}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                onPick(line.command);
+              }}
+            >
+              <span className="shrink-0 font-medium">
+                <span className="text-[#156BC1] dark:text-[#8EBEF5]">
+                  {line.command.split(" ")[0]}
+                </span>
+                {line.command.includes(" ")
+                  ? ` ${line.command.slice(line.command.indexOf(" ") + 1)}`
+                  : ""}
+              </span>
+              <span className="min-w-0 truncate text-muted-foreground">{line.description}</span>
+            </CommandItem>
+          ))}
+        </CommandList>
+      </Command>
+    </PopoverContent>
+  );
+}
+
 export function SlashMenu({
   items,
   active,

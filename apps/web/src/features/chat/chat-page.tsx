@@ -24,7 +24,8 @@ import { GreetingLine } from "@/features/chat/greeting-line";
 import { Markdown } from "@/features/chat/markdown";
 import { MemoryStrip } from "@/features/chat/memory-strip";
 import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
-import { SlashMenu } from "@/features/chat/slash-menu-panel";
+import { commandRoot, commandUsages } from "@/features/chat/slash-menu";
+import { CommandGuide, SlashMenu } from "@/features/chat/slash-menu-panel";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
 import { useComposerMeter } from "@/features/chat/use-composer-meter";
 import { bumpConversations } from "@/features/chat/use-conversations";
@@ -175,7 +176,7 @@ export function ChatPage() {
               messages={messages}
             />
             <div className="flex flex-col items-start gap-3">
-              <Examples taught={false} onPick={send} onReloadAndAsk={reloadAndAsk} />
+              <Examples taught={false} onPick={setText} onReloadAndAsk={reloadAndAsk} />
             </div>
           </div>
         </div>
@@ -263,17 +264,41 @@ function Composer({
   busy: boolean;
   messages: UIMessage[];
 }) {
-  const slash = useSlashMenu({ text, busy, send, setText });
+  const [pinned, setPinned] = useState<string | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const root = commandRoot(text);
+  const guided = pinned !== null && root === pinned;
+  const applyCommand = (command: string) => {
+    setText(command);
+    const next = commandRoot(command);
+    setPinned(next);
+    setGuideOpen(next !== null);
+  };
+  const slash = useSlashMenu({
+    text,
+    busy,
+    pinned: guided,
+    apply: applyCommand,
+  });
   const meter = useComposerMeter(messages, text);
   const submit = () => {
     applyComposerAction({ busy, text, send, stop });
   };
+  const onText = (value: string) => {
+    setText(value);
+    if (pinned && commandRoot(value) !== pinned) {
+      setPinned(null);
+      setGuideOpen(false);
+    }
+  };
   return (
     <Popover
-      open={slash.open}
+      open={slash.open || (guided && guideOpen)}
       modal={false}
       onOpenChange={(next) => {
-        if (!next) slash.dismiss();
+        if (next) return;
+        slash.dismiss();
+        setGuideOpen(false);
       }}
     >
       <PopoverAnchor asChild>
@@ -285,10 +310,11 @@ function Composer({
         >
           <ComposerShell
             text={text}
-            onText={setText}
+            onText={onText}
             disabled={busy}
             busy={busy}
             meter={meter}
+            command={guided}
             onKeyDown={(e) => {
               if (slash.onKeyDown(e.key) === "handled") {
                 e.preventDefault();
@@ -309,6 +335,8 @@ function Composer({
           onHighlight={slash.highlight}
           onRun={slash.run}
         />
+      ) : guided && guideOpen && root ? (
+        <CommandGuide lines={commandUsages(root)} onPick={applyCommand} />
       ) : null}
     </Popover>
   );

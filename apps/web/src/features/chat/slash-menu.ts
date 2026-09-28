@@ -54,6 +54,49 @@ export function slashDraft(text: string): string | null {
   return text.slice(1);
 }
 
+const USAGE: Record<string, Array<{ command: string; description: string }>> = {
+  "/memory": [
+    { command: "/memory", description: "what I remember about you" },
+    { command: "/memory search <question>", description: "search your memory" },
+    { command: "/memory on", description: "start remembering again" },
+    { command: "/memory off", description: "stop remembering new facts" },
+    { command: "/memory forget <blob>", description: "stop me using one memory" },
+    { command: "/memory forget all", description: "make every memory unrecallable" },
+    { command: "/memory unhide <blob>", description: "use one memory again" },
+  ],
+  "/team": [
+    { command: "/team", description: "the team you are in" },
+    { command: "/team new <name>", description: "start one" },
+    { command: "/team join <code>", description: "join one somebody else started" },
+    { command: "/team invite", description: "a code for somebody else" },
+    { command: "/team remember <fact>", description: "add to the shared memory" },
+    { command: "/team leave", description: "stop reading and writing it" },
+  ],
+  "/link": [
+    { command: "/link", description: "a code for another channel" },
+    { command: "/link <code>", description: "use a code from another channel" },
+  ],
+};
+
+/** The root command in the box, such as `/team` inside `/team new <name>`. */
+export function commandRoot(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("/")) return null;
+  const names = CHANNEL_COMMANDS.map((command) => command.name).sort((a, b) => b.length - a.length);
+  for (const name of names) {
+    const command = `/${name}`;
+    if (trimmed === command || trimmed.startsWith(`${command} `)) return command;
+  }
+  return null;
+}
+
+export function commandUsages(root: string): Array<{ command: string; description: string }> {
+  const listed = USAGE[root];
+  if (listed) return listed;
+  const item = SLASH_ITEMS.find((entry) => entry.command === root);
+  return item ? [{ command: item.command, description: item.description }] : [];
+}
+
 export function filterSlashCommands(query: string): SlashItem[] {
   const needle = query.trim().toLowerCase();
   if (!needle) return SLASH_ITEMS;

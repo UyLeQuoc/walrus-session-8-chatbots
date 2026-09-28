@@ -227,9 +227,11 @@ describe("chat page", () => {
     expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
 
     await userEvent.click(chip);
-    expect(chatSend).toHaveBeenCalledWith({
-      text: "I only use pnpm, and I want short answers in Vietnamese.",
-    });
+    expect(chatSend).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox")).toHaveProperty(
+      "value",
+      "I only use pnpm, and I want short answers in Vietnamese.",
+    );
   });
 
   it("switches to proving it once hippo has answered", () => {
@@ -452,8 +454,19 @@ describe("chat page", () => {
       "scroll-fade-y",
     );
     await user.click(memory);
-    expect(chatSend).toHaveBeenCalledWith({ text: "/memory" });
-    expect(chatSend).toHaveBeenCalledTimes(1);
+    expect(chatSend).not.toHaveBeenCalled();
+    const filled = screen.getByRole("textbox");
+    expect(filled).toHaveProperty("value", "/memory");
+    const shell = filled.closest("[data-slot='composer-shell']");
+    const token = shell?.querySelector("[data-command-token]");
+    expect(token?.textContent).toBe("/memory");
+    expect(token?.className).toContain("text-[#156BC1]");
+    expect(screen.getByRole("option", { name: /\/memory search/i })).toBeDefined();
+    expect(screen.getByRole("option", { name: /\/memory forget <blob>/i })).toBeDefined();
+    await user.type(filled, " search");
+    const rest = shell?.querySelector("[data-command-rest]");
+    expect(rest?.textContent).toBe(" search");
+    expect(rest?.className).not.toContain("text-[#156BC1]");
   });
 
   it("stops the reply instead of sending another line", async () => {

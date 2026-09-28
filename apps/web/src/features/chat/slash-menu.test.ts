@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { filterSlashCommands, SLASH_ITEMS, slashDraft, slashKeyAction } from "./slash-menu";
+import {
+  commandRoot,
+  commandUsages,
+  filterSlashCommands,
+  SLASH_ITEMS,
+  slashDraft,
+  slashKeyAction,
+} from "./slash-menu";
 
 describe("slashDraft", () => {
   it("opens only when the draft itself is a command", () => {
@@ -27,6 +34,22 @@ describe("filterSlashCommands", () => {
       "/memory",
       "/memory on",
       "/memory off",
+    ]);
+  });
+});
+
+describe("commandRoot", () => {
+  it("keeps the family when the box holds a form of the command", () => {
+    expect(commandRoot("/team")).toBe("/team");
+    expect(commandRoot("/team new <name>")).toBe("/team");
+    expect(commandRoot("/memory on")).toBe("/memory");
+    expect(commandRoot("hello")).toBeNull();
+  });
+
+  it("lists the forms under that command", () => {
+    expect(commandUsages("/team").map((line) => line.command)).toContain("/team new <name>");
+    expect(commandUsages("/whoami")).toEqual([
+      { command: "/whoami", description: "your account and where the memory lives" },
     ]);
   });
 });
