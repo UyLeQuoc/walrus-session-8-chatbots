@@ -29,6 +29,33 @@ describe("memory text format", () => {
     expect(parseMemoryText(line)?.type).toBe("decision");
   });
 
+  it("records which blob a correction replaces, and drops a copied tag", () => {
+    const line = buildMemoryText({
+      type: "correction",
+      by: "uy",
+      channel: "web",
+      date: new Date("2026-09-29"),
+      replaces: "blob_0123456789",
+      text: "[replaces:blob_0123456789] I use bun now.",
+    });
+    expect(line).toBe(
+      "[correction] [by:@uy] [#web] [replaces:blob_0123456789] [2026-09-29] I use bun now.",
+    );
+    expect(parseMemoryText(line)?.tags.replaces).toBe("blob_0123456789");
+    expect(parseMemoryText(line)?.text).toBe("I use bun now.");
+  });
+
+  it("leaves a correction unlinked when the blob id cannot sit in a tag", () => {
+    const line = buildMemoryText({
+      type: "correction",
+      by: "uy",
+      date: new Date("2026-09-29"),
+      replaces: "not an id",
+      text: "I use bun now.",
+    });
+    expect(line).toBe("[correction] [by:@uy] [2026-09-29] I use bun now.");
+  });
+
   it("keeps a bracket that is not one of ours", () => {
     const line = buildMemoryText({
       type: "gotcha",

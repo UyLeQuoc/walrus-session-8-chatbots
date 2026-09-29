@@ -12,6 +12,10 @@ export function createTools(port: MemoryPort, channel: string, knownHashes?: Rea
         text: z.string().min(3).max(1000).describe("The complete fact, not a summary."),
       }),
       execute: async ({ type, text }) => port.remember({ type, text, channel, knownHashes }),
+      toModelOutput: ({ output }) => ({
+        type: "json",
+        value: { saved: output.saved, note: output.note, redacted: output.redacted },
+      }),
     }),
     recall: tool({
       description:

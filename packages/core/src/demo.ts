@@ -133,6 +133,7 @@ async function main() {
       if (e.outcome === "stored" && e.blobId)
         console.log(`    stored [${e.type}] blob ${e.blobId.slice(0, 12)}…`);
       if (e.outcome === "failed") console.log(`    FAILED [${e.type}] ${e.error ?? ""}`);
+      return undefined;
     },
   });
 
