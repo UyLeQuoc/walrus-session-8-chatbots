@@ -1,15 +1,30 @@
-import { useEffect, useState } from "react";
-import { greetingFor } from "./greeting";
+import { useEffect, useRef, useState } from "react";
+import { greetingAt, greetingsFor } from "./greeting";
 
-export const GREETING_TICK_MS = 60_000;
+export const GREETING_ROTATE_MS = 5_000;
 
-export function useGreeting(): string {
+export function useGreeting(visit = 0, playing = true) {
   const [now, setNow] = useState(() => new Date());
+  const [index, setIndex] = useState(() =>
+    Math.floor(Math.random() * greetingsFor(new Date()).length),
+  );
+  const visitSeen = useRef(visit);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), GREETING_TICK_MS);
+    if (!playing) return;
+    const id = window.setInterval(() => {
+      setNow(new Date());
+      setIndex((current) => current + 1);
+    }, GREETING_ROTATE_MS);
     return () => window.clearInterval(id);
-  }, []);
+  }, [playing]);
 
-  return greetingFor(now);
+  useEffect(() => {
+    if (visitSeen.current === visit) return;
+    visitSeen.current = visit;
+    setNow(new Date());
+    setIndex((current) => current + 1);
+  }, [visit]);
+
+  return greetingAt(now, index);
 }

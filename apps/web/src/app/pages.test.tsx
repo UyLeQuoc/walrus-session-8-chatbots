@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Logo } from "../components/logo.tsx";
 import { writeActiveChat } from "../features/chat/active-chat.ts";
 import { ChatPage } from "../features/chat/chat-page.tsx";
-import { greetingFor } from "../features/chat/greeting.ts";
+import { greetingsFor, greetingText } from "../features/chat/greeting.ts";
 import { ConnectPage } from "../features/connect/connect-page.tsx";
 import { GuidePage } from "../features/guide/guide-page.tsx";
 import { MePage } from "../features/me/me-page.tsx";
@@ -192,6 +192,10 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function showsAGreeting(seen: string): boolean {
+  return greetingsFor(new Date()).some((line) => seen.includes(greetingText(line)));
+}
+
 const HIDDEN_GUIDANCE = [
   /memory you own/i,
   /Take ownership/i,
@@ -214,13 +218,13 @@ describe("chat page", () => {
       </MemoryRouter>,
     );
     const seen = container.textContent ?? "";
-    expect(seen).toContain(greetingFor(new Date()));
+    expect(showsAGreeting(seen)).toBe(true);
     for (const phrase of HIDDEN_GUIDANCE) expect(seen).not.toMatch(phrase);
     expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
     const add = screen.getByRole("button", { name: "Add" });
     expect((add as HTMLButtonElement).disabled).toBe(true);
     expect(container.querySelector("[data-slot='composer-shell']")?.textContent).toContain(
-      "Gemini 2.5 Flash",
+      "DeepSeek V4.1 Flash",
     );
     expect(screen.queryByText(/Try one/)).toBeNull();
   });
@@ -367,7 +371,7 @@ describe("chat page", () => {
     );
     const seen = container.textContent ?? "";
     expect(seen).toMatch(/Noted\./);
-    expect(seen).not.toContain(greetingFor(new Date()));
+    expect(container.querySelector("[data-slot='greeting']")).toBeNull();
     expect(seen).not.toMatch(/memory you own/i);
   });
 
@@ -418,7 +422,8 @@ describe("chat page", () => {
     const suggestion = within(cluster as HTMLElement).getByRole("button", {
       name: /only use pnpm/i,
     });
-    expect(greeting.textContent ?? "").toContain(greetingFor(new Date()));
+    expect(showsAGreeting(greeting.textContent ?? "")).toBe(true);
+    expect(greeting.querySelector(".font-greeting")).toBeTruthy();
     expect(greeting.textContent ?? "").not.toContain("hippo");
     expect(greeting.querySelector("img")).toBeNull();
     expect(greeting.className).toContain("text-center");
@@ -776,7 +781,7 @@ describe("chat page", () => {
     expect(container.textContent ?? "").toMatch(/Noted\./);
     await userEvent.click(screen.getByRole("button", { name: /new chat/i }));
     const seen = container.textContent ?? "";
-    expect(seen).toContain(greetingFor(new Date()));
+    expect(showsAGreeting(seen)).toBe(true);
     expect(seen).not.toMatch(/Noted\./);
     expect(seen).not.toMatch(/I use pnpm/);
   });

@@ -113,7 +113,7 @@ async function main() {
   const env = readOperatorEnv();
   const model = createModel({
     apiKey,
-    model: process.env.LLM_MODEL ?? "google/gemini-2.5-flash",
+    model: process.env.LLM_MODEL ?? "deepseek/deepseek-v4.1-flash",
     fallbackModel: process.env.LLM_FALLBACK_MODEL,
   });
 

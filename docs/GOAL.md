@@ -301,7 +301,7 @@ call; this makes sure what they file and what a judge clones hold up.
 | Real-world use | `docs/evidence/final.md`, baseline vs memory-on transcripts, user survey (WalForm) |
 | Build quality | README quickstart, `bun run typecheck/lint/test/demo`, docker-compose, `docs/ARCHITECTURE.md` |
 | Article | `docs/article.md` → Medium + Inkray |
-| Beyond the Big Two | `LLM_MODEL=google/gemini-2.5-flash`, friction notes in article |
+| Beyond the Big Two | `LLM_MODEL=deepseek/deepseek-v4.1-flash`, friction notes in article |
 | Bug bounty | `docs/issues/` + GitHub links |
 | Promo | `docs/promo.md` + live link |
 

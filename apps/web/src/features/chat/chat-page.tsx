@@ -135,7 +135,7 @@ export function ChatPage() {
 
   const title = useMemo(() => threadTitle(messages), [messages]);
   useShellTitle(title);
-  const greeting = useGreeting();
+  const greeting = useGreeting(newChatTick, messages.length === 0);
 
   const reloadAndAsk = (value: string) => {
     clearActiveChat();
@@ -163,10 +163,10 @@ export function ChatPage() {
             <Skeleton className="h-24 w-full" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex min-h-0 flex-1 items-center justify-center px-4">
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 py-6">
             <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-10">
               <div data-slot="greeting" className="text-center">
-                <GreetingLine text={greeting} />
+                <GreetingLine greeting={greeting} />
               </div>
               <ComposerDock
                 text={text}
