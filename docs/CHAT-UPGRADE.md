@@ -81,14 +81,14 @@ Verification: `apps/web/src/app/pages.test.tsx` covers stop, retry, edit, and th
 
 Goal: a person can see, correct, and hide a memory without leaving the thread, and a reopened chat still shows what the answer used.
 
-1. Right-hand panel on desktop, sheet below `768px`. Two tabs later (Memory, Files). Phase 2 ships the Memory tab only. Collapsed by default after the first visit if the person closed it. Remember that in `localStorage`, same pattern as theme.
-2. "Just remembered" card when a `remember` tool result arrives. Show type, fact text, and status. Status comes from a light `GET /api/me/memories/:id/status` that reads `memory_index` only. Do not call the relayer expiry lookup on a poll. Poll while `pending`, at most every 3 seconds, at most 2 minutes, then show "still writing" and stop.
-3. Actions on that card: view on `/me`, correct, hide. Correct sends a `correction` through the existing remember path and links it to the blob it replaces. Hide calls the existing visibility route. Copy must say the blob remains on Walrus.
-4. Select text in a user or assistant bubble and choose Remember. The hook opens an edit of that selection, the person confirms, then `remember` runs. Never remember a selection silently.
-5. Persist citations. Store blob id, type, and distance on the assistant message. Not the memory text. On reopen, resolve text through recall or the existing search path, and omit any blob the person has hidden or lost access to. `toUiMessages` must keep this metadata.
-6. A memory toggle next to the composer, wired to the existing on/off command. The composer shows the state. It does not invent a second flag.
+1. Right-hand panel on desktop, sheet below `768px`. Two tabs later (Memory, Files). **Partial 2026-09-29.** Desktop is an aside, and a sheet under 768px. There is no Memory tab. The page test asserts the tab is absent. Collapsed after the first visit if the person closed it. Remembered in `localStorage` as `hippo.memory-panel`, same guard as theme.
+2. "Just remembered" card when a `remember` tool result arrives. **Done 2026-09-29.** Shows type, fact text, and status. Status comes from `GET /api/me/memories/:id/status`, which reads `memory_index` only. Poll while `pending`, every 3 seconds, at most 2 minutes, then "still writing".
+3. Actions on that card: view on `/me`, correct, hide. **Done 2026-09-29.** Correct sends a `correction` through `port.remember` and, when the blob id can sit in a tag, links it as `[replaces:blobId]`. Hide calls the existing visibility route. The card says the blob remains on Walrus.
+4. Select text in a user or assistant bubble and choose Remember. **Done 2026-09-29.** The dialog opens an edit of that selection. Nothing is stored until the person confirms.
+5. Persist citations. **Partial 2026-09-29.** Blob id, type, and distance are sealed with the assistant turn. Not the memory text. `toUiMessages` keeps the citation metadata. `POST /api/conversations/:id/citations` can resolve text by recall on the type tag, omit a hidden blob, and return `limited` when recall fails. The page never calls that route, so a reopened chat does not show the citation text.
+6. A memory toggle next to the composer, wired to the existing on/off command. **Done 2026-09-29.** It calls `setMemoryEnabled`, the same write `/memory on|off` uses. The composer shows `memoryEnabled`. It does not invent a second flag.
 
-Verification: a render test shows a pending card become stored without a relayer call. A test shows a hidden blob is absent after reopen. A mainnet check is not required for the card. Do not weaken `bun run demo`.
+Verification: a render test shows a pending card become stored without a relayer call. A unit test drops a hidden blob id from a sealed turn. The page does not resolve citation text on reopen. A mainnet check is not required for the card. Do not weaken `bun run demo`.
 
 ## Phase 3 — Private files
 
