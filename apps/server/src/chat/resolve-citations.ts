@@ -1,6 +1,6 @@
-import { isMemoryType } from "@hippo/memory";
 import { hiddenBlobs, type Person, portFor } from "../identity/persons.ts";
-import { type Citation, type CitedFact, dropHidden, factsFromLookup } from "./citations.ts";
+import { type Citation, dropHidden } from "./citations.ts";
+import { assembleCitationRead, type CitationReadResult, recallCitedText } from "./cited-text.ts";
 import { checkRate, noteCommand } from "./ratelimit.ts";
 
 export interface CitationMessage {
@@ -8,9 +8,7 @@ export interface CitationMessage {
   cites?: Citation[];
 }
 
-export type ResolvedCitations =
-  | { ok: true; limited: false; messages: Array<{ id: string; recalled: CitedFact[] }> }
-  | { ok: true; limited: true; message: string };
+export type ResolvedCitations = { ok: true } & CitationReadResult;
 
 export async function resolveStoredCitations(
   person: Person,
@@ -28,42 +26,37 @@ export async function resolveStoredCitations(
   if (!pending) {
     return {
       ok: true,
-      limited: false,
-      messages: visible.map((message) => ({ id: message.id, recalled: [] })),
+      ...assembleCitationRead({ messages: visible, found: new Map(), reached: true }),
     };
   }
   const gate = await checkRate(person.id);
-  if (!gate.allowed) return { ok: true, limited: true, message: gate.message };
+  if (!gate.allowed) {
+    return {
+      ok: true,
+      ...assembleCitationRead({
+        messages: visible,
+        found: new Map(),
+        reached: true,
+        blocked: gate.message,
+      }),
+    };
+  }
   await noteCommand(person.id, channel);
   const port = await portFor(person, channel);
-  const found = new Map<string, string>();
-  let reached = true;
-  const types = [...new Set(visible.flatMap((message) => message.cites.map((cite) => cite.type)))];
-  for (const type of types) {
-    try {
-      const hits = await port.recall({
-        query: isMemoryType(type) ? `[${type}]` : type,
-        limit: 100,
-        maxDistance: 2,
-      });
-      for (const hit of hits) {
-        if (found.has(hit.blob_id)) continue;
-        found.set(hit.blob_id, hit.parsed?.text ?? hit.text);
-      }
-    } catch (err) {
-      reached = false;
-      console.warn("[citations] recall failed", err instanceof Error ? err.message : err);
-      break;
-    }
+  const looked = await recallCitedText(
+    (input) => port.recall(input),
+    visible.flatMap((message) => message.cites),
+  );
+  if (!looked.reached) {
+    const err = looked.error;
+    console.warn("[citations] recall failed", err instanceof Error ? err.message : err);
   }
-  if (!reached)
-    return { ok: true, limited: true, message: "Walrus Memory could not be reached just now." };
   return {
     ok: true,
-    limited: false,
-    messages: visible.map((message) => ({
-      id: message.id,
-      recalled: factsFromLookup(message.cites, found),
-    })),
+    ...assembleCitationRead({
+      messages: visible,
+      found: looked.found,
+      reached: looked.reached,
+    }),
   };
 }

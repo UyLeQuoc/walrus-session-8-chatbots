@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type IndexedMemory, memoriesInWindow, withRecalledText } from "./chat-window.ts";
+import {
+  type ChatMemory,
+  type IndexedMemory,
+  indexedReadLimit,
+  memoriesInWindow,
+  storedWordingMissing,
+  withRecalledText,
+} from "./chat-window.ts";
 
 function row(id: string, at: string, blobId: string | null = "blob-1"): IndexedMemory {
   return {
@@ -23,6 +30,12 @@ describe("memories written during a chat", () => {
       end,
     );
     expect(kept.map((item) => item.id)).toEqual(["in"]);
+    const edge = memoriesInWindow(
+      [row("edge", "2026-09-29T09:59:30.000Z"), row("out", "2026-09-29T09:59:29.999Z")],
+      start,
+      end,
+    );
+    expect(edge.map((item) => item.id)).toEqual(["edge"]);
   });
 
   it("attaches recalled text and leaves a blob recall missed without wording", () => {
@@ -36,4 +49,28 @@ describe("memories written during a chat", () => {
     expect(memories[0]?.text).toBe("I use pnpm");
     expect(memories[1]?.text).toBeNull();
   });
+
+  it("treats a stored blob without wording as missing, and a pending row as still writing", () => {
+    const stored = memory("stored", "blob-miss", null);
+    const pending = memory("pending", null, null);
+    expect(storedWordingMissing([stored, pending])).toBe(true);
+    expect(storedWordingMissing([pending])).toBe(false);
+    expect(indexedReadLimit({ reached: true, missing: false })).toEqual({ limited: false });
+    expect(indexedReadLimit({ reached: true, missing: true }).limited).toBe(true);
+    expect(indexedReadLimit({ reached: false, missing: false }).limited).toBe(true);
+    expect(
+      indexedReadLimit({ reached: true, missing: false, blocked: "Give me a minute." }),
+    ).toEqual({
+      limited: true,
+      message: "Give me a minute.",
+    });
+  });
 });
+
+function memory(
+  status: ChatMemory["status"],
+  blobId: string | null,
+  text: string | null,
+): ChatMemory {
+  return { id: "m", type: "profile", text, status, blobId, hidden: false };
+}

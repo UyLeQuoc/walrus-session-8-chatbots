@@ -23,7 +23,7 @@ export function MemoryPanel({
           if (!next) onClose();
         }}
       >
-        <SheetContent>
+        <SheetContent side="right">
           <SheetHeader>
             <SheetTitle>Memory</SheetTitle>
           </SheetHeader>
@@ -32,21 +32,28 @@ export function MemoryPanel({
       </Sheet>
     );
   }
-  if (!open) return null;
   return (
-    <aside data-slot="memory-panel" className="flex w-80 shrink-0 flex-col border-l">
-      <div className="flex items-center justify-end px-4 py-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Close memory"
-          onClick={onClose}
-        >
-          <X />
-        </Button>
-      </div>
-      {body}
-    </aside>
+    <div data-state={open ? "open" : "closed"} className="group/memory contents">
+      <div className="w-80 shrink-0 transition-[width] duration-200 ease-linear group-data-[state=closed]/memory:w-0" />
+      <aside
+        data-slot="memory-panel"
+        inert={open ? undefined : true}
+        aria-hidden={open ? undefined : true}
+        className="absolute inset-y-0 right-0 z-10 flex w-80 flex-col border-l bg-background transition-transform duration-200 ease-linear group-data-[state=closed]/memory:translate-x-full"
+      >
+        <div className="flex items-center justify-end px-4 py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Close memory"
+            onClick={onClose}
+          >
+            <X />
+          </Button>
+        </div>
+        {body}
+      </aside>
+    </div>
   );
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { cardsFromMessages, keepPolling, STATUS_POLL_LIMIT_MS, writeLabel } from "./remembered.ts";
+import {
+  canCorrect,
+  cardsFromMessages,
+  keepPolling,
+  STATUS_POLL_LIMIT_MS,
+  writeLabel,
+} from "./remembered.ts";
 
 describe("remembered cards", () => {
   const now = 1_000_000;
@@ -18,6 +24,18 @@ describe("remembered cards", () => {
     expect(keepPolling(late)).toBe(false);
     expect(writeLabel(late)).toBe("still writing");
     expect(keepPolling({ ...pending, status: "stored" })).toBe(false);
+    expect(
+      canCorrect({
+        key: "k",
+        type: "profile",
+        text: "On Walrus. The wording did not come back just now.",
+        saved: true,
+        status: "stored",
+        startedAt: now,
+        hidden: false,
+        textKnown: false,
+      }),
+    ).toBe(false);
     expect(writeLabel({ ...pending, status: "stored" })).toBe("on Walrus");
     expect(writeLabel({ ...pending, saved: false })).toBe("already knew");
   });

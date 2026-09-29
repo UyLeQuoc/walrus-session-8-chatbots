@@ -1,9 +1,10 @@
+import { Eye, EyeOff, Pencil } from "lucide-react";
 import { Link } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type RememberedCard, writeLabel } from "@/features/chat/remembered";
+import { canCorrect, type RememberedCard, writeLabel } from "@/features/chat/remembered";
 
 export function RememberedList({
   cards,
@@ -85,15 +86,22 @@ function RememberedCardView({
         ) : null}
         {card.error ? <p>{card.error}</p> : null}
       </CardContent>
-      <CardFooter className="px-4">
-        <Button variant="outline" asChild>
-          <Link to="/me">View</Link>
+      <CardFooter className="gap-2 px-4">
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/me">
+            <Eye />
+            View
+          </Link>
         </Button>
-        <Button type="button" variant="outline" onClick={() => onCorrect(card)}>
-          Correct
-        </Button>
+        {canCorrect(card) ? (
+          <Button type="button" variant="outline" size="sm" onClick={() => onCorrect(card)}>
+            <Pencil />
+            Correct
+          </Button>
+        ) : null}
         {card.blobId && !card.hidden ? (
-          <Button type="button" variant="outline" onClick={() => onHide(card)}>
+          <Button type="button" variant="outline" size="sm" onClick={() => onHide(card)}>
+            <EyeOff />
             Hide
           </Button>
         ) : null}

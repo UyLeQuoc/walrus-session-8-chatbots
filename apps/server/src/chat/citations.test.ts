@@ -44,4 +44,13 @@ describe("turn citations", () => {
     expect(cites).toEqual([{ blobId: "blob-keep", type: "profile", distance: 0.25 }]);
     expect(JSON.stringify(cites)).not.toContain("pnpm");
   });
+
+  it("drops a cite the turn cannot store and keeps the valid one", () => {
+    const cites = citationsOf([
+      { blob_id: "blob-keep", distance: 0.2, parsed: { type: "profile" } },
+      { blob_id: "blob-far", distance: 3, parsed: { type: "profile" } },
+      { blob_id: "", distance: 0.2, parsed: { type: "profile" } },
+    ]);
+    expect(cites).toEqual([{ blobId: "blob-keep", type: "profile", distance: 0.2 }]);
+  });
 });

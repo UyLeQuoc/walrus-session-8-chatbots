@@ -629,6 +629,189 @@ describe("chat page", () => {
     });
   });
 
+  it("shows the memory a reopened answer used, and leaves a hidden one out", async () => {
+    const user = userEvent.setup();
+    const id = "11111111-1111-4111-8111-111111111111";
+    writeActiveChat(id);
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        [`/api/conversations/${id}/messages`]: {
+          messages: [
+            { id: "u1", role: "user", kind: "turn", text: "what do you know?", seq: 1 },
+            {
+              id: "a1",
+              role: "assistant",
+              kind: "turn",
+              text: "You use pnpm.",
+              seq: 2,
+              cites: [
+                { blobId: "blob-keep", type: "profile", distance: 0.2 },
+                { blobId: "blob-hidden", type: "profile", distance: 0.4 },
+              ],
+            },
+          ],
+        },
+        [`/api/conversations/${id}/citations`]: {
+          status: "complete",
+          limited: false,
+          messages: [
+            {
+              id: "a1",
+              recalled: [
+                { type: "profile", text: "I use pnpm", relevance: 0.8, blobId: "blob-keep" },
+              ],
+            },
+          ],
+        },
+        [`/api/conversations/${id}/memories`]: { limited: false, memories: [] },
+      }),
+    );
+    mountChat();
+    const recalled = await screen.findByRole("button", { name: /recalled 1 memory/i });
+    expect(screen.queryByText("I use pnpm")).toBeNull();
+    await user.click(recalled);
+    expect(screen.getByText(/I use pnpm/)).toBeDefined();
+    expect(screen.queryByText("blob-hidden")).toBeNull();
+  });
+
+  it("shows the facts it could read and says when the rest did not come back", async () => {
+    const user = userEvent.setup();
+    const id = "11111111-1111-4111-8111-111111111111";
+    writeActiveChat(id);
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        [`/api/conversations/${id}/messages`]: {
+          messages: [
+            { id: "u1", role: "user", kind: "turn", text: "what do you know?", seq: 1 },
+            {
+              id: "a1",
+              role: "assistant",
+              kind: "turn",
+              text: "You use pnpm.",
+              seq: 2,
+              cites: [{ blobId: "blob-keep", type: "profile", distance: 0.2 }],
+            },
+          ],
+        },
+        [`/api/conversations/${id}/citations`]: {
+          status: "partial",
+          limited: true,
+          message: "Could not read every source back from Walrus just now. Try again.",
+          messages: [
+            {
+              id: "a1",
+              recalled: [
+                { type: "profile", text: "I use pnpm", relevance: 0.8, blobId: "blob-keep" },
+              ],
+            },
+          ],
+        },
+        [`/api/conversations/${id}/memories`]: { limited: false, memories: [] },
+      }),
+    );
+    mountChat();
+    expect(await screen.findByRole("button", { name: "Try again" })).toBeDefined();
+    expect(screen.getByText(/could not read every source/i)).toBeDefined();
+    await user.click(screen.getByRole("button", { name: /recalled 1 memory/i }));
+    expect(screen.getByText(/I use pnpm/)).toBeDefined();
+  });
+
+  it("does not invent a memory when Walrus cannot be reached, and keeps the answer", async () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    writeActiveChat(id);
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        [`/api/conversations/${id}/messages`]: {
+          messages: [
+            { id: "u1", role: "user", kind: "turn", text: "what do you know?", seq: 1 },
+            {
+              id: "a1",
+              role: "assistant",
+              kind: "turn",
+              text: "You use pnpm.",
+              seq: 2,
+              cites: [{ blobId: "blob-keep", type: "profile", distance: 0.2 }],
+            },
+          ],
+        },
+        [`/api/conversations/${id}/citations`]: {
+          status: "unavailable",
+          limited: true,
+          message: "Walrus Memory could not be reached just now. Try again.",
+          messages: [{ id: "a1", recalled: [] }],
+        },
+        [`/api/conversations/${id}/memories`]: { limited: false, memories: [] },
+      }),
+    );
+    mountChat();
+    expect(await screen.findByText("You use pnpm.")).toBeDefined();
+    expect(await screen.findByRole("button", { name: "Try again" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /recalled/i })).toBeNull();
+    expect(screen.queryByText("I use pnpm")).toBeNull();
+  });
+
+  it("does not correct a fact whose wording did not come back, and hides one that did", async () => {
+    const user = userEvent.setup();
+    const id = "11111111-1111-4111-8111-111111111111";
+    const indexId = "33333333-3333-4333-8333-333333333333";
+    writeActiveChat(id);
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        [`/api/conversations/${id}/messages`]: {
+          messages: [{ id: "u1", role: "user", kind: "turn", text: "hello", seq: 1 }],
+        },
+        [`/api/conversations/${id}/memories`]: {
+          limited: false,
+          memories: [
+            {
+              id: indexId,
+              type: "profile",
+              text: "I use pnpm",
+              status: "stored",
+              blobId: "blob-1",
+            },
+            {
+              id: "44444444-4444-4444-8444-444444444444",
+              type: "gotcha",
+              status: "stored",
+              blobId: "blob-2",
+            },
+          ],
+        },
+        "/api/me/memories/visibility": { hidden: true },
+      }),
+    );
+    mountChat();
+    expect(await screen.findByRole("button", { name: "Correct" })).toBeDefined();
+    expect(screen.getAllByRole("button", { name: "Correct" })).toHaveLength(1);
+    await user.click(screen.getAllByRole("button", { name: "Hide" })[0]);
+    expect(await screen.findByText(/still on Walrus/i)).toBeDefined();
+  });
+
+  it("turns memory off from the composer and does not send the chat", async () => {
+    const user = userEvent.setup();
+    const fetchMock = stubFetch({
+      "/api/me": { mode: "guest", memoryEnabled: true },
+      "/api/me/memory": { memoryEnabled: false },
+      "/api/me/memories": { memories: [] },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    mountChat();
+    const toggle = await screen.findByRole("switch", { name: "Memory on" });
+    await user.click(toggle);
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/me/memory",
+        expect.objectContaining({ method: "POST", body: JSON.stringify({ enabled: false }) }),
+      ),
+    );
+    expect(chatSend).not.toHaveBeenCalled();
+  });
+
   it("fills the composer with a follow-up and does not send it", async () => {
     const user = userEvent.setup();
     const id = "11111111-1111-4111-8111-111111111111";
@@ -673,12 +856,15 @@ describe("chat page", () => {
     expect(screen.getByText("Nothing remembered in this chat yet.")).toBeDefined();
     expect(screen.queryByRole("tab", { name: "Memory" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Close memory" }));
-    expect(screen.queryByText("Nothing remembered in this chat yet.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close memory" })).toBeNull();
     expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined();
+    expect(
+      view.container.querySelector("[data-slot='memory-panel']")?.getAttribute("aria-hidden"),
+    ).toBe("true");
     expect(stored.get("hippo.memory-panel")).toBe("closed");
     view.unmount();
     mountChat();
-    expect(screen.queryByText("Nothing remembered in this chat yet.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close memory" })).toBeNull();
     expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined();
   });
 

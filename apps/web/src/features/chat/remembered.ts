@@ -13,6 +13,7 @@ export interface RememberedCard {
   status: WriteState;
   startedAt: number;
   hidden: boolean;
+  textKnown?: boolean;
   error?: string;
 }
 
@@ -40,6 +41,11 @@ export function writeLabel(input: {
   if (input.status === "failed") return "could not write";
   if (input.now - input.startedAt >= STATUS_POLL_LIMIT_MS) return "still writing";
   return "writing";
+}
+
+export function canCorrect(card: RememberedCard): boolean {
+  if (card.textKnown === false) return false;
+  return card.text.trim().length >= 3;
 }
 
 export function parseWriteStatus(body: unknown): {

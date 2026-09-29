@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import { Brain } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useNewChatTick, useOpenTick, useShellTitle } from "@/app/shell";
@@ -16,6 +17,7 @@ import { Popover, PopoverAnchor } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { clearActiveChat, readActiveChat } from "@/features/chat/active-chat";
 import { ChatTurn } from "@/features/chat/chat-turn";
+import { CitationNote } from "@/features/chat/citation-note";
 import { applyComposerAction } from "@/features/chat/composer-action";
 import { ComposerShell } from "@/features/chat/composer-shell";
 import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
@@ -28,6 +30,8 @@ import { mergeCards } from "@/features/chat/remembered";
 import { RememberedList } from "@/features/chat/remembered-list";
 import { commandRoot, commandUsages } from "@/features/chat/slash-menu";
 import { CommandGuide, SlashMenu } from "@/features/chat/slash-menu-panel";
+import type { UiMessage } from "@/features/chat/transcript";
+import { useChatCitations } from "@/features/chat/use-chat-citations";
 import { useChatMemories } from "@/features/chat/use-chat-memories";
 import { useChatThread } from "@/features/chat/use-chat-thread";
 import { useComposerMeter } from "@/features/chat/use-composer-meter";
@@ -57,6 +61,9 @@ export function ChatPage() {
     replaceMessages,
     status,
   } = useChatThread();
+  const citations = useChatCitations(conversationId, messages as UiMessage[], (next) => {
+    replaceMessages(next as UIMessage[]);
+  });
   const panel = useMemoryPanel();
   const remembered = useRemembered(messages);
   const stored = useChatMemories(conversationId);
@@ -144,11 +151,12 @@ export function ChatPage() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="relative flex min-h-0 flex-1 overflow-hidden">
       <div className="flex min-h-0 flex-1 flex-col">
         {panel.open ? null : (
           <div className="flex justify-end px-4 pt-2">
-            <Button type="button" variant="outline" onClick={panel.show}>
+            <Button type="button" variant="ghost" onClick={panel.show}>
+              <Brain />
               Open memory
             </Button>
           </div>
@@ -211,6 +219,7 @@ export function ChatPage() {
               data-slot="composer-dock"
               className="mx-auto flex w-full max-w-3xl shrink-0 flex-col px-4 pb-4"
             >
+              <CitationNote note={citations.note} onRetry={citations.retry} />
               <FollowUpRow suggestions={follow.suggestions} onPick={setText} />
               <ComposerDock
                 text={text}
@@ -232,7 +241,11 @@ export function ChatPage() {
           error={stored.error}
           onHide={(card) => {
             void remembered.hide(card).then((result) => {
-              if (!result.ok) toast.error(result.message);
+              if (!result.ok) {
+                toast.error(result.message);
+                return;
+              }
+              stored.conceal(card.key);
             });
           }}
           onCorrect={(card) =>

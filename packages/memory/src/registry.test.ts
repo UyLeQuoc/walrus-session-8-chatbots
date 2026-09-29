@@ -9,6 +9,7 @@
  * Skipped when credentials are absent so a clone without a `.env` still passes.
  */
 import { beforeAll, describe, expect, it } from "vitest";
+import { createClient, guestScope } from "./client.ts";
 import { loadEnv } from "./env.ts";
 import { createSuiClient, isDelegateRegistered, readAccount } from "./registry.ts";
 
@@ -18,16 +19,26 @@ const ACCOUNT = process.env.MEMWAL_ACCOUNT_ID;
 const REGISTRY = process.env.MEMWAL_REGISTRY_ID;
 const live = Boolean(ACCOUNT && REGISTRY && process.env.SUI_NETWORK !== "testnet");
 
-/** A delegate that is genuinely in this account's on-chain `delegate_keys`. */
-const ON_CHAIN_KEY = "b1e00adbdf21ca48fa452371cf367c9dd4d262cfa61620476c254bf338168f98";
 /** Never registered anywhere. */
 const ABSENT_KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 
 describe.skipIf(!live)("on-chain account reads (mainnet)", () => {
   let client: ReturnType<typeof createSuiClient>;
+  let configuredKey = "";
 
-  beforeAll(() => {
+  beforeAll(async () => {
     client = createSuiClient("mainnet");
+    const memwal = createClient(
+      guestScope(
+        {
+          key: process.env.MEMWAL_PRIVATE_KEY ?? "",
+          accountId: ACCOUNT ?? "",
+          serverUrl: process.env.MEMWAL_SERVER_URL ?? "https://relayer.memory.walrus.xyz",
+        },
+        "registry-test",
+      ),
+    );
+    configuredKey = await memwal.getPublicKeyHex();
   });
 
   it("reads the account, its owner and its delegates", async () => {
@@ -44,7 +55,7 @@ describe.skipIf(!live)("on-chain account reads (mainnet)", () => {
   }, 30_000);
 
   it("confirms a key that is on chain", async () => {
-    expect(await isDelegateRegistered(client, ACCOUNT as string, ON_CHAIN_KEY)).toBe(true);
+    expect(await isDelegateRegistered(client, ACCOUNT as string, configuredKey)).toBe(true);
   }, 30_000);
 
   it("refuses a key that is not on chain, which is what gates owned mode", async () => {
@@ -53,7 +64,7 @@ describe.skipIf(!live)("on-chain account reads (mainnet)", () => {
 
   it("tolerates a 0x prefix and upper case on the key", async () => {
     expect(
-      await isDelegateRegistered(client, ACCOUNT as string, `0x${ON_CHAIN_KEY.toUpperCase()}`),
+      await isDelegateRegistered(client, ACCOUNT as string, `0x${configuredKey.toUpperCase()}`),
     ).toBe(true);
   }, 30_000);
 
@@ -63,7 +74,7 @@ describe.skipIf(!live)("on-chain account reads (mainnet)", () => {
     // accepting the wrong type would let a caller nominate someone else's
     // address. See docs/evidence/security-review-2026-09-21.md.
     expect(await readAccount(client, REGISTRY as string)).toBeNull();
-    expect(await isDelegateRegistered(client, REGISTRY as string, ON_CHAIN_KEY)).toBe(false);
+    expect(await isDelegateRegistered(client, REGISTRY as string, configuredKey)).toBe(false);
   }, 30_000);
 
   it("returns null for an object that does not exist", async () => {
