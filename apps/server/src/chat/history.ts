@@ -51,6 +51,7 @@ export type AppendResult =
       alreadyAnswered: boolean;
       answer: string | null;
       table?: CommandTable;
+      userSince?: Date;
     }
   | { ok: false; reason: "missing" };
 
@@ -221,7 +222,12 @@ export async function appendUser(input: {
 
       const existing = input.clientId
         ? await tx
-            .select({ id: messages.id, seq: messages.seq })
+            .select({
+              id: messages.id,
+              seq: messages.seq,
+              bodyEnc: messages.bodyEnc,
+              createdAt: messages.createdAt,
+            })
             .from(messages)
             .where(and(eq(messages.conversationId, conv.id), eq(messages.clientId, input.clientId)))
             .limit(1)
@@ -229,6 +235,33 @@ export async function appendUser(input: {
       const prior = existing[0];
       if (prior) {
         if (input.regenerate) {
+          const stored = unseal(prior.bodyEnc, prior.id);
+          if (stored !== input.text) {
+            await tx
+              .update(messages)
+              .set({ bodyEnc: seal(input.text) })
+              .where(eq(messages.id, prior.id));
+            const [earlierUser] = await tx
+              .select({ id: messages.id })
+              .from(messages)
+              .where(
+                and(
+                  eq(messages.conversationId, conv.id),
+                  eq(messages.role, "user"),
+                  sql`${messages.seq} < ${prior.seq}`,
+                ),
+              )
+              .limit(1);
+            if (!earlierUser) {
+              await tx
+                .update(conversations)
+                .set({
+                  titleEnc: seal(conversationTitle(input.text)),
+                  updatedAt: new Date(now),
+                })
+                .where(eq(conversations.id, conv.id));
+            }
+          }
           await tx
             .delete(messages)
             .where(and(eq(messages.conversationId, conv.id), sql`${messages.seq} > ${prior.seq}`));
@@ -260,7 +293,13 @@ export async function appendUser(input: {
           }
         }
         const flags = await sessionFlags(tx, conv.id, prior.seq, now);
-        return { ok: true, ...flags, alreadyAnswered: false, answer: null };
+        return {
+          ok: true,
+          ...flags,
+          alreadyAnswered: false,
+          answer: null,
+          userSince: prior.createdAt,
+        };
       }
 
       const seq = await nextSeq(tx, conv.id);
@@ -422,6 +461,18 @@ export async function listWebConversations(
     conversations: listed,
     nextCursor: listed.length === limit && last ? last.updatedAt : null,
   };
+}
+
+export async function recentTurns(
+  personId: string,
+  conversationId: string,
+  limit: number,
+): Promise<Array<{ role: "user" | "assistant"; text: string }> | null> {
+  const page = await readWebMessages(personId, conversationId, null, limit);
+  if (!page.ok) return null;
+  return page.messages
+    .filter((message) => message.kind === "turn")
+    .map((message) => ({ role: message.role, text: message.text }));
 }
 
 export async function readWebMessages(

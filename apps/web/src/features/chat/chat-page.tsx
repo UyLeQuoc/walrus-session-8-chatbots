@@ -1,11 +1,7 @@
-import { useChat } from "@ai-sdk/react";
-import { sanitizeTable } from "@hippo/core/command-table";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useAdoptChat, useNewChatTick, useOpenTick, useShellTitle } from "@/app/shell";
-import { Bubble, BubbleContent } from "@/components/ui/bubble";
-import { Message, MessageContent } from "@/components/ui/message";
+import { useNewChatTick, useOpenTick, useShellTitle } from "@/app/shell";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -15,72 +11,42 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
 import { Popover, PopoverAnchor } from "@/components/ui/popover";
-import { clearActiveChat, readActiveChat, writeActiveChat } from "@/features/chat/active-chat";
-import { CommandTableView } from "@/features/chat/command-table";
+import { clearActiveChat, readActiveChat } from "@/features/chat/active-chat";
+import { ChatTurn } from "@/features/chat/chat-turn";
 import { applyComposerAction } from "@/features/chat/composer-action";
 import { ComposerShell } from "@/features/chat/composer-shell";
 import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
+import { FollowUpRow } from "@/features/chat/follow-up-row";
 import { GreetingLine } from "@/features/chat/greeting-line";
-import { Markdown } from "@/features/chat/markdown";
 import { MemoryStrip } from "@/features/chat/memory-strip";
-import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
 import { commandRoot, commandUsages } from "@/features/chat/slash-menu";
 import { CommandGuide, SlashMenu } from "@/features/chat/slash-menu-panel";
-import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
+import { useChatThread } from "@/features/chat/use-chat-thread";
 import { useComposerMeter } from "@/features/chat/use-composer-meter";
 import { bumpConversations } from "@/features/chat/use-conversations";
+import { useFollowUps } from "@/features/chat/use-follow-ups";
 import { useGreeting } from "@/features/chat/use-greeting";
 import { useSlashMenu } from "@/features/chat/use-slash-menu";
 import { useTranscript } from "@/features/chat/use-transcript";
-import { API_URL, identityHeaders } from "@/lib/api";
-
-function textOfMessage(
-  message: { parts?: Array<{ type: string; text?: string }> } | undefined,
-): string {
-  return (message?.parts ?? [])
-    .filter((p) => p.type === "text")
-    .map((p) => p.text ?? "")
-    .join("");
-}
 
 export function ChatPage() {
-  const idRef = useRef<string | null>(readActiveChat());
-  const adoptChat = useAdoptChat();
-  const adoptRef = useRef(adoptChat);
-  adoptRef.current = adoptChat;
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: `${API_URL}/api/chat`,
-        credentials: "include",
-        headers: identityHeaders,
-        prepareSendMessagesRequest: ({ messages, trigger, messageId }) => {
-          const source = outboundMessage(messages, trigger, messageId);
-          if (!idRef.current) {
-            const id = crypto.randomUUID();
-            idRef.current = id;
-            writeActiveChat(id);
-            adoptRef.current(id);
-          }
-          return {
-            body: {
-              text: textOfMessage(source),
-              conversationId: idRef.current,
-              clientMessageId: source?.id,
-              regenerate: trigger === "regenerate-message",
-            },
-          };
-        },
-      }),
-    [],
-  );
-  const { messages, sendMessage, setMessages, status, error, stop } = useChat({
-    transport,
-  });
+  const {
+    messages,
+    busy,
+    error,
+    conversationId,
+    send: submit,
+    stop,
+    retry,
+    edit,
+    resetConversation,
+    openConversation,
+    replaceMessages,
+    status,
+  } = useChatThread();
   const [text, setText] = useState("");
   const [loadId, setLoadId] = useState<string | null>(() => readActiveChat());
   const transcript = useTranscript(loadId);
-  const busy = status === "submitted" || status === "streaming";
   const newChatTick = useNewChatTick();
   const openTick = useOpenTick();
   const seenTick = useRef(newChatTick);
@@ -100,26 +66,24 @@ export function ChatPage() {
   useEffect(() => {
     if (seenTick.current === newChatTick) return;
     seenTick.current = newChatTick;
-    idRef.current = null;
     setLoadId(null);
-    setMessages([]);
+    resetConversation();
     setText("");
-  }, [newChatTick, setMessages]);
+  }, [newChatTick, resetConversation]);
 
   useEffect(() => {
     if (openTick === 0 || seenOpen.current === openTick) return;
     seenOpen.current = openTick;
     const id = readActiveChat();
-    idRef.current = id;
     setLoadId(id);
-    if (!id) setMessages([]);
-  }, [openTick, setMessages]);
+    openConversation(id);
+  }, [openTick, openConversation]);
 
   useEffect(() => {
     if (transcript.generation === 0 || applied.current === transcript.generation) return;
     applied.current = transcript.generation;
-    if (transcript.messages) setMessages(transcript.messages);
-  }, [transcript.generation, transcript.messages, setMessages]);
+    if (transcript.messages) replaceMessages(transcript.messages as UIMessage[]);
+  }, [transcript.generation, transcript.messages, replaceMessages]);
 
   useEffect(() => {
     if (transcript.error) toast.error(transcript.error);
@@ -136,16 +100,18 @@ export function ChatPage() {
   }, [busy]);
 
   const lastId = messages.at(-1)?.id;
+  const lastUserId = lastIdOf(messages, "user");
+  const lastAssistantId = lastIdOf(messages, "assistant");
+  const last = messages.at(-1);
+  const follow = useFollowUps({
+    conversationId,
+    busy,
+    enabled: last?.role === "assistant" && !isCommand(last),
+  });
 
   const send = (value: string) => {
     if (!value.trim() || busy) return;
-    if (!idRef.current) {
-      const id = crypto.randomUUID();
-      idRef.current = id;
-      writeActiveChat(id);
-      adoptChat(id);
-    }
-    void sendMessage({ text: value });
+    submit(value);
     setText("");
   };
 
@@ -192,6 +158,10 @@ export function ChatPage() {
                         message={m}
                         live={m.id === lastId && busy}
                         streaming={m.id === lastId && status === "streaming"}
+                        canEdit={!busy && m.id === lastUserId}
+                        canAnswer={!busy && m.id === lastAssistantId}
+                        onEdit={edit}
+                        onRetry={retry}
                       />
                     </MessageScrollerItem>
                   ))}
@@ -204,11 +174,12 @@ export function ChatPage() {
             data-slot="composer-dock"
             className="mx-auto flex w-full max-w-3xl shrink-0 flex-col px-4 pb-4"
           >
+            <FollowUpRow suggestions={follow.suggestions} onPick={setText} />
             <ComposerDock
               text={text}
               setText={setText}
               send={send}
-              stop={() => void stop()}
+              stop={stop}
               busy={busy}
               messages={messages}
             />
@@ -217,6 +188,17 @@ export function ChatPage() {
       )}
     </div>
   );
+}
+
+function lastIdOf(messages: Array<{ id: string; role: string }>, role: string): string | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === role) return messages[i]?.id ?? null;
+  }
+  return null;
+}
+
+function isCommand(message: { metadata?: unknown }): boolean {
+  return Boolean((message.metadata as { command?: boolean } | undefined)?.command);
 }
 
 function ComposerDock({
@@ -342,17 +324,6 @@ function Composer({
   );
 }
 
-function outboundMessage(
-  messages: UIMessage[],
-  trigger: "submit-message" | "regenerate-message",
-  messageId: string | undefined,
-): UIMessage | undefined {
-  if (trigger !== "regenerate-message") return messages.at(-1);
-  const idx = messageId ? messages.findIndex((m) => m.id === messageId) : -1;
-  const prior = idx >= 0 ? messages.slice(0, idx + 1) : messages;
-  return [...prior].reverse().find((m) => m.role === "user") ?? messages.at(-1);
-}
-
 function threadTitle(messages: Array<{ role: string; parts?: Array<Record<string, unknown>> }>) {
   const firstUser = messages.find((m) => m.role === "user");
   const line = textOf(firstUser?.parts).split("\n")[0]?.trim() ?? "";
@@ -365,85 +336,4 @@ function textOf(parts: Array<Record<string, unknown>> | undefined): string {
     .filter((p) => p.type === "text")
     .map((p) => String(p.text ?? ""))
     .join("");
-}
-
-interface ChatMessage {
-  id: string;
-  role: string;
-  parts?: Array<Record<string, unknown>>;
-  metadata?: unknown;
-}
-
-function ChatTurn({
-  message,
-  live,
-  streaming,
-}: {
-  message: ChatMessage;
-  live: boolean;
-  streaming: boolean;
-}) {
-  const spoken = textOf(message.parts);
-  const smoothed = useSmoothedText(spoken, !streaming);
-  const shown = streaming ? smoothed : spoken;
-
-  if (message.role === "user") {
-    return (
-      <Message align="end">
-        <MessageContent>
-          <Bubble align="end" variant="muted">
-            <BubbleContent className="whitespace-pre-wrap bg-[#E8F3FE]! dark:bg-muted!">
-              {spoken}
-            </BubbleContent>
-          </Bubble>
-        </MessageContent>
-      </Message>
-    );
-  }
-
-  const recalled =
-    (message.metadata as { recalled?: RecalledMemory[] } | undefined)?.recalled ?? [];
-  const tools = (message.parts ?? []).filter(
-    (p) => p.type === "tool-remember" || p.type === "tool-recall",
-  );
-  const meta = message.metadata as { command?: boolean; table?: unknown } | undefined;
-  const command = Boolean(meta?.command);
-  const table = sanitizeTable(meta?.table);
-
-  return (
-    <Message>
-      <MessageContent>
-        <Recalled memories={recalled} />
-        {tools.map((p, i) => (
-          <ToolLine key={`${String(p.type)}-${i}`} part={p} />
-        ))}
-        {table ? (
-          <CommandTableView table={table} />
-        ) : shown ? (
-          command ? (
-            <p className="whitespace-pre-wrap text-sm">{shown}</p>
-          ) : (
-            <Markdown>{shown}</Markdown>
-          )
-        ) : (
-          live && <Thinking />
-        )}
-      </MessageContent>
-    </Message>
-  );
-}
-
-function ToolLine({ part }: { part: Record<string, unknown> }) {
-  if (part.type === "tool-recall") {
-    return <p className="text-sm text-muted-foreground">⟶ recalled</p>;
-  }
-  const input = part.input as { type?: string; text?: string } | undefined;
-  const output = part.output as { saved?: boolean } | undefined;
-  const done = part.state === "output-available";
-  return (
-    <p className="text-sm text-muted-foreground">
-      {done && output?.saved === false ? "already knew" : "remembering"}
-      {input?.type ? ` [${input.type}]` : ""} {input?.text ?? ""}
-    </p>
-  );
 }

@@ -26,6 +26,7 @@ export interface TurnInput {
    */
   hasCorrections?: boolean;
   abortSignal?: AbortSignal;
+  knownHashes?: ReadonlySet<string>;
 }
 
 export interface TurnContext {
@@ -163,7 +164,9 @@ export function runTurn(input: TurnInput, ctx: TurnContext, useFallback = false)
     model,
     system,
     messages,
-    tools: input.memoryEnabled ? createTools(input.port, input.channel) : undefined,
+    tools: input.memoryEnabled
+      ? createTools(input.port, input.channel, input.knownHashes)
+      : undefined,
     stopWhen: stepCountIs(4),
     abortSignal: input.abortSignal,
   });

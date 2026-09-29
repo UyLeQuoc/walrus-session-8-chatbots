@@ -43,11 +43,12 @@ const byPerson = rows(
 
 /**
  * Command rows exist only so slash commands count against the rate limit; they
- * are written with mode "command" and never reach the model. Counting them as
+ * are written with mode "command" and never reach the model. Suggestion rows
+ * are the same kind of counter, with mode "suggestion". Counting either as
  * conversation turns would inflate the memory-off side of the before/after the
  * article rests on, so they are separated here.
  */
-const isConversation = sql`${turnLog.mode} <> 'command'`;
+const isConversation = sql`${turnLog.mode} <> 'command' and ${turnLog.mode} <> 'suggestion'`;
 
 const [turns] = await db
   .select({

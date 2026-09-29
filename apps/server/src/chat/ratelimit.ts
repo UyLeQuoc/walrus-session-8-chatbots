@@ -36,6 +36,25 @@ export async function checkRate(personId: string): Promise<RateDecision> {
  * would make them invisible to `checkRate` and therefore unlimited. Record a
  * lightweight row so they count against the same budget.
  */
+export async function noteSuggestion(
+  personId: string,
+  channel: string,
+  modelId: string,
+): Promise<void> {
+  await db
+    .insert(turnLog)
+    .values({
+      personId,
+      channel,
+      memoryEnabled: false,
+      mode: "suggestion",
+      model: modelId,
+      injected: [],
+      writes: 0,
+    })
+    .catch((e) => console.error("[ratelimit] noteSuggestion", e));
+}
+
 export async function noteCommand(personId: string, channel: string): Promise<void> {
   await db
     .insert(turnLog)

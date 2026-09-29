@@ -15,6 +15,7 @@ export interface RememberInput {
   type: MemoryType;
   text: string;
   channel?: string;
+  knownHashes?: ReadonlySet<string>;
 }
 
 /** What the LLM sees. Deliberately small and free of internal ids. */
@@ -110,6 +111,13 @@ export function createMemoryPort({
       const { text, removed } = redactCredentials(input.text);
       const line = buildMemoryText({ type: input.type, by, channel: input.channel, text });
       const sha = bytesToHex(sha256(new TextEncoder().encode(line)));
+      if (input.knownHashes?.has(sha)) {
+        return {
+          saved: false,
+          note: "Already in memory, nothing written. Do not tell the user it was saved again.",
+          redacted: removed,
+        };
+      }
       const outcome = await rememberWithDedupe(client, {
         text: line,
         namespace: scope.namespace,

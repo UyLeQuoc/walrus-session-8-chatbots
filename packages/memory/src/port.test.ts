@@ -6,13 +6,17 @@
  * the user's own account under `hippo`, and nothing read both. Three documents
  * claimed dual-read was built. It was not.
  */
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MemoryScope } from "./client.ts";
+import { buildMemoryText } from "./format.ts";
 
 const recalls: Array<{ namespace: string; query: string }> = [];
 let byNamespace: Record<string, Array<{ blob_id: string; distance: number }>> = {};
 let failing: string | null = null;
 let dedupeIgnored: ReadonlySet<string> | undefined;
+let dedupeCalls = 0;
 
 vi.mock("./client.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./client.ts")>()),
@@ -31,6 +35,7 @@ vi.mock("./policy.ts", () => ({
   },
   rememberWithDedupe: async (_client: unknown, opts: { ignore?: ReadonlySet<string> }) => {
     dedupeIgnored = opts.ignore;
+    dedupeCalls += 1;
     return {
       status: "accepted",
       jobId: "j",
@@ -62,6 +67,7 @@ beforeEach(() => {
   recalls.length = 0;
   byNamespace = {};
   failing = null;
+  dedupeCalls = 0;
 });
 
 describe("recall after taking ownership", () => {
@@ -148,5 +154,34 @@ describe("hidden memories", () => {
   it("are never treated as a duplicate of something said again", async () => {
     await hiddenPort().remember({ type: "profile", text: "I use VS Code" });
     expect(dedupeIgnored?.has("old")).toBe(true);
+  });
+});
+
+describe("retry of a fact already stored", () => {
+  const line = () =>
+    buildMemoryText({ type: "profile", by: "uy", channel: "web", text: "I use pnpm" });
+  const hash = () => bytesToHex(sha256(new TextEncoder().encode(line())));
+
+  it("does not call remember again when the formatted line is already known", async () => {
+    const result = await port().remember({
+      type: "profile",
+      text: "I use pnpm",
+      channel: "web",
+      knownHashes: new Set([hash()]),
+    });
+    expect(result.saved).toBe(false);
+    expect(result.note).toContain("nothing written");
+    expect(dedupeCalls).toBe(0);
+  });
+
+  it("still stores a line that is not in the known set", async () => {
+    const result = await port().remember({
+      type: "profile",
+      text: "I use pnpm",
+      channel: "web",
+      knownHashes: new Set(["not-this-line"]),
+    });
+    expect(result.saved).toBe(true);
+    expect(dedupeCalls).toBe(1);
   });
 });

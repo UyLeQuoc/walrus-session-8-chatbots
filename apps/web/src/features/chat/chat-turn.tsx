@@ -1,0 +1,209 @@
+import { sanitizeTable } from "@hippo/core/command-table";
+import { Pencil, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { CopyButton } from "@/components/copy-button";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { Button } from "@/components/ui/button";
+import { Message, MessageContent } from "@/components/ui/message";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CommandTableView } from "@/features/chat/command-table";
+import { Markdown } from "@/features/chat/markdown";
+import { messageActionClass } from "@/features/chat/message-action";
+import { plainText } from "@/features/chat/plain-text";
+import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
+import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
+
+interface ChatMessage {
+  id: string;
+  role: string;
+  parts?: Array<Record<string, unknown>>;
+  metadata?: unknown;
+}
+
+function textOf(parts: Array<Record<string, unknown>> | undefined): string {
+  return (parts ?? [])
+    .filter((part) => part.type === "text")
+    .map((part) => String(part.text ?? ""))
+    .join("");
+}
+
+function isCommand(message: ChatMessage): boolean {
+  return Boolean((message.metadata as { command?: boolean } | undefined)?.command);
+}
+
+export function ChatTurn({
+  message,
+  live,
+  streaming,
+  canEdit,
+  canAnswer,
+  onEdit,
+  onRetry,
+}: {
+  message: ChatMessage;
+  live: boolean;
+  streaming: boolean;
+  canEdit: boolean;
+  canAnswer: boolean;
+  onEdit: (text: string) => void;
+  onRetry: () => void;
+}) {
+  const spoken = textOf(message.parts);
+  const smoothed = useSmoothedText(spoken, !streaming);
+  const shown = streaming ? smoothed : spoken;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(spoken);
+  const editor = editing && canEdit;
+
+  if (message.role === "user") {
+    return (
+      <Message align="end">
+        <MessageContent className="gap-0">
+          {editor ? (
+            <div className="flex w-full flex-col">
+              <Textarea
+                value={draft}
+                aria-label="Edit message"
+                onChange={(event) => setDraft(event.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={messageActionClass}
+                  onClick={() => {
+                    setDraft(spoken);
+                    setEditing(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={messageActionClass}
+                  disabled={draft.trim() === "" || draft.trim() === spoken}
+                  onClick={() => {
+                    onEdit(draft);
+                    setEditing(false);
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Bubble align="end" variant="muted">
+              <BubbleContent className="whitespace-pre-wrap bg-[#E8F3FE]! dark:bg-muted!">
+                {spoken}
+              </BubbleContent>
+            </Bubble>
+          )}
+          {canEdit && !editor ? (
+            <div data-slot="message-actions" className="flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className={messageActionClass}
+                aria-label="Edit message"
+                onClick={() => {
+                  setDraft(spoken);
+                  setEditing(true);
+                }}
+              >
+                <Pencil />
+              </Button>
+            </div>
+          ) : null}
+        </MessageContent>
+      </Message>
+    );
+  }
+
+  const recalled =
+    (message.metadata as { recalled?: RecalledMemory[] } | undefined)?.recalled ?? [];
+  const tools = (message.parts ?? []).filter(
+    (part) => part.type === "tool-remember" || part.type === "tool-recall",
+  );
+  const command = isCommand(message);
+  const table = sanitizeTable((message.metadata as { table?: unknown } | undefined)?.table);
+  const plain = canAnswer && !command && shown ? plainText(shown) : "";
+
+  return (
+    <Message>
+      <MessageContent className="gap-0">
+        <div className="flex w-full min-w-0 flex-col gap-2.5">
+          <Recalled memories={recalled} />
+          {tools.map((part, index) => (
+            <ToolLine key={`${String(part.type)}-${index}`} part={part} />
+          ))}
+          {table ? (
+            <CommandTableView table={table} />
+          ) : shown ? (
+            command ? (
+              <p className="whitespace-pre-wrap text-sm">{shown}</p>
+            ) : (
+              <Markdown>{shown}</Markdown>
+            )
+          ) : (
+            live && <Thinking />
+          )}
+        </div>
+        {canAnswer && !command && shown ? (
+          <TooltipProvider delayDuration={200}>
+            <div data-slot="message-actions" className="flex items-center">
+              <AnswerCopy value={shown} label="message" />
+              {plain ? <AnswerCopy value={plain} label="value" /> : null}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className={messageActionClass}
+                aria-label="Retry answer"
+                onClick={onRetry}
+              >
+                <RotateCcw />
+              </Button>
+            </div>
+          </TooltipProvider>
+        ) : null}
+      </MessageContent>
+    </Message>
+  );
+}
+
+function AnswerCopy({ value, label }: { value: string; label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <CopyButton
+          value={value}
+          label={label}
+          variant="ghost"
+          size="icon-sm"
+          className={messageActionClass}
+        />
+      </TooltipTrigger>
+      <TooltipContent>{`Copy ${label}`}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ToolLine({ part }: { part: Record<string, unknown> }) {
+  if (part.type === "tool-recall") {
+    return <p className="text-sm text-muted-foreground">⟶ recalled</p>;
+  }
+  const input = part.input as { type?: string; text?: string } | undefined;
+  const output = part.output as { saved?: boolean } | undefined;
+  const done = part.state === "output-available";
+  return (
+    <p className="text-sm text-muted-foreground">
+      {done && output?.saved === false ? "already knew" : "remembering"}
+      {input?.type ? ` [${input.type}]` : ""} {input?.text ?? ""}
+    </p>
+  );
+}

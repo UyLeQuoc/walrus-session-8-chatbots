@@ -1,7 +1,9 @@
-import { BookOpen, Library, SquarePen, Trash2 } from "lucide-react";
+import { BookOpen, Library, Search, SquarePen, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { WalletAccount } from "@/app/wallet-account";
 import { Logo } from "@/components/logo";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +18,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { filterConversations } from "@/features/chat/conversations-filter";
 import { useConversations } from "@/features/chat/use-conversations";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 export function AppSidebar({
   onNewChat,
@@ -31,6 +35,9 @@ export function AppSidebar({
   const { pathname } = useLocation();
   const collapsed = state === "collapsed";
   const { items, remove } = useConversations();
+  const [text, setText] = useState("");
+  const query = useDebouncedValue(text);
+  const shown = filterConversations(items, query);
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -72,8 +79,24 @@ export function AppSidebar({
           <SidebarGroup>
             <SidebarGroupLabel>Chats</SidebarGroupLabel>
             <SidebarGroupContent>
+              <div className="px-2 pb-2">
+                <InputGroup>
+                  <InputGroupAddon>
+                    <Search />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    value={text}
+                    aria-label="Search chats"
+                    placeholder="Search chats"
+                    onChange={(event) => setText(event.target.value)}
+                  />
+                </InputGroup>
+              </div>
+              {shown.length === 0 ? (
+                <p className="px-2 text-sm text-muted-foreground">No chats</p>
+              ) : null}
               <SidebarMenu>
-                {items.map((item) => (
+                {shown.map((item) => (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
                       type="button"

@@ -2,6 +2,7 @@ import { gatherContext, runTurn } from "@hippo/core";
 import { type CommandTable, packCommandBody } from "@hippo/core/command-table";
 import { and, delegateKeys, desc, eq, memoryIndex } from "@hippo/db";
 import { createSuiClient, explorer, NAMESPACE, RelayerExtras, readAccount } from "@hippo/memory";
+import { generateText } from "ai";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
@@ -12,10 +13,13 @@ import {
   claimWebConversation,
   modelMessages,
   openChannelThread,
+  recentTurns,
   storedAnswer,
 } from "../chat/history.ts";
+import { knownMemoryHashes } from "../chat/known-hashes.ts";
 import { tooLong } from "../chat/limits.ts";
-import { checkRate, noteCommand } from "../chat/ratelimit.ts";
+import { checkRate, noteCommand, noteSuggestion } from "../chat/ratelimit.ts";
+import { followUpRequest, parseSuggestions } from "../chat/suggestions.ts";
 import { startConnect, startDisconnect } from "../connect/tokens.ts";
 import { db, model } from "../context.ts";
 import { describeFailure } from "../copy.ts";
@@ -213,6 +217,7 @@ export const chatRoutes = new Hono()
         text,
         kind: "command",
         clientId: body.clientMessageId,
+        regenerate: body.regenerate,
       }).catch((err) => {
         console.error(`[${channel}] history`, err);
         return null;
@@ -252,6 +257,10 @@ export const chatRoutes = new Hono()
 
     const port = await portFor(person, channel);
     const messages = await modelMessages(conversationId);
+    const knownHashes =
+      body.regenerate && placed.userSince
+        ? await knownMemoryHashes(person.id, placed.userSince)
+        : undefined;
     const input = {
       model,
       port,
@@ -262,6 +271,7 @@ export const chatRoutes = new Hono()
       sessionStart: placed.sessionStart,
       hasCorrections: await hasCorrections(person.id),
       abortSignal: c.req.raw.signal,
+      knownHashes,
     };
     const turnCtx = await gatherContext(input);
     if (c.req.raw.signal.aborted) return c.body(null, 204);
@@ -304,6 +314,33 @@ export const chatRoutes = new Hono()
         );
       },
     });
+  })
+  .post("/api/chat/suggestions", async (c) => {
+    const parsed = z
+      .object({ conversationId: z.uuid() })
+      .safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ suggestions: [] }, 400);
+    const person = await mePerson(c);
+    if (!person) return c.json({ suggestions: [] }, 401);
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ suggestions: [], message: gate.message });
+    const lines = await recentTurns(person.id, parsed.data.conversationId, 8);
+    if (!lines) return c.json({ suggestions: [] }, 404);
+    if (lines.length === 0) return c.json({ suggestions: [] });
+    const request = followUpRequest(lines);
+    let suggestions: string[] = [];
+    try {
+      const result = await generateText({
+        model: model.primary,
+        system: request.system,
+        prompt: request.prompt,
+      });
+      suggestions = parseSuggestions(result.text);
+    } catch (err) {
+      console.error("[suggestions]", err instanceof Error ? err.name : "error");
+    }
+    await noteSuggestion(person.id, CHANNEL, model.id);
+    return c.json({ suggestions });
   })
 
   /** The memories hippo wrote for this person, newest first, with links and expiry. */

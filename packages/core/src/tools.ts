@@ -2,7 +2,7 @@ import { MEMORY_TYPES, type MemoryPort } from "@hippo/memory";
 import { tool } from "ai";
 import { z } from "zod";
 
-export function createTools(port: MemoryPort, channel: string) {
+export function createTools(port: MemoryPort, channel: string, knownHashes?: ReadonlySet<string>) {
   return {
     remember: tool({
       description:
@@ -11,7 +11,7 @@ export function createTools(port: MemoryPort, channel: string) {
         type: z.enum(MEMORY_TYPES),
         text: z.string().min(3).max(1000).describe("The complete fact, not a summary."),
       }),
-      execute: async ({ type, text }) => port.remember({ type, text, channel }),
+      execute: async ({ type, text }) => port.remember({ type, text, channel, knownHashes }),
     }),
     recall: tool({
       description:

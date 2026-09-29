@@ -66,14 +66,14 @@ Exit: `docs/SPIKES.md` has the four results, and Phase 3 either has a working po
 
 Goal: the existing chat is usable before any new Walrus surface exists.
 
-1. Extract the chat transport, stop, and retry rules out of `chat-page.tsx` into `apps/web/src/features/chat/use-chat-thread.ts`. The page paints. The hook returns messages, status, and callbacks.
+1. Extract the chat transport, stop, and retry rules out of `chat-page.tsx` into `apps/web/src/features/chat/use-chat-thread.ts`. **Done 2026-09-28.** The page paints. The hook returns messages, status, and callbacks.
 2. Stop. **Done 2026-09-27.** While a turn is streaming, the send control becomes Stop and aborts the stream. Aborting does not insert a second user row. The request signal stops further recalls and is passed into `streamText`.
-3. Retry the last answer. One retry path, shared with edit. A retry must not call `remember` again for a fact this turn already stored. Prove that with a test against the tool result, not against a screenshot.
-4. Edit the last user message and resend. Older messages stay. The replaced answer is the one the transcript keeps.
-5. Copy the answer. Fenced code gets a copy control and a language label. Use the markdown renderer that already exists. Do not add a second markdown stack.
-6. Command menu. **Done 2026-09-27.** Typing `/` opens a popover above the composer. Each row is a muted icon, the command, and the catalog description. Choosing one sends it immediately. Names come from `@hippo/core/commands`, not a second list.
-7. Search chats in the sidebar. Filter the list `useConversations` already loads. Do not send titles to a new endpoint. Titles are decrypted for the owner already.
-8. Follow-up suggestions are optional and only after the controls above. Three suggestions, generated with the same model, never stored as memories unless the person sends one.
+3. Retry the last answer. **Done 2026-09-28.** One retry path, shared with edit. A retry does not call `remember` again when that formatted line is already in `memory_index` since the user message (`pending`, `stored`, or hidden). A `failed` row stays out of that set. Proven by `port.test.ts` against the tool result: `rememberWithDedupe` is not called.
+4. Edit the last user message and resend. **Done 2026-09-28.** Older messages stay. The replaced answer is the one the transcript keeps. `appendUser` rewrites the sealed user line and, when that line is the first, the chat title. Memories already on Walrus stay; a new fact in the edited line still goes through `remember`.
+5. Copy the answer. **Done 2026-09-28.** The last answer has a copy control. Fenced code gets a copy control and a language label when the fence names one. The existing markdown renderer is used.
+6. Command menu. **Done 2026-09-27, and kept as the later product decision.** Typing `/` opens a popover above the composer. Each row is a muted icon, the command, and the catalog description. Choosing one fills the composer and opens the usage guide. It sends on Send or Enter. Names come from `@hippo/core/commands`, not a second list.
+7. Search chats in the sidebar. **Done 2026-09-28.** Filters the list `useConversations` already loads. Titles are not sent to a new endpoint.
+8. Follow-up suggestions. **Done 2026-09-28.** Three suggestions, generated with the same model after a normal answer, with no remember or recall tool. They are not stored as memories. Picking one fills the composer. The call counts toward the rate limit as `turn_log.mode = "suggestion"` and is excluded from conversation turn counts.
 
 Verification: `apps/web/src/app/pages.test.tsx` covers stop, retry, edit, and the command menu with the network stubbed. A unit test covers the retry-does-not-rewrite-memory rule. `bun run typecheck && bun run lint && bun run test` passes.
 
