@@ -62,8 +62,9 @@ export function isUnmetered(method: string, path: string): boolean {
     method === "GET" &&
     (path === "/api/me" ||
       path === "/api/me/memories" ||
+      /^\/api\/me\/memories\/[0-9a-f-]{36}\/status$/i.test(path) ||
       path === "/api/conversations" ||
-      path.startsWith("/api/conversations/"))
+      (path.startsWith("/api/conversations/") && !path.endsWith("/memories")))
   );
 }
 
