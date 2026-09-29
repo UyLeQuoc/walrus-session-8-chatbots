@@ -9,7 +9,7 @@ export async function knownMemoryHashes(personId: string, since: Date): Promise<
     .where(
       and(
         eq(memoryIndex.personId, personId),
-        sql`${memoryIndex.createdAt} >= ${since}`,
+        sql`${memoryIndex.createdAt} >= ${since.toISOString()}`,
         sql`${memoryIndex.status} <> 'failed'`,
       ),
     );
