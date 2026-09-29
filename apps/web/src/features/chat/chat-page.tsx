@@ -2,6 +2,7 @@ import type { UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useNewChatTick, useOpenTick, useShellTitle } from "@/app/shell";
+import { Button } from "@/components/ui/button";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -9,8 +10,10 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
+  useMessageScroller,
 } from "@/components/ui/message-scroller";
 import { Popover, PopoverAnchor } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import { clearActiveChat, readActiveChat } from "@/features/chat/active-chat";
 import { ChatTurn } from "@/features/chat/chat-turn";
 import { applyComposerAction } from "@/features/chat/composer-action";
@@ -18,16 +21,26 @@ import { ComposerShell } from "@/features/chat/composer-shell";
 import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
 import { FollowUpRow } from "@/features/chat/follow-up-row";
 import { GreetingLine } from "@/features/chat/greeting-line";
+import { MemoryPanel } from "@/features/chat/memory-panel";
 import { MemoryStrip } from "@/features/chat/memory-strip";
+import { RememberDialog } from "@/features/chat/remember-dialog";
+import { mergeCards } from "@/features/chat/remembered";
+import { RememberedList } from "@/features/chat/remembered-list";
 import { commandRoot, commandUsages } from "@/features/chat/slash-menu";
 import { CommandGuide, SlashMenu } from "@/features/chat/slash-menu-panel";
+import { useChatMemories } from "@/features/chat/use-chat-memories";
 import { useChatThread } from "@/features/chat/use-chat-thread";
 import { useComposerMeter } from "@/features/chat/use-composer-meter";
 import { bumpConversations } from "@/features/chat/use-conversations";
 import { useFollowUps } from "@/features/chat/use-follow-ups";
 import { useGreeting } from "@/features/chat/use-greeting";
+import { useMemoryPanel } from "@/features/chat/use-memory-panel";
+import { useMemoryToggle } from "@/features/chat/use-memory-toggle";
+import { useRemembered } from "@/features/chat/use-remembered";
+import { useSelectionRemember } from "@/features/chat/use-selection-remember";
 import { useSlashMenu } from "@/features/chat/use-slash-menu";
 import { useTranscript } from "@/features/chat/use-transcript";
+import { useMe } from "@/features/me/use-me";
 
 export function ChatPage() {
   const {
@@ -44,6 +57,11 @@ export function ChatPage() {
     replaceMessages,
     status,
   } = useChatThread();
+  const panel = useMemoryPanel();
+  const remembered = useRemembered(messages);
+  const stored = useChatMemories(conversationId);
+  const panelCards = mergeCards(stored.cards, remembered.cards);
+  const selection = useSelectionRemember(remembered.add);
   const [text, setText] = useState("");
   const [loadId, setLoadId] = useState<string | null>(() => readActiveChat());
   const transcript = useTranscript(loadId);
@@ -126,68 +144,128 @@ export function ChatPage() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {messages.length === 0 ? (
-        <div className="flex min-h-0 flex-1 items-center justify-center px-4">
-          <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-10">
-            <div data-slot="greeting" className="text-center">
-              <GreetingLine text={greeting} />
-            </div>
-            <ComposerDock
-              text={text}
-              setText={setText}
-              send={send}
-              stop={() => void stop()}
-              busy={busy}
-              messages={messages}
-            />
-            <div className="flex flex-col items-start gap-3">
-              <Examples taught={false} onPick={setText} onReloadAndAsk={reloadAndAsk} />
-            </div>
+    <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
+        {panel.open ? null : (
+          <div className="flex justify-end px-4 pt-2">
+            <Button type="button" variant="outline" onClick={panel.show}>
+              Open memory
+            </Button>
           </div>
-        </div>
-      ) : (
-        <>
-          <MessageScrollerProvider>
-            <MessageScroller className="min-h-0 flex-1">
-              <MessageScrollerViewport>
-                <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
-                  {messages.map((m) => (
-                    <MessageScrollerItem key={m.id} scrollAnchor={m.role === "user"}>
-                      <ChatTurn
-                        message={m}
-                        live={m.id === lastId && busy}
-                        streaming={m.id === lastId && status === "streaming"}
-                        canEdit={!busy && m.id === lastUserId}
-                        canAnswer={!busy && m.id === lastAssistantId}
-                        onEdit={edit}
-                        onRetry={retry}
-                      />
-                    </MessageScrollerItem>
-                  ))}
-                </MessageScrollerContent>
-              </MessageScrollerViewport>
-              <MessageScrollerButton />
-            </MessageScroller>
-          </MessageScrollerProvider>
+        )}
+        {transcript.loading && messages.length === 0 ? (
           <div
-            data-slot="composer-dock"
-            className="mx-auto flex w-full max-w-3xl shrink-0 flex-col px-4 pb-4"
+            className="flex flex-1 flex-col gap-3 px-4 py-6"
+            role="status"
+            aria-label="Loading chat"
           >
-            <FollowUpRow suggestions={follow.suggestions} onPick={setText} />
-            <ComposerDock
-              text={text}
-              setText={setText}
-              send={send}
-              stop={stop}
-              busy={busy}
-              messages={messages}
-            />
+            <Skeleton className="h-16 w-2/3 self-end" />
+            <Skeleton className="h-24 w-full" />
           </div>
-        </>
-      )}
+        ) : messages.length === 0 ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center px-4">
+            <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-10">
+              <div data-slot="greeting" className="text-center">
+                <GreetingLine text={greeting} />
+              </div>
+              <ComposerDock
+                text={text}
+                setText={setText}
+                send={send}
+                stop={() => void stop()}
+                busy={busy}
+                messages={messages}
+              />
+              <div className="flex flex-col items-start gap-3">
+                <Examples taught={false} onPick={setText} onReloadAndAsk={reloadAndAsk} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <MessageScrollerProvider defaultScrollPosition="end">
+              <MessageScroller className="min-h-0 flex-1">
+                <MessageScrollerViewport>
+                  <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
+                    <JumpToLatest messageId={lastId ?? null} />
+                    {messages.map((m) => (
+                      <MessageScrollerItem key={m.id} scrollAnchor={m.role === "user"}>
+                        <ChatTurn
+                          message={m}
+                          live={m.id === lastId && busy}
+                          streaming={m.id === lastId && status === "streaming"}
+                          canEdit={!busy && m.id === lastUserId}
+                          canAnswer={!busy && m.id === lastAssistantId}
+                          onEdit={edit}
+                          onRetry={retry}
+                          onRemember={(text) => selection.start({ text, type: "profile" })}
+                        />
+                      </MessageScrollerItem>
+                    ))}
+                  </MessageScrollerContent>
+                </MessageScrollerViewport>
+                <MessageScrollerButton />
+              </MessageScroller>
+            </MessageScrollerProvider>
+            <div
+              data-slot="composer-dock"
+              className="mx-auto flex w-full max-w-3xl shrink-0 flex-col px-4 pb-4"
+            >
+              <FollowUpRow suggestions={follow.suggestions} onPick={setText} />
+              <ComposerDock
+                text={text}
+                setText={setText}
+                send={send}
+                stop={stop}
+                busy={busy}
+                messages={messages}
+              />
+            </div>
+          </>
+        )}
+      </div>
+      <MemoryPanel open={panel.open} mobile={panel.mobile} onClose={panel.close}>
+        <RememberedList
+          cards={panelCards}
+          now={remembered.now}
+          loading={stored.loading}
+          error={stored.error}
+          onHide={(card) => {
+            void remembered.hide(card).then((result) => {
+              if (!result.ok) toast.error(result.message);
+            });
+          }}
+          onCorrect={(card) =>
+            selection.start({
+              text: card.text,
+              type: "correction",
+              ...(card.blobId ? { replaces: card.blobId } : {}),
+            })
+          }
+        />
+      </MemoryPanel>
+      <RememberDialog
+        draft={selection.draft}
+        busy={selection.busy}
+        error={selection.error}
+        onText={selection.setText}
+        onType={selection.setType}
+        onCancel={selection.cancel}
+        onSubmit={(text) => {
+          void selection.submit(text);
+        }}
+      />
     </div>
   );
+}
+
+function JumpToLatest({ messageId }: { messageId: string | null }) {
+  const { scrollToEnd } = useMessageScroller();
+  useEffect(() => {
+    if (!messageId) return;
+    scrollToEnd({ align: "end", behavior: "auto" });
+  }, [messageId, scrollToEnd]);
+  return null;
 }
 
 function lastIdOf(messages: Array<{ id: string; role: string }>, role: string): string | null {
@@ -262,7 +340,12 @@ function Composer({
     pinned: guided,
     apply: applyCommand,
   });
+  const { me } = useMe();
+  const memory = useMemoryToggle(me?.memoryEnabled);
   const meter = useComposerMeter(messages, text);
+  useEffect(() => {
+    if (memory.error) toast.error(memory.error);
+  }, [memory.error]);
   const submit = () => {
     applyComposerAction({ busy, text, send, stop });
   };
@@ -297,6 +380,17 @@ function Composer({
             busy={busy}
             meter={meter}
             command={guided}
+            memory={
+              typeof me?.memoryEnabled === "boolean"
+                ? {
+                    enabled: me.memoryEnabled,
+                    pending: memory.pending,
+                    onChange: (next) => {
+                      void memory.toggle(next);
+                    },
+                  }
+                : undefined
+            }
             onKeyDown={(e) => {
               if (slash.onKeyDown(e.key) === "handled") {
                 e.preventDefault();

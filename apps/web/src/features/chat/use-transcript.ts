@@ -6,31 +6,46 @@ export function useTranscript(id: string | null) {
   const [generation, setGeneration] = useState(0);
   const [messages, setMessages] = useState<UiMessage[] | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
+    setLoading(true);
     void (async () => {
-      setError("");
-      const res = await apiFetch(`/api/conversations/${id}/messages`);
-      if (cancelled) return;
-      if (!res.ok) {
+      try {
+        setError("");
+        const res = await apiFetch(`/api/conversations/${id}/messages`);
+        if (cancelled) return;
+        if (!res.ok) {
+          setError("That chat is gone.");
+          setMessages([]);
+          setGeneration((n) => n + 1);
+          return;
+        }
+        const body: unknown = await res.json().catch(() => null);
+        if (cancelled) return;
+        const rows = (body as { messages?: unknown } | null)?.messages;
+        const next = Array.isArray(rows) ? toUiMessages(rows) : [];
+        setMessages(next);
+        setError("");
+        setGeneration((n) => n + 1);
+      } catch {
+        if (cancelled) return;
         setError("That chat is gone.");
         setMessages([]);
         setGeneration((n) => n + 1);
-        return;
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      const body: unknown = await res.json().catch(() => null);
-      if (cancelled) return;
-      const rows = (body as { messages?: unknown } | null)?.messages;
-      setMessages(Array.isArray(rows) ? toUiMessages(rows) : []);
-      setError("");
-      setGeneration((n) => n + 1);
     })();
     return () => {
       cancelled = true;
     };
   }, [id]);
 
-  return { messages, error, generation };
+  return { messages, error, loading, generation };
 }

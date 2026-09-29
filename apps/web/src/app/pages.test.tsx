@@ -501,35 +501,28 @@ describe("chat page", () => {
     });
     const edit = screen.getAllByRole("button", { name: "Edit message" });
     const retry = screen.getAllByRole("button", { name: "Retry answer" });
-    const copy = screen.getByRole("button", { name: "Copy message" });
-    const plain = screen.getByRole("button", { name: "Copy value" });
+    const copies = screen.getAllByRole("button", { name: "Copy message" });
     expect(edit).toHaveLength(1);
     expect(retry).toHaveLength(1);
-    expect(copy.nextElementSibling).toBe(plain);
-    expect(plain.nextElementSibling).toBe(retry[0]);
-    for (const control of [edit[0], retry[0], copy, plain]) {
+    expect(copies).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Copy value" })).toBeNull();
+    expect(retry[0]?.previousElementSibling).toBe(copies[1]);
+    for (const control of [edit[0], retry[0], copies[0], copies[1]]) {
       expect(control?.getAttribute("data-variant")).toBe("ghost");
       expect(control?.getAttribute("data-size")).toBe("icon-sm");
       expect(control?.className).toContain("opacity-0");
       expect(control?.className).toContain("group-hover/message:opacity-100");
     }
-    const actions = copy.closest("[data-slot='message-actions']");
-    const content = copy.closest("[data-slot='message-content']");
+    const actions = copies[1]?.closest("[data-slot='message-actions']");
+    const content = copies[1]?.closest("[data-slot='message-content']");
     expect(actions?.className).not.toMatch(/gap-/);
-    expect(content?.className).toContain("gap-0");
+    expect(content?.className).toContain("gap-1");
     const code = screen.getByRole("button", { name: "Copy ts code" });
     expect(code.getAttribute("data-variant")).toBe("ghost");
     expect(code.getAttribute("data-size")).toBe("icon-sm");
     expect(code.className).toContain("group-hover/message:opacity-100");
 
-    await user.hover(plain);
-    expect(await screen.findByRole("tooltip", { name: "Copy value" })).toBeDefined();
-
-    await user.click(plain);
-    await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith("Hi.\n\nconst n = 1");
-    });
-    await user.click(copy);
+    await user.click(copies[1] as HTMLElement);
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith("Hi.\n\n```ts\nconst n = 1\n```");
     });
@@ -568,7 +561,6 @@ describe("chat page", () => {
     expect(screen.queryByRole("button", { name: "Retry answer" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Edit message" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Copy message" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Copy value" })).toBeNull();
     view.unmount();
 
     chatStatus = "ready";
@@ -583,8 +575,7 @@ describe("chat page", () => {
     ];
     mountChat();
     expect(screen.queryByRole("button", { name: "Retry answer" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Copy message" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Copy value" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Copy message" })).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Edit message" })).toBeDefined();
   });
 
@@ -608,6 +599,16 @@ describe("chat page", () => {
     expect(screen.getByRole("button", { name: "Vietnamese answers" })).toBeDefined();
     const search = screen.getByRole("textbox", { name: "Search chats" });
     expect(search.closest("[data-slot='input-group']")?.querySelector("svg")).toBeTruthy();
+    expect(search.closest("[data-slot='scroll-area']")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Postgres on 5433" }).closest("[data-slot='scroll-area']"),
+    ).toBeTruthy();
+    expect(document.querySelector("[data-slot='sidebar-content']")?.className).toContain(
+      "overflow-hidden",
+    );
+    expect(document.querySelector("[data-slot='scroll-area-viewport']")?.className).toContain(
+      "scroll-fade-y",
+    );
     await user.type(search, "postgres");
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Vietnamese answers" })).toBeNull();
@@ -655,6 +656,61 @@ describe("chat page", () => {
     expect(chatSend).not.toHaveBeenCalled();
   });
 
+  it("keeps the memory panel closed after the person closes it", async () => {
+    const user = userEvent.setup();
+    const stored = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => stored.get(key) ?? null,
+      setItem: (key: string, value: string) => void stored.set(key, value),
+      removeItem: (key: string) => void stored.delete(key),
+    });
+    const view = mountChat();
+    expect(screen.getByText("Nothing remembered in this chat yet.")).toBeDefined();
+    expect(screen.queryByRole("tab", { name: "Memory" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Close memory" }));
+    expect(screen.queryByText("Nothing remembered in this chat yet.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined();
+    expect(stored.get("hippo.memory-panel")).toBe("closed");
+    view.unmount();
+    mountChat();
+    expect(screen.queryByText("Nothing remembered in this chat yet.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined();
+  });
+
+  it("shows a remembered fact become stored without calling the relayer", async () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    chatMessages = [
+      {
+        id: "a1",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "Noted." },
+          {
+            type: "tool-remember",
+            state: "output-available",
+            input: { type: "profile", text: "I use pnpm" },
+            output: { saved: true, indexId: id },
+          },
+        ],
+      },
+    ];
+    const fetchMock = stubFetch({
+      [`/api/me/memories/${id}/status`]: {
+        status: "stored",
+        blobId: "blob-keep",
+        hidden: false,
+        type: "profile",
+      },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    mountChat();
+    expect(await screen.findByText("on Walrus")).toBeDefined();
+    expect(screen.getByText("Just remembered")).toBeDefined();
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(urls.some((url) => url.includes("relayer"))).toBe(false);
+    expect(urls.some((url) => url.includes("/status"))).toBe(true);
+  });
+
   it("stops the reply instead of sending another line", async () => {
     chatStatus = "streaming";
     chatMessages = [
@@ -682,7 +738,11 @@ describe("chat page", () => {
     expect(screen.getByRole("button", { name: /scroll to end/i })).toBeDefined();
     expect(container.querySelector("[data-slot='greeting']")).toBeNull();
     expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
-    expect(container.querySelector(".scroll-fade-b, .scroll-fade, .scroll-fade-y")).toBeTruthy();
+    expect(container.querySelector("[data-slot='message-scroller-viewport']")?.className).toContain(
+      "scroll-fade-y",
+    );
+    expect(container.querySelector("[data-slot='memory-panel'] .scroll-fade-y")).toBeNull();
+    expect(container.querySelector("[data-slot='composer-shell'] .max-h-60")).toBeTruthy();
   });
 
   it("lists a saved chat and opens it", async () => {

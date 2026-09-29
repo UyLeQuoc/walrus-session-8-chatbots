@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router";
 import { WalletAccount } from "@/app/wallet-account";
 import { Logo } from "@/components/logo";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
@@ -46,7 +47,7 @@ export function AppSidebar({
           <Logo variant={collapsed ? "mark" : "lockup"} wordSize={18} />
         </Link>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="overflow-hidden">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -76,10 +77,10 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
         {!collapsed && items.length > 0 && (
-          <SidebarGroup>
+          <SidebarGroup className="min-h-0 flex-1">
             <SidebarGroupLabel>Chats</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="px-2 pb-2">
+            <SidebarGroupContent className="flex min-h-0 flex-1 flex-col">
+              <div className="shrink-0 px-2 pb-2">
                 <InputGroup>
                   <InputGroupAddon>
                     <Search />
@@ -92,33 +93,36 @@ export function AppSidebar({
                   />
                 </InputGroup>
               </div>
-              {shown.length === 0 ? (
-                <p className="px-2 text-sm text-muted-foreground">No chats</p>
-              ) : null}
-              <SidebarMenu>
-                {shown.map((item) => (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      type="button"
-                      isActive={item.id === activeChatId}
-                      onClick={() => onOpenChat(item.id)}
-                    >
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                    <SidebarMenuAction
-                      aria-label={`Delete ${item.title}`}
-                      showOnHover
-                      onClick={() => {
-                        void remove(item.id).then((ok) => {
-                          if (ok && item.id === activeChatId) onNewChat();
-                        });
-                      }}
-                    >
-                      <Trash2 />
-                    </SidebarMenuAction>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
+              <ScrollArea className="min-h-0 flex-1" viewportClassName="scroll-fade-y">
+                {shown.length === 0 ? (
+                  <p className="px-2 py-6 text-center text-sm text-muted-foreground">No chats</p>
+                ) : (
+                  <SidebarMenu className="pb-2">
+                    {shown.map((item) => (
+                      <SidebarMenuItem key={item.id}>
+                        <SidebarMenuButton
+                          type="button"
+                          isActive={item.id === activeChatId}
+                          onClick={() => onOpenChat(item.id)}
+                        >
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                        <SidebarMenuAction
+                          aria-label={`Delete ${item.title}`}
+                          showOnHover
+                          onClick={() => {
+                            void remove(item.id).then((ok) => {
+                              if (ok && item.id === activeChatId) onNewChat();
+                            });
+                          }}
+                        >
+                          <Trash2 />
+                        </SidebarMenuAction>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                )}
+              </ScrollArea>
             </SidebarGroupContent>
           </SidebarGroup>
         )}

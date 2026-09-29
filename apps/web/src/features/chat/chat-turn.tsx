@@ -1,6 +1,6 @@
 import { sanitizeTable } from "@hippo/core/command-table";
 import { Pencil, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { CommandTableView } from "@/features/chat/command-table";
 import { Markdown } from "@/features/chat/markdown";
 import { messageActionClass } from "@/features/chat/message-action";
-import { plainText } from "@/features/chat/plain-text";
 import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
+import { selectedFact } from "@/features/chat/selected-fact";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
 
 interface ChatMessage {
@@ -40,6 +40,7 @@ export function ChatTurn({
   canAnswer,
   onEdit,
   onRetry,
+  onRemember,
 }: {
   message: ChatMessage;
   live: boolean;
@@ -48,23 +49,28 @@ export function ChatTurn({
   canAnswer: boolean;
   onEdit: (text: string) => void;
   onRetry: () => void;
+  onRemember: (text: string) => void;
 }) {
   const spoken = textOf(message.parts);
   const smoothed = useSmoothedText(spoken, !streaming);
   const shown = streaming ? smoothed : spoken;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(spoken);
+  const [fact, setFact] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const readSelection = () => setFact(selectedFact(rootRef.current));
   const editor = editing && canEdit;
 
   if (message.role === "user") {
     return (
       <Message align="end">
-        <MessageContent className="gap-0">
+        <MessageContent className="gap-1" ref={rootRef} onMouseUp={readSelection}>
           {editor ? (
             <div className="flex w-full flex-col">
               <Textarea
                 value={draft}
                 aria-label="Edit message"
+                className="max-h-60 overflow-y-auto"
                 onChange={(event) => setDraft(event.target.value)}
               />
               <div className="flex justify-end">
@@ -102,22 +108,32 @@ export function ChatTurn({
               </BubbleContent>
             </Bubble>
           )}
-          {canEdit && !editor ? (
-            <div data-slot="message-actions" className="flex justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className={messageActionClass}
-                aria-label="Edit message"
-                onClick={() => {
-                  setDraft(spoken);
-                  setEditing(true);
-                }}
-              >
-                <Pencil />
+          {fact && !editor ? (
+            <div className="flex justify-end">
+              <Button type="button" variant="outline" onClick={() => onRemember(fact)}>
+                Remember
               </Button>
             </div>
+          ) : null}
+          {canEdit && !editor ? (
+            <TooltipProvider delayDuration={200}>
+              <div data-slot="message-actions" className="flex justify-end">
+                <AnswerCopy value={spoken} label="message" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className={messageActionClass}
+                  aria-label="Edit message"
+                  onClick={() => {
+                    setDraft(spoken);
+                    setEditing(true);
+                  }}
+                >
+                  <Pencil />
+                </Button>
+              </div>
+            </TooltipProvider>
           ) : null}
         </MessageContent>
       </Message>
@@ -131,11 +147,9 @@ export function ChatTurn({
   );
   const command = isCommand(message);
   const table = sanitizeTable((message.metadata as { table?: unknown } | undefined)?.table);
-  const plain = canAnswer && !command && shown ? plainText(shown) : "";
-
   return (
     <Message>
-      <MessageContent className="gap-0">
+      <MessageContent className="gap-1" ref={rootRef} onMouseUp={readSelection}>
         <div className="flex w-full min-w-0 flex-col gap-2.5">
           <Recalled memories={recalled} />
           {tools.map((part, index) => (
@@ -153,11 +167,15 @@ export function ChatTurn({
             live && <Thinking />
           )}
         </div>
+        {fact && !command ? (
+          <Button type="button" variant="outline" onClick={() => onRemember(fact)}>
+            Remember
+          </Button>
+        ) : null}
         {canAnswer && !command && shown ? (
           <TooltipProvider delayDuration={200}>
             <div data-slot="message-actions" className="flex items-center">
               <AnswerCopy value={shown} label="message" />
-              {plain ? <AnswerCopy value={plain} label="value" /> : null}
               <Button
                 type="button"
                 variant="ghost"
