@@ -113,3 +113,7 @@ From `docs/GOAL.md`. Not a new audit.
 ## Since last snapshot
 
 - 2026-09-27 — This file written against `0343083`. The same commit adds composer padding (`className="p-4"`) and reformats `chat-page.tsx`. No other product change.
+- 2026-09-27 — Chat workspace plan written in `docs/CHAT-UPGRADE.md` (`6d9a4f5`). It does not replace `docs/GOAL.md`.
+- 2026-09-27 — Stop a streaming reply without a second user row (`141e5c4`). Slash menu opens on `/` (`07d9471`, fade `b93b9e5`). Greeting, composer meter, user-message tint, animated text, command tables (`e6375a0`, `325438f`, `18a2d08`, `58b3f3d`). `/me` is a dashboard and `/guide` is a route (`6b7d0bd`). The 2026-09-27 snapshot's route list omitted `/guide`.
+- 2026-09-28 — Choosing a slash command fills the composer and opens the usage guide. It sends on Send or Enter (`d577976`). That replaced the earlier "choosing one sends it immediately" behavior.
+- 2026-09-29 — Retry, edit, copy, sidebar chat search, and follow-up suggestions (`0c845eb` on `plan/chat-workspace`, matching `origin/plan/chat-workspace`). `docs/CHAT-UPGRADE.md` marks Phase 1 items 1–8 done. Phase 0 has no written result in `docs/SPIKES.md`. Phase 2 has not started. Next coding step in that plan is Phase 2. Do not start Phase 3 until Phase 0 is written. `origin/main` is still `f4ef993`. This update did not re-run lint, tests, or `bun run demo`.
