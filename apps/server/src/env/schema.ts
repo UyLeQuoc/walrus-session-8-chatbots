@@ -7,7 +7,7 @@ import { z } from "zod";
 
 export const serverEnvSchema = operatorEnvSchema.extend({
   OPENROUTER_API_KEY: z.string().min(1),
-  LLM_MODEL: z.string().default("google/gemini-2.5-flash"),
+  LLM_MODEL: z.string().default("deepseek/deepseek-v4.1-flash"),
   LLM_FALLBACK_MODEL: z.string().optional(),
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().default(8787),

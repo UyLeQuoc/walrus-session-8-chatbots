@@ -21,6 +21,7 @@ export interface BuildMemoryInput {
   channel?: string;
   date?: Date;
   text: string;
+  replaces?: string;
 }
 
 export function isMemoryType(v: string): v is MemoryType {
@@ -39,13 +40,22 @@ export function isoDate(d: Date = new Date()): string {
  * on mainnet. A bracket that is not one of ours, like `[WIP]`, is content.
  */
 const COPIED_TAGS = new RegExp(
-  `^\\s*(?:\\[(?:${MEMORY_TYPES.join("|")}|by:[^\\]]*|#[^\\]]*|\\d{4}-\\d{2}-\\d{2})\\]\\s*)+`,
+  `^\\s*(?:\\[(?:${MEMORY_TYPES.join("|")}|by:[^\\]]*|#[^\\]]*|replaces:[^\\]]*|\\d{4}-\\d{2}-\\d{2})\\]\\s*)+`,
 );
+
+export function replacesBlobId(value: string | undefined): string | null {
+  if (!value) return null;
+  const id = value.trim();
+  if (!/^[A-Za-z0-9_-]{8,200}$/.test(id)) return null;
+  return id;
+}
 
 /** `[type] [by:@handle] [#channel]? [YYYY-MM-DD] fact` */
 export function buildMemoryText(input: BuildMemoryInput): string {
   const parts = [`[${input.type}]`, `[by:@${input.by.replace(/^@/, "")}]`];
   if (input.channel) parts.push(`[#${input.channel.replace(/^#/, "")}]`);
+  const replaces = replacesBlobId(input.replaces);
+  if (replaces) parts.push(`[replaces:${replaces}]`);
   parts.push(`[${isoDate(input.date)}]`);
   parts.push(input.text.replace(COPIED_TAGS, "").trim().replace(/\s+/g, " "));
   return parts.join(" ");

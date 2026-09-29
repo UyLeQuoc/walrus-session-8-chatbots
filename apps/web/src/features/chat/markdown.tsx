@@ -3,6 +3,9 @@ import { memo, useId, useMemo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
+import { CopyButton } from "@/components/copy-button";
+import { fencedBlock } from "@/features/chat/fenced-block";
+import { messageActionClass } from "@/features/chat/message-action";
 import { cn } from "@/lib/utils";
 
 const components: Components = {
@@ -19,11 +22,31 @@ const components: Components = {
     if (fenced) return <code className={cn("font-mono text-xs", className)}>{children}</code>;
     return <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]">{children}</code>;
   },
-  pre: ({ children }) => (
-    <pre className="my-3 overflow-x-auto rounded-lg bg-muted p-3 font-mono text-xs leading-relaxed">
-      {children}
-    </pre>
-  ),
+  pre: ({ children }) => {
+    const block = fencedBlock(children);
+    const label = block.language ? `${block.language} code` : "code";
+    return (
+      <div className="my-3 overflow-hidden rounded-lg bg-muted">
+        <div className="flex items-center gap-2 px-3 pt-3">
+          {block.language ? (
+            <span className="text-sm text-muted-foreground">{block.language}</span>
+          ) : null}
+          <div className="ml-auto">
+            <CopyButton
+              value={block.text}
+              label={label}
+              variant="ghost"
+              size="icon-sm"
+              className={messageActionClass}
+            />
+          </div>
+        </div>
+        <pre className="overflow-x-auto px-3 pb-3 font-mono text-xs leading-relaxed">
+          {children}
+        </pre>
+      </div>
+    );
+  },
 };
 
 function blocksOf(markdown: string): string[] {

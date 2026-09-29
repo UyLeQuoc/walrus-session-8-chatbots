@@ -41,7 +41,9 @@ if (!key) {
   console.log(`  remaining       ${remaining === null ? "n/a" : money(remaining)}`);
 
   const [turns] = await db
-    .select({ n: sql<number>`count(*) filter (where ${turnLog.mode} <> 'command')::int` })
+    .select({
+      n: sql<number>`count(*) filter (where ${turnLog.mode} <> 'command' and ${turnLog.mode} <> 'suggestion')::int`,
+    })
     .from(turnLog);
   const logged = turns?.n ?? 0;
 

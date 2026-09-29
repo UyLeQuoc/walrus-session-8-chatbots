@@ -6,14 +6,15 @@
  * exactly what a judge clicking the live URL would hit. Each test mounts a page
  * with the network stubbed and asserts something a user would actually see.
  */
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useSyncExternalStore } from "react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Logo } from "../components/logo.tsx";
+import { writeActiveChat } from "../features/chat/active-chat.ts";
 import { ChatPage } from "../features/chat/chat-page.tsx";
-import { greetingFor } from "../features/chat/greeting.ts";
+import { greetingsFor, greetingText } from "../features/chat/greeting.ts";
 import { ConnectPage } from "../features/connect/connect-page.tsx";
 import { GuidePage } from "../features/guide/guide-page.tsx";
 import { MePage } from "../features/me/me-page.tsx";
@@ -31,10 +32,16 @@ let chatVersion = 0;
 const chatSubscribers = new Set<() => void>();
 const chatSend = vi.fn();
 const chatStop = vi.fn();
+const chatRegenerate = vi.fn();
 
 function publishChat() {
   chatVersion += 1;
   for (const subscriber of chatSubscribers) subscriber();
+}
+
+function setChatStatus(status: string) {
+  chatStatus = status;
+  publishChat();
 }
 
 vi.mock("@ai-sdk/react", () => ({
@@ -53,6 +60,7 @@ vi.mock("@ai-sdk/react", () => ({
       messages: chatMessages,
       sendMessage: chatSend,
       stop: chatStop,
+      regenerate: chatRegenerate,
       setMessages: (next: unknown[] | ((prev: unknown[]) => unknown[])) => {
         chatMessages = typeof next === "function" ? next(chatMessages) : next;
         publishChat();
@@ -129,6 +137,7 @@ beforeEach(() => {
   chatVersion = 0;
   chatSend.mockClear();
   chatStop.mockClear();
+  chatRegenerate.mockClear();
   wallet = null;
   signAndExecute.mockClear();
   suiClientStub.core = {};
@@ -183,6 +192,10 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function showsAGreeting(seen: string): boolean {
+  return greetingsFor(new Date()).some((line) => seen.includes(greetingText(line)));
+}
+
 const HIDDEN_GUIDANCE = [
   /memory you own/i,
   /Take ownership/i,
@@ -205,13 +218,13 @@ describe("chat page", () => {
       </MemoryRouter>,
     );
     const seen = container.textContent ?? "";
-    expect(seen).toContain(greetingFor(new Date()));
+    expect(showsAGreeting(seen)).toBe(true);
     for (const phrase of HIDDEN_GUIDANCE) expect(seen).not.toMatch(phrase);
     expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
     const add = screen.getByRole("button", { name: "Add" });
     expect((add as HTMLButtonElement).disabled).toBe(true);
     expect(container.querySelector("[data-slot='composer-shell']")?.textContent).toContain(
-      "Gemini 2.5 Flash",
+      "DeepSeek V4.1 Flash",
     );
     expect(screen.queryByText(/Try one/)).toBeNull();
   });
@@ -227,9 +240,11 @@ describe("chat page", () => {
     expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
 
     await userEvent.click(chip);
-    expect(chatSend).toHaveBeenCalledWith({
-      text: "I only use pnpm, and I want short answers in Vietnamese.",
-    });
+    expect(chatSend).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox")).toHaveProperty(
+      "value",
+      "I only use pnpm, and I want short answers in Vietnamese.",
+    );
   });
 
   it("switches to proving it once hippo has answered", () => {
@@ -278,10 +293,14 @@ describe("chat page", () => {
     );
     expect(screen.getByRole("table")).toBeDefined();
     expect(screen.getByText("hippo")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Copy Namespace" })).toBeDefined();
-    expect(screen.getByRole("link", { name: "Open Account" }).getAttribute("href")).toBe(
-      "https://suiscan.xyz/mainnet/object/0xfull",
-    );
+    const copyNamespace = screen.getByRole("button", { name: "Copy Namespace" });
+    const openAccount = screen.getByRole("link", { name: "Open Account" });
+    expect(copyNamespace.getAttribute("data-variant")).toBe("ghost");
+    expect(copyNamespace.getAttribute("data-size")).toBe("icon-sm");
+    expect(copyNamespace.className).toContain("group-hover/message:opacity-100");
+    expect(openAccount.getAttribute("data-variant")).toBe("ghost");
+    expect(openAccount.getAttribute("data-size")).toBe("icon-sm");
+    expect(openAccount.getAttribute("href")).toBe("https://suiscan.xyz/mainnet/object/0xfull");
     expect(container.querySelector("pre")).toBeNull();
     expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
   });
@@ -352,7 +371,7 @@ describe("chat page", () => {
     );
     const seen = container.textContent ?? "";
     expect(seen).toMatch(/Noted\./);
-    expect(seen).not.toContain(greetingFor(new Date()));
+    expect(container.querySelector("[data-slot='greeting']")).toBeNull();
     expect(seen).not.toMatch(/memory you own/i);
   });
 
@@ -403,7 +422,8 @@ describe("chat page", () => {
     const suggestion = within(cluster as HTMLElement).getByRole("button", {
       name: /only use pnpm/i,
     });
-    expect(greeting.textContent ?? "").toContain(greetingFor(new Date()));
+    expect(showsAGreeting(greeting.textContent ?? "")).toBe(true);
+    expect(greeting.querySelector(".font-greeting")).toBeTruthy();
     expect(greeting.textContent ?? "").not.toContain("hippo");
     expect(greeting.querySelector("img")).toBeNull();
     expect(greeting.className).toContain("text-center");
@@ -452,8 +472,248 @@ describe("chat page", () => {
       "scroll-fade-y",
     );
     await user.click(memory);
-    expect(chatSend).toHaveBeenCalledWith({ text: "/memory" });
-    expect(chatSend).toHaveBeenCalledTimes(1);
+    expect(chatSend).not.toHaveBeenCalled();
+    const filled = screen.getByRole("textbox");
+    expect(filled).toHaveProperty("value", "/memory");
+    const shell = filled.closest("[data-slot='composer-shell']");
+    const token = shell?.querySelector("[data-command-token]");
+    expect(token?.textContent).toBe("/memory");
+    expect(token?.className).toContain("text-[#156BC1]");
+    expect(screen.getByRole("option", { name: /\/memory search/i })).toBeDefined();
+    expect(screen.getByRole("option", { name: /\/memory forget <blob>/i })).toBeDefined();
+    await user.type(filled, " search");
+    const rest = shell?.querySelector("[data-command-rest]");
+    expect(rest?.textContent).toBe(" search");
+    expect(rest?.className).not.toContain("text-[#156BC1]");
+  });
+
+  it("retries the last answer and edits the last user line through one resend", async () => {
+    const user = userEvent.setup();
+    chatMessages = [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "hello" }] },
+      {
+        id: "a1",
+        role: "assistant",
+        parts: [{ type: "text", text: "Hi.\n\n```ts\nconst n = 1\n```" }],
+        metadata: {},
+      },
+    ];
+    mountChat();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const edit = screen.getAllByRole("button", { name: "Edit message" });
+    const retry = screen.getAllByRole("button", { name: "Retry answer" });
+    const copies = screen.getAllByRole("button", { name: "Copy message" });
+    expect(edit).toHaveLength(1);
+    expect(retry).toHaveLength(1);
+    expect(copies).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Copy value" })).toBeNull();
+    expect(retry[0]?.previousElementSibling).toBe(copies[1]);
+    for (const control of [edit[0], retry[0], copies[0], copies[1]]) {
+      expect(control?.getAttribute("data-variant")).toBe("ghost");
+      expect(control?.getAttribute("data-size")).toBe("icon-sm");
+      expect(control?.className).toContain("opacity-0");
+      expect(control?.className).toContain("group-hover/message:opacity-100");
+    }
+    const actions = copies[1]?.closest("[data-slot='message-actions']");
+    const content = copies[1]?.closest("[data-slot='message-content']");
+    expect(actions?.className).not.toMatch(/gap-/);
+    expect(content?.className).toContain("gap-1");
+    const code = screen.getByRole("button", { name: "Copy ts code" });
+    expect(code.getAttribute("data-variant")).toBe("ghost");
+    expect(code.getAttribute("data-size")).toBe("icon-sm");
+    expect(code.className).toContain("group-hover/message:opacity-100");
+
+    await user.click(copies[1] as HTMLElement);
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith("Hi.\n\n```ts\nconst n = 1\n```");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Retry answer" }));
+    expect(chatRegenerate).toHaveBeenCalledWith({ messageId: "u1" });
+    expect(chatMessages.map((message) => (message as { role: string }).role)).toEqual(["user"]);
+    expect(chatSend).not.toHaveBeenCalled();
+
+    chatRegenerate.mockClear();
+    chatMessages = [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "hello" }] },
+      { id: "a1", role: "assistant", parts: [{ type: "text", text: "Hi." }], metadata: {} },
+    ];
+    publishChat();
+    await user.click(screen.getByRole("button", { name: "Edit message" }));
+    const editor = screen.getByRole("textbox", { name: "Edit message" });
+    await user.clear(editor);
+    await user.type(editor, "hello again");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(chatRegenerate).toHaveBeenCalledWith({ messageId: "u1" });
+    const kept = chatMessages[0] as { parts: Array<{ text: string }> };
+    expect(kept.parts[0]?.text).toBe("hello again");
+    expect(chatMessages.some((message) => (message as { role: string }).role === "assistant")).toBe(
+      false,
+    );
+  });
+
+  it("hides retry and edit while a reply is streaming and on a slash command", () => {
+    chatStatus = "streaming";
+    chatMessages = [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "hello" }] },
+      { id: "a1", role: "assistant", parts: [{ type: "text", text: "Hi." }], metadata: {} },
+    ];
+    const view = mountChat();
+    expect(screen.queryByRole("button", { name: "Retry answer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit message" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Copy message" })).toBeNull();
+    view.unmount();
+
+    chatStatus = "ready";
+    chatMessages = [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "/memory" }] },
+      {
+        id: "a1",
+        role: "assistant",
+        parts: [{ type: "text", text: "Mode: guest." }],
+        metadata: { command: true },
+      },
+    ];
+    mountChat();
+    expect(screen.queryByRole("button", { name: "Retry answer" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Copy message" })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Edit message" })).toBeDefined();
+  });
+
+  it("filters the chat list in the sidebar", async () => {
+    const user = userEvent.setup();
+    const first = "11111111-1111-4111-8111-111111111111";
+    const second = "22222222-2222-4222-8222-222222222222";
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/conversations": {
+          conversations: [
+            { id: first, title: "Postgres on 5433", updatedAt: "2026-09-26T00:00:00.000Z" },
+            { id: second, title: "Vietnamese answers", updatedAt: "2026-09-26T00:00:00.000Z" },
+          ],
+        },
+      }),
+    );
+    mountChat();
+    expect(await screen.findByRole("button", { name: "Postgres on 5433" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Vietnamese answers" })).toBeDefined();
+    const search = screen.getByRole("textbox", { name: "Search chats" });
+    expect(search.closest("[data-slot='input-group']")?.querySelector("svg")).toBeTruthy();
+    expect(search.closest("[data-slot='scroll-area']")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Postgres on 5433" }).closest("[data-slot='scroll-area']"),
+    ).toBeTruthy();
+    expect(document.querySelector("[data-slot='sidebar-content']")?.className).toContain(
+      "overflow-hidden",
+    );
+    expect(document.querySelector("[data-slot='scroll-area-viewport']")?.className).toContain(
+      "scroll-fade-y",
+    );
+    await user.type(search, "postgres");
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Vietnamese answers" })).toBeNull();
+    });
+    expect(screen.getByRole("button", { name: "Postgres on 5433" })).toBeDefined();
+    await user.clear(search);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Vietnamese answers" })).toBeDefined();
+    });
+    await user.type(search, "zzzz");
+    await waitFor(() => {
+      expect(screen.getByText("No chats")).toBeDefined();
+    });
+  });
+
+  it("fills the composer with a follow-up and does not send it", async () => {
+    const user = userEvent.setup();
+    const id = "11111111-1111-4111-8111-111111111111";
+    writeActiveChat(id);
+    chatStatus = "streaming";
+    chatMessages = [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "hello" }] },
+      { id: "a1", role: "assistant", parts: [{ type: "text", text: "Hi." }], metadata: {} },
+    ];
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        [`/api/conversations/${id}/messages`]: {
+          messages: [
+            { id: "u1", role: "user", kind: "turn", text: "hello", seq: 1 },
+            { id: "a1", role: "assistant", kind: "turn", text: "Hi.", seq: 2 },
+          ],
+        },
+        "/api/chat/suggestions": { suggestions: ["What port?", "Which ORM?"] },
+      }),
+    );
+    mountChat();
+    await act(async () => {
+      setChatStatus("ready");
+    });
+    const suggestion = await screen.findByRole("button", { name: "What port?" });
+    await user.click(suggestion);
+    const box = screen.getByPlaceholderText("Message hippo…");
+    expect(box).toHaveProperty("value", "What port?");
+    expect(chatSend).not.toHaveBeenCalled();
+  });
+
+  it("keeps the memory panel closed after the person closes it", async () => {
+    const user = userEvent.setup();
+    const stored = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => stored.get(key) ?? null,
+      setItem: (key: string, value: string) => void stored.set(key, value),
+      removeItem: (key: string) => void stored.delete(key),
+    });
+    const view = mountChat();
+    expect(screen.getByText("Nothing remembered in this chat yet.")).toBeDefined();
+    expect(screen.queryByRole("tab", { name: "Memory" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Close memory" }));
+    expect(screen.queryByText("Nothing remembered in this chat yet.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined();
+    expect(stored.get("hippo.memory-panel")).toBe("closed");
+    view.unmount();
+    mountChat();
+    expect(screen.queryByText("Nothing remembered in this chat yet.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined();
+  });
+
+  it("shows a remembered fact become stored without calling the relayer", async () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    chatMessages = [
+      {
+        id: "a1",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "Noted." },
+          {
+            type: "tool-remember",
+            state: "output-available",
+            input: { type: "profile", text: "I use pnpm" },
+            output: { saved: true, indexId: id },
+          },
+        ],
+      },
+    ];
+    const fetchMock = stubFetch({
+      [`/api/me/memories/${id}/status`]: {
+        status: "stored",
+        blobId: "blob-keep",
+        hidden: false,
+        type: "profile",
+      },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    mountChat();
+    expect(await screen.findByText("on Walrus")).toBeDefined();
+    expect(screen.getByText("Just remembered")).toBeDefined();
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(urls.some((url) => url.includes("relayer"))).toBe(false);
+    expect(urls.some((url) => url.includes("/status"))).toBe(true);
   });
 
   it("stops the reply instead of sending another line", async () => {
@@ -483,7 +743,11 @@ describe("chat page", () => {
     expect(screen.getByRole("button", { name: /scroll to end/i })).toBeDefined();
     expect(container.querySelector("[data-slot='greeting']")).toBeNull();
     expect(screen.queryByRole("button", { name: /Reload, then ask/i })).toBeNull();
-    expect(container.querySelector(".scroll-fade-b, .scroll-fade, .scroll-fade-y")).toBeTruthy();
+    expect(container.querySelector("[data-slot='message-scroller-viewport']")?.className).toContain(
+      "scroll-fade-y",
+    );
+    expect(container.querySelector("[data-slot='memory-panel'] .scroll-fade-y")).toBeNull();
+    expect(container.querySelector("[data-slot='composer-shell'] .max-h-60")).toBeTruthy();
   });
 
   it("lists a saved chat and opens it", async () => {
@@ -517,7 +781,7 @@ describe("chat page", () => {
     expect(container.textContent ?? "").toMatch(/Noted\./);
     await userEvent.click(screen.getByRole("button", { name: /new chat/i }));
     const seen = container.textContent ?? "";
-    expect(seen).toContain(greetingFor(new Date()));
+    expect(showsAGreeting(seen)).toBe(true);
     expect(seen).not.toMatch(/Noted\./);
     expect(seen).not.toMatch(/I use pnpm/);
   });

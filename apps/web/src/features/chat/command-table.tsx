@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Web3Address } from "@/components/web3-address";
+import { messageActionClass } from "@/features/chat/message-action";
 
 function actionLabel(cell: string | undefined): string {
   const trimmed = cell?.trim() ?? "";
@@ -26,9 +27,17 @@ function RowActions({ row }: { row: CommandRow }) {
   const label = actionLabel(row.cells[0]);
   return (
     <ButtonGroup>
-      {row.copy ? <CopyButton value={row.copy} label={label} /> : null}
+      {row.copy ? (
+        <CopyButton
+          value={row.copy}
+          label={label}
+          variant="ghost"
+          size="icon-sm"
+          className={messageActionClass}
+        />
+      ) : null}
       {href ? (
-        <Button size="icon" variant="outline" asChild>
+        <Button size="icon-sm" variant="ghost" className={messageActionClass} asChild>
           <a href={href} target="_blank" rel="noreferrer" aria-label={`Open ${label}`}>
             <ExternalLink />
           </a>

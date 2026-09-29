@@ -6,7 +6,7 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { createClient, type MemoryScope } from "./client.ts";
-import { buildMemoryText, type MemoryType } from "./format.ts";
+import { buildMemoryText, type MemoryType, replacesBlobId } from "./format.ts";
 import { limiterFor } from "./limiter.ts";
 import { type RecalledMemory, recallRelevant, rememberWithDedupe } from "./policy.ts";
 import { redactCredentials } from "./redact.ts";
@@ -15,6 +15,8 @@ export interface RememberInput {
   type: MemoryType;
   text: string;
   channel?: string;
+  knownHashes?: ReadonlySet<string>;
+  replaces?: string;
 }
 
 /** What the LLM sees. Deliberately small and free of internal ids. */
@@ -22,6 +24,8 @@ export interface RememberResult extends Record<string, unknown> {
   saved: boolean;
   note: string;
   redacted: string[];
+  indexId?: string;
+  blobId?: string;
 }
 
 export interface RecallInput {
@@ -60,7 +64,7 @@ export interface CreatePortOptions {
   /** Handle written into the [by:@handle] tag. */
   by: string;
   channel: string;
-  onWrite?: (e: WriteEvent) => void | Promise<void>;
+  onWrite?: (e: WriteEvent) => undefined | Promise<string | undefined>;
   /**
    * Extra scopes to read from and never write to.
    *
@@ -108,8 +112,21 @@ export function createMemoryPort({
 
     async remember(input) {
       const { text, removed } = redactCredentials(input.text);
-      const line = buildMemoryText({ type: input.type, by, channel: input.channel, text });
+      const line = buildMemoryText({
+        type: input.type,
+        by,
+        channel: input.channel,
+        text,
+        replaces: replacesBlobId(input.replaces) ?? undefined,
+      });
       const sha = bytesToHex(sha256(new TextEncoder().encode(line)));
+      if (input.knownHashes?.has(sha)) {
+        return {
+          saved: false,
+          note: "Already in memory, nothing written. Do not tell the user it was saved again.",
+          redacted: removed,
+        };
+      }
       const outcome = await rememberWithDedupe(client, {
         text: line,
         namespace: scope.namespace,
@@ -131,13 +148,14 @@ export function createMemoryPort({
           saved: false,
           note: "Already in memory, nothing written. Do not tell the user it was saved again.",
           redacted: removed,
+          ...(outcome.blobId ? { blobId: outcome.blobId } : {}),
         };
       }
 
       // Record the accepted job now, so the memory survives a restart or deploy
       // during the write window rather than vanishing after the user was told
       // it was saved.
-      await onWrite?.({
+      const indexId = await onWrite?.({
         scope,
         type: input.type,
         blobId: null,
@@ -172,6 +190,7 @@ export function createMemoryPort({
         saved: true,
         note: `Stored as ${input.type}. It is being written to Walrus now and is recallable within about a minute.`,
         redacted: removed,
+        ...(typeof indexId === "string" ? { indexId } : {}),
       };
     },
 

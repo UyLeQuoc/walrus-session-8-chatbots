@@ -5,11 +5,12 @@
  * model.
  */
 import type { CommandTable } from "@hippo/core/command-table";
-import { and, desc, eq, memoryIndex, people, sql, turnLog } from "@hippo/db";
+import { and, desc, eq, memoryIndex, sql, turnLog } from "@hippo/db";
 import { guestScope, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
 import { db, operator } from "../context.ts";
 import { env } from "../env/load.ts";
 import { createLinkCode, redeemLinkCode } from "../identity/link.ts";
+import { setMemoryEnabled } from "../identity/memory-flag.ts";
 import {
   inheritedGuestScopes,
   ownMemoryOf,
@@ -246,7 +247,7 @@ async function searchMemories(ctx: CommandContext, query: string): Promise<Comma
 }
 
 async function setMemory(ctx: CommandContext, on: boolean): Promise<CommandResult> {
-  await db.update(people).set({ memoryEnabled: on }).where(eq(people.id, ctx.person.id));
+  await setMemoryEnabled(ctx.person.id, on);
   return sentence(
     on
       ? "Memory on. I will remember what matters from now on."

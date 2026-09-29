@@ -1,10 +1,24 @@
 import { Check, Copy } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ComponentProps, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const COPIED_FOR_MS = 1000;
 
-export function CopyButton({ value, label }: { value: string; label: string }) {
+export function CopyButton({
+  value,
+  label,
+  variant = "outline",
+  size = "icon",
+  className,
+  disabled,
+  onClick,
+  ...props
+}: Omit<ComponentProps<"button">, "value" | "children"> & {
+  value: string;
+  label: string;
+  variant?: "outline" | "ghost";
+  size?: "icon" | "icon-sm";
+}) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -35,11 +49,16 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
 
   return (
     <Button
+      variant={variant}
+      size={size}
+      className={className}
+      {...props}
       type="button"
-      variant="outline"
-      size="icon"
-      disabled={copied}
-      onClick={copy}
+      disabled={copied || disabled}
+      onClick={(event) => {
+        onClick?.(event);
+        copy();
+      }}
       aria-label={copied ? "Copied" : `Copy ${label}`}
     >
       {copied ? <Check className="text-green-600 dark:text-green-500" /> : <Copy />}

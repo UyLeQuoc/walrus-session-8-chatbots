@@ -77,18 +77,21 @@ function indexWrites(person: Person) {
   return async (e: WriteEvent) => {
     if (e.outcome === "duplicate") return;
     if (e.outcome === "accepted") {
-      await db.insert(memoryIndex).values({
-        personId: person.id,
-        accountId: e.scope.accountId,
-        namespace: e.scope.namespace,
-        jobId: e.jobId,
-        blobId: e.blobId,
-        status: "pending",
-        type: e.type,
-        textSha256: e.textSha256,
-        channel: e.channel,
-      });
-      return;
+      const [row] = await db
+        .insert(memoryIndex)
+        .values({
+          personId: person.id,
+          accountId: e.scope.accountId,
+          namespace: e.scope.namespace,
+          jobId: e.jobId,
+          blobId: e.blobId,
+          status: "pending",
+          type: e.type,
+          textSha256: e.textSha256,
+          channel: e.channel,
+        })
+        .returning({ id: memoryIndex.id });
+      return row?.id;
     }
     if (!e.jobId) return;
     await db

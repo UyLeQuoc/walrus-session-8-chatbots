@@ -11,6 +11,7 @@ import { decryptSecret, encryptSecret } from "@hippo/memory";
 import type { ModelMessage } from "ai";
 import { db } from "../context.ts";
 import { env } from "../env/load.ts";
+import { type Citation, packTurnBody, unpackTurnBody } from "./citations.ts";
 import {
   contextWindow,
   conversationTitle,
@@ -36,6 +37,7 @@ export interface TranscriptMessage {
   text: string;
   seq: number;
   table?: CommandTable;
+  cites?: Citation[];
 }
 
 export interface StoredAnswer {
@@ -51,6 +53,7 @@ export type AppendResult =
       alreadyAnswered: boolean;
       answer: string | null;
       table?: CommandTable;
+      userSince?: Date;
     }
   | { ok: false; reason: "missing" };
 
@@ -161,6 +164,26 @@ async function findOpen(personId: string, channel: string, threadKey: string) {
   return row ?? null;
 }
 
+function openStoredBody(
+  role: string,
+  kind: string,
+  raw: string,
+): { text: string; cites: Citation[]; table?: CommandTable } {
+  if (kind === "command") {
+    const presented = presentCommandBody(role, kind, raw);
+    return {
+      text: presented.text,
+      cites: [],
+      ...(presented.table ? { table: presented.table } : {}),
+    };
+  }
+  if (role === "assistant" && kind === "turn") {
+    const opened = unpackTurnBody(raw);
+    return { text: opened.text, cites: opened.cites };
+  }
+  return { text: raw, cites: [] };
+}
+
 export async function storedAnswer(
   conversationId: string,
   clientId: string,
@@ -190,7 +213,7 @@ export async function storedAnswer(
   if (!answer) return null;
   const text = unseal(answer.bodyEnc, answer.id);
   if (text === null) return null;
-  const presented = presentCommandBody("assistant", answer.kind, text);
+  const presented = openStoredBody("assistant", answer.kind, text);
   return { text: presented.text, kind: answer.kind, table: presented.table };
 }
 
@@ -221,7 +244,12 @@ export async function appendUser(input: {
 
       const existing = input.clientId
         ? await tx
-            .select({ id: messages.id, seq: messages.seq })
+            .select({
+              id: messages.id,
+              seq: messages.seq,
+              bodyEnc: messages.bodyEnc,
+              createdAt: messages.createdAt,
+            })
             .from(messages)
             .where(and(eq(messages.conversationId, conv.id), eq(messages.clientId, input.clientId)))
             .limit(1)
@@ -229,6 +257,33 @@ export async function appendUser(input: {
       const prior = existing[0];
       if (prior) {
         if (input.regenerate) {
+          const stored = unseal(prior.bodyEnc, prior.id);
+          if (stored !== input.text) {
+            await tx
+              .update(messages)
+              .set({ bodyEnc: seal(input.text) })
+              .where(eq(messages.id, prior.id));
+            const [earlierUser] = await tx
+              .select({ id: messages.id })
+              .from(messages)
+              .where(
+                and(
+                  eq(messages.conversationId, conv.id),
+                  eq(messages.role, "user"),
+                  sql`${messages.seq} < ${prior.seq}`,
+                ),
+              )
+              .limit(1);
+            if (!earlierUser) {
+              await tx
+                .update(conversations)
+                .set({
+                  titleEnc: seal(conversationTitle(input.text)),
+                  updatedAt: new Date(now),
+                })
+                .where(eq(conversations.id, conv.id));
+            }
+          }
           await tx
             .delete(messages)
             .where(and(eq(messages.conversationId, conv.id), sql`${messages.seq} > ${prior.seq}`));
@@ -248,7 +303,7 @@ export async function appendUser(input: {
           if (answer) {
             const text = unseal(answer.bodyEnc, answer.id);
             if (text !== null) {
-              const presented = presentCommandBody("assistant", answer.kind, text);
+              const presented = openStoredBody("assistant", answer.kind, text);
               return {
                 ok: true,
                 sessionStart: false,
@@ -260,7 +315,13 @@ export async function appendUser(input: {
           }
         }
         const flags = await sessionFlags(tx, conv.id, prior.seq, now);
-        return { ok: true, ...flags, alreadyAnswered: false, answer: null };
+        return {
+          ok: true,
+          ...flags,
+          alreadyAnswered: false,
+          answer: null,
+          userSince: prior.createdAt,
+        };
       }
 
       const seq = await nextSeq(tx, conv.id);
@@ -334,8 +395,10 @@ export async function appendAssistant(
   conversationId: string,
   text: string,
   kind: TranscriptKind,
+  cites: Citation[] = [],
 ): Promise<void> {
-  const body = text.trim() || "…";
+  const spoken = text.trim() || "…";
+  const body = kind === "turn" && cites.length > 0 ? packTurnBody(spoken, cites) : spoken;
   await db.transaction(async (tx) => {
     const [conv] = await tx
       .select({ id: conversations.id })
@@ -383,7 +446,8 @@ export async function modelMessages(conversationId: string): Promise<ModelMessag
   for (const row of rows.reverse()) {
     const text = unseal(row.bodyEnc, row.id);
     if (text === null) continue;
-    lines.push({ role: row.role, kind: row.kind, text, seq: row.seq });
+    const opened = openStoredBody(row.role, row.kind, text);
+    lines.push({ role: row.role, kind: row.kind, text: opened.text, seq: row.seq });
   }
   return contextWindow(lines).map((line) => ({ role: line.role, content: line.text }));
 }
@@ -422,6 +486,18 @@ export async function listWebConversations(
     conversations: listed,
     nextCursor: listed.length === limit && last ? last.updatedAt : null,
   };
+}
+
+export async function recentTurns(
+  personId: string,
+  conversationId: string,
+  limit: number,
+): Promise<Array<{ role: "user" | "assistant"; text: string }> | null> {
+  const page = await readWebMessages(personId, conversationId, null, limit);
+  if (!page.ok) return null;
+  return page.messages
+    .filter((message) => message.kind === "turn")
+    .map((message) => ({ role: message.role, text: message.text }));
 }
 
 export async function readWebMessages(
@@ -468,13 +544,14 @@ export async function readWebMessages(
   for (const row of page) {
     const text = unseal(row.bodyEnc, row.id);
     if (text === null) continue;
-    const presented = presentCommandBody(row.role, row.kind, text);
+    const presented = openStoredBody(row.role, row.kind, text);
     out.push({
       id: row.clientId ?? row.id,
       role: row.role,
       kind: row.kind,
       text: presented.text,
       ...(presented.table ? { table: presented.table } : {}),
+      ...(presented.cites.length > 0 ? { cites: presented.cites } : {}),
       seq: row.seq,
     });
   }

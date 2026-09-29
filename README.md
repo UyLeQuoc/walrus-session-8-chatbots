@@ -31,9 +31,8 @@ comes back came back from Walrus. Transcript of that run:
 `docs/evidence/three-click-demo-2026-09-23.md`.
 
 Built for Walrus Session 8, "Chatbots That Remember".
-Primary model: `google/gemini-2.5-flash` through OpenRouter on the Vercel AI SDK,
-with `qwen/qwen3.7-flash` as a fallback. Both chosen by measuring them against
-the project's own eval, not by reputation: `docs/evidence/model-bakeoff-2026-09-23.md`.
+Primary model: `deepseek/deepseek-v4.1-flash` through OpenRouter on the Vercel AI SDK,
+with `qwen/qwen3.7-flash` as a fallback.
 
 ## Why this is different
 

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { apiFetch, errorMessage } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { setMemoryHidden } from "@/lib/memory-visibility";
 
 export interface MemoryHit {
   mine?: boolean;
@@ -41,12 +42,8 @@ export function useMemoryActions(onError: (message: string) => void, onChange?: 
     async (blobId: string, hidden: boolean) => {
       setToggling(blobId);
       try {
-        const res = await apiFetch("/api/me/memories/visibility", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ blobId, hidden }),
-        });
-        if (!res.ok) throw new Error(await errorMessage(res, `That failed (${res.status}).`));
+        const hiddenResult = await setMemoryHidden(blobId, hidden);
+        if (!hiddenResult.ok) throw new Error(hiddenResult.message);
         if (hidden) setHits((current) => current?.filter((hit) => hit.blobId !== blobId) ?? null);
         onChange?.();
       } catch (err) {

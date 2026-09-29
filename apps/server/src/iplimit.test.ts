@@ -61,8 +61,12 @@ describe("isUnmetered", () => {
   it("lets the page read who you are without spending the ceiling", () => {
     expect(isUnmetered("GET", "/api/me")).toBe(true);
     expect(isUnmetered("GET", "/api/me/memories")).toBe(true);
+    expect(isUnmetered("GET", "/api/me/memories/11111111-1111-4111-8111-111111111111/status")).toBe(
+      true,
+    );
     expect(isUnmetered("GET", "/api/conversations")).toBe(true);
     expect(isUnmetered("GET", "/api/conversations/x/messages")).toBe(true);
+    expect(isUnmetered("GET", "/api/conversations/x/memories")).toBe(false);
     expect(isUnmetered("GET", "/api/health")).toBe(true);
   });
 
@@ -70,6 +74,8 @@ describe("isUnmetered", () => {
     expect(isUnmetered("GET", "/api/me/search")).toBe(false);
     expect(isUnmetered("GET", "/api/me/export")).toBe(false);
     expect(isUnmetered("POST", "/api/me")).toBe(false);
+    expect(isUnmetered("POST", "/api/me/memories")).toBe(false);
+    expect(isUnmetered("POST", "/api/me/memory")).toBe(false);
     expect(isUnmetered("POST", "/api/chat")).toBe(false);
     expect(isUnmetered("DELETE", "/api/conversations/x")).toBe(false);
   });

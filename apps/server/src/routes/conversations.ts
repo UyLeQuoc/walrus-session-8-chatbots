@@ -1,7 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { deleteWebConversation, listWebConversations, readWebMessages } from "../chat/history.ts";
+import { dropHidden } from "../chat/citations.ts";
+import {
+  deleteWebConversation,
+  listWebConversations,
+  readWebMessages,
+  type TranscriptMessage,
+} from "../chat/history.ts";
 import { LIST_LIMIT, PAGE_SIZE } from "../chat/transcript.ts";
+import { hiddenBlobs } from "../identity/persons.ts";
 import { mePerson } from "./chat.ts";
 
 const listQuery = z.object({
@@ -48,7 +55,11 @@ export const conversationRoutes = new Hono()
       parsed.data.limit ?? PAGE_SIZE,
     );
     if (!page.ok) return c.json({ error: "That chat is gone." }, 404);
-    return c.json({ messages: page.messages, hasMore: page.hasMore });
+    const hidden = await hiddenBlobs(person.id);
+    return c.json({
+      messages: page.messages.map((message) => shownMessage(message, hidden)),
+      hasMore: page.hasMore,
+    });
   })
   .delete("/api/conversations/:id", async (c) => {
     const person = await mePerson(c);
@@ -58,3 +69,18 @@ export const conversationRoutes = new Hono()
     if (!deleted) return c.json({ error: "That chat is gone." }, 404);
     return c.json({ deleted: true });
   });
+
+function shownMessage(message: TranscriptMessage, hidden: ReadonlySet<string>): TranscriptMessage {
+  const cites = dropHidden(message.cites ?? [], hidden);
+  if (cites.length === 0) {
+    return {
+      id: message.id,
+      role: message.role,
+      kind: message.kind,
+      text: message.text,
+      seq: message.seq,
+      ...(message.table ? { table: message.table } : {}),
+    };
+  }
+  return { ...message, cites };
+}

@@ -4,8 +4,9 @@ import { filterSlashCommands, type SlashItem, slashDraft, slashKeyAction } from 
 export function useSlashMenu(input: {
   text: string;
   busy: boolean;
-  send: (text: string) => void;
-  setText: (text: string) => void;
+  /** A chosen command is filling the box, so the picker stays closed. */
+  pinned: boolean;
+  apply: (command: string) => void;
 }) {
   const [dismissed, setDismissed] = useState(false);
   const [index, setIndex] = useState(0);
@@ -15,14 +16,13 @@ export function useSlashMenu(input: {
     setDismissed(false);
     setIndex(0);
   }
-  const draft = input.busy ? null : slashDraft(input.text);
+  const draft = input.busy || input.pinned ? null : slashDraft(input.text);
   const items = draft === null ? [] : filterSlashCommands(draft);
   const active = items.length === 0 ? 0 : Math.min(index, items.length - 1);
   const open = draft !== null && !dismissed && items.length > 0;
 
   const run = (item: SlashItem) => {
-    input.setText("");
-    input.send(item.command);
+    input.apply(item.command);
   };
 
   const onKeyDown = (key: string): "handled" | "pass" => {

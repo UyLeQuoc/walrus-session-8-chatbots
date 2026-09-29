@@ -21,9 +21,16 @@ const MODEL_METERS = {
     inputPerMillion: 0.089,
     outputPerMillion: 0.177,
   },
+  // OpenRouter list price for V4.1, checked 2026-09-29. Not the V4 bakeoff rate.
+  "deepseek/deepseek-v4.1-flash": {
+    label: "DeepSeek V4.1 Flash",
+    contextTokens: 1_048_576,
+    inputPerMillion: 0.3,
+    outputPerMillion: 1.2,
+  },
 } as const;
 
-export const DEFAULT_MODEL_ID = "google/gemini-2.5-flash";
+export const DEFAULT_MODEL_ID = "deepseek/deepseek-v4.1-flash";
 
 export type ComposerMeter = {
   label: string;

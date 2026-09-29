@@ -25,6 +25,7 @@ export {
   type MemoryRecord,
   type MemoryType,
   parseMemoryText,
+  replacesBlobId,
 } from "./format.ts";
 export { type LimiterOptions, limiterFor, RateLimiter, runLimited } from "./limiter.ts";
 export { explorer } from "./links.ts";

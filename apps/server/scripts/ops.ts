@@ -94,7 +94,7 @@ const [counts] = await db
 
 const [turns] = await db
   .select({
-    turns: sql<number>`count(*) filter (where ${turnLog.mode} <> 'command')::int`,
+    turns: sql<number>`count(*) filter (where ${turnLog.mode} <> 'command' and ${turnLog.mode} <> 'suggestion')::int`,
     commands: sql<number>`count(*) filter (where ${turnLog.mode} = 'command')::int`,
   })
   .from(turnLog)
