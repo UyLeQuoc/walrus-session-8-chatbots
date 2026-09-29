@@ -6,6 +6,7 @@ import { generateText } from "ai";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
+import { citationsOf } from "../chat/citations.ts";
 import { type CommandContext, handleCommand } from "../chat/commands.ts";
 import {
   appendAssistant,
@@ -306,9 +307,12 @@ export const chatRoutes = new Hono()
           : undefined,
       onFinish: async ({ messages: out }) => {
         const writes = out.flatMap((m) => m.parts).filter((p) => p.type === "tool-remember").length;
-        await appendAssistant(conversationId, spokenText(out), "turn").catch((e) =>
-          console.error(`[${channel}] history`, e),
-        );
+        await appendAssistant(
+          conversationId,
+          spokenText(out),
+          "turn",
+          citationsOf(turnCtx.injected),
+        ).catch((e) => console.error(`[${channel}] history`, e));
         await logTurn(person, channel, turnCtx, writes, model.id).catch((e) =>
           console.error("[web] logTurn", e),
         );

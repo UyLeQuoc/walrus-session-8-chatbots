@@ -11,6 +11,7 @@ import { decryptSecret, encryptSecret } from "@hippo/memory";
 import type { ModelMessage } from "ai";
 import { db } from "../context.ts";
 import { env } from "../env/load.ts";
+import { type Citation, packTurnBody, unpackTurnBody } from "./citations.ts";
 import {
   contextWindow,
   conversationTitle,
@@ -36,6 +37,7 @@ export interface TranscriptMessage {
   text: string;
   seq: number;
   table?: CommandTable;
+  cites?: Citation[];
 }
 
 export interface StoredAnswer {
@@ -162,6 +164,26 @@ async function findOpen(personId: string, channel: string, threadKey: string) {
   return row ?? null;
 }
 
+function openStoredBody(
+  role: string,
+  kind: string,
+  raw: string,
+): { text: string; cites: Citation[]; table?: CommandTable } {
+  if (kind === "command") {
+    const presented = presentCommandBody(role, kind, raw);
+    return {
+      text: presented.text,
+      cites: [],
+      ...(presented.table ? { table: presented.table } : {}),
+    };
+  }
+  if (role === "assistant" && kind === "turn") {
+    const opened = unpackTurnBody(raw);
+    return { text: opened.text, cites: opened.cites };
+  }
+  return { text: raw, cites: [] };
+}
+
 export async function storedAnswer(
   conversationId: string,
   clientId: string,
@@ -191,7 +213,7 @@ export async function storedAnswer(
   if (!answer) return null;
   const text = unseal(answer.bodyEnc, answer.id);
   if (text === null) return null;
-  const presented = presentCommandBody("assistant", answer.kind, text);
+  const presented = openStoredBody("assistant", answer.kind, text);
   return { text: presented.text, kind: answer.kind, table: presented.table };
 }
 
@@ -281,7 +303,7 @@ export async function appendUser(input: {
           if (answer) {
             const text = unseal(answer.bodyEnc, answer.id);
             if (text !== null) {
-              const presented = presentCommandBody("assistant", answer.kind, text);
+              const presented = openStoredBody("assistant", answer.kind, text);
               return {
                 ok: true,
                 sessionStart: false,
@@ -373,8 +395,10 @@ export async function appendAssistant(
   conversationId: string,
   text: string,
   kind: TranscriptKind,
+  cites: Citation[] = [],
 ): Promise<void> {
-  const body = text.trim() || "…";
+  const spoken = text.trim() || "…";
+  const body = kind === "turn" && cites.length > 0 ? packTurnBody(spoken, cites) : spoken;
   await db.transaction(async (tx) => {
     const [conv] = await tx
       .select({ id: conversations.id })
@@ -422,7 +446,8 @@ export async function modelMessages(conversationId: string): Promise<ModelMessag
   for (const row of rows.reverse()) {
     const text = unseal(row.bodyEnc, row.id);
     if (text === null) continue;
-    lines.push({ role: row.role, kind: row.kind, text, seq: row.seq });
+    const opened = openStoredBody(row.role, row.kind, text);
+    lines.push({ role: row.role, kind: row.kind, text: opened.text, seq: row.seq });
   }
   return contextWindow(lines).map((line) => ({ role: line.role, content: line.text }));
 }
@@ -519,13 +544,14 @@ export async function readWebMessages(
   for (const row of page) {
     const text = unseal(row.bodyEnc, row.id);
     if (text === null) continue;
-    const presented = presentCommandBody(row.role, row.kind, text);
+    const presented = openStoredBody(row.role, row.kind, text);
     out.push({
       id: row.clientId ?? row.id,
       role: row.role,
       kind: row.kind,
       text: presented.text,
       ...(presented.table ? { table: presented.table } : {}),
+      ...(presented.cites.length > 0 ? { cites: presented.cites } : {}),
       seq: row.seq,
     });
   }
