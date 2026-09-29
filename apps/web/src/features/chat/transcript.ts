@@ -106,6 +106,21 @@ export function toUiMessages(rows: unknown[]): UiMessage[] {
   return out;
 }
 
+export function citationKey(
+  conversationId: string | null,
+  messages: Array<{ id: string; metadata?: { cites?: unknown; recalled?: unknown } }>,
+): string {
+  if (!conversationId) return "";
+  const ids = messages.flatMap((message) => {
+    const cites = message.metadata?.cites;
+    const recalled = message.metadata?.recalled;
+    if (!Array.isArray(cites) || cites.length === 0) return [];
+    if (Array.isArray(recalled) && recalled.length > 0) return [];
+    return [message.id];
+  });
+  return ids.length === 0 ? "" : `${conversationId}:${ids.join(",")}`;
+}
+
 export function applyResolved(
   messages: UiMessage[],
   resolved: Array<{ id: string; recalled: UiCitation[] }>,
@@ -125,18 +140,41 @@ export function applyResolved(
   });
 }
 
-export function resolvedFrom(
-  body: unknown,
-): { limited: boolean; messages: Array<{ id: string; recalled: UiCitation[] }> } | null {
+export type CitationRead = "complete" | "partial" | "unavailable";
+
+export interface ResolvedCitations {
+  status: CitationRead;
+  limited: boolean;
+  message: string;
+  messages: Array<{ id: string; recalled: UiCitation[] }>;
+}
+
+function citationStatus(value: unknown, limited: boolean): CitationRead | null {
+  if (value === "complete" || value === "partial" || value === "unavailable") return value;
+  if (limited) return "unavailable";
+  return "complete";
+}
+
+export function resolvedFrom(body: unknown): ResolvedCitations | null {
   if (!body || typeof body !== "object") return null;
-  const row = body as { limited?: unknown; messages?: unknown };
-  if (row.limited === true) return { limited: true, messages: [] };
-  if (!Array.isArray(row.messages)) return null;
+  const row = body as {
+    status?: unknown;
+    limited?: unknown;
+    message?: unknown;
+    messages?: unknown;
+  };
+  const limited = row.limited === true;
+  const status = citationStatus(row.status, limited);
+  if (!status) return null;
+  const message = typeof row.message === "string" ? row.message : "";
+  if (!Array.isArray(row.messages)) {
+    return limited ? { status: "unavailable", limited: true, message, messages: [] } : null;
+  }
   const messages = row.messages.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
     const message = item as { id?: unknown; recalled?: unknown };
     if (typeof message.id !== "string") return [];
     return [{ id: message.id, recalled: recalledOf(message.recalled) }];
   });
-  return { limited: false, messages };
+  return { status, limited: status !== "complete", message, messages };
 }

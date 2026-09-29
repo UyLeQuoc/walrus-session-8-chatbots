@@ -6,6 +6,7 @@ import { desc, memoryIndex, people, sql, turnLog } from "@hippo/db";
 import { createClient, explorer, guestScope, RelayerExtras, TEAM_PREFIX } from "@hippo/memory";
 import { db, operator } from "../src/context.ts";
 import { env } from "../src/env/load.ts";
+import { countPeople, qualifyingPeople } from "../src/ops/people-count.ts";
 
 const rows = <T>(r: T[]): T[] => r;
 
@@ -80,10 +81,11 @@ const [team] = await db
   .from(memoryIndex)
   .where(teamMemory);
 
-const qualifying = byPerson.filter((p) => p.stored >= 10);
-const totalStored = byPerson.reduce((n, p) => n + p.stored, 0);
-const totalFailed = byPerson.reduce((n, p) => n + p.failed, 0);
-const totalPending = byPerson.reduce((n, p) => n + p.pending, 0);
+const counted = countPeople(byPerson);
+const qualifying = qualifyingPeople(counted);
+const totalStored = counted.reduce((n, p) => n + p.stored, 0);
+const totalFailed = counted.reduce((n, p) => n + p.failed, 0);
+const totalPending = counted.reduce((n, p) => n + p.pending, 0);
 const client = createClient(guestScope(operator, "evidence"));
 const agentId = await client.getPublicKeyHex();
 
@@ -94,18 +96,18 @@ console.log(`  ${explorer.object(env.MEMWAL_ACCOUNT_ID)}`);
 console.log(`MEMWAL_AGENT_ID (delegate public key): ${agentId}`);
 
 console.log(`\n## Requirement check`);
-console.log(`People with memories:            ${byPerson.length}`);
+console.log(`People with memories:            ${counted.length}`);
 console.log(`People with 10+ stored memories: ${qualifying.length}  (session rules ask for 3)`);
 console.log(`Memories stored on Walrus:       ${totalStored}`);
 console.log(`  still writing:                 ${totalPending}`);
 console.log(`  failed to land:                ${totalFailed}`);
-console.log(`Distinct accounts written to:    ${new Set(byPerson.map((p) => p.accountId)).size}`);
+console.log(
+  `Distinct accounts written to:    ${new Set(counted.flatMap((p) => p.accountIds)).size}`,
+);
 console.log(
   `Team memories, not counted above: ${team?.stored ?? 0} in ${team?.teams ?? 0} teams, from ${team?.contributors ?? 0} people`,
 );
-console.log(
-  `Owned-mode people:               ${byPerson.filter((p) => p.mode === "owned").length}`,
-);
+console.log(`Owned-mode people:               ${counted.filter((p) => p.mode === "owned").length}`);
 
 const requirementsMet = qualifying.length >= 3 && totalStored >= 10;
 console.log(
@@ -113,11 +115,12 @@ console.log(
 );
 
 console.log(`\n## Per person`);
-for (const p of byPerson) {
+for (const p of counted) {
   const trouble =
     p.failed > 0 || p.pending > 0 ? `  (${p.pending} writing, ${p.failed} failed)` : "";
+  const extraAccounts = p.accountIds.length > 1 ? ` +${p.accountIds.length - 1}` : "";
   console.log(
-    `  ${p.personId.slice(0, 8)}  ${p.mode.padEnd(5)}  ${String(p.stored).padStart(3)} stored  first ${p.first.slice(0, 16)}  last ${p.last.slice(0, 16)}  acct ${p.accountId.slice(0, 10)}…${trouble}`,
+    `  ${p.personId.slice(0, 8)}  ${p.mode.padEnd(5)}  ${String(p.stored).padStart(3)} stored  first ${p.first.slice(0, 16)}  last ${p.last.slice(0, 16)}  acct ${p.accountIds[0]?.slice(0, 10) ?? ""}…${extraAccounts}${trouble}`,
   );
 }
 
@@ -137,7 +140,7 @@ console.log(`  memories written by the model: ${turns?.writes ?? 0}`);
 for (const c of byChannel) console.log(`  ${c.channel.padEnd(9)} ${c.turns}`);
 
 console.log(`\n## Accounts on the relayer`);
-for (const accountId of new Set(byPerson.map((p) => p.accountId))) {
+for (const accountId of new Set(counted.flatMap((p) => p.accountIds))) {
   const extras = new RelayerExtras({ ...operator, accountId });
   try {
     const agents = await extras.agents();

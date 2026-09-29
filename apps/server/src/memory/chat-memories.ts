@@ -1,9 +1,14 @@
 import { and, conversations, eq, memoryIndex, messages, sql } from "@hippo/db";
+import { recallCitedText } from "../chat/cited-text.ts";
+import { checkRate, noteCommand } from "../chat/ratelimit.ts";
 import { db } from "../context.ts";
-import { ownMemoryOf, type Person } from "../identity/persons.ts";
+import { ownMemoryOf, type Person, portFor } from "../identity/persons.ts";
 import {
   type ChatMemory,
+  type IndexedMemory,
+  indexedReadLimit,
   memoriesInWindow,
+  storedWordingMissing,
   WINDOW_PAD_MS,
   withRecalledText,
 } from "./chat-window.ts";
@@ -87,5 +92,40 @@ export async function memoriesForChat(
     start,
     end,
   );
-  return { ok: true, limited: false, memories: withRecalledText(indexed, null) };
+  return readIndexedMemories(person, indexed);
+}
+
+async function readIndexedMemories(
+  person: Person,
+  indexed: IndexedMemory[],
+): Promise<ChatMemoryResult> {
+  const wanted = indexed.filter((row) => row.blobId && row.status === "stored");
+  if (wanted.length === 0)
+    return { ok: true, limited: false, memories: withRecalledText(indexed, null) };
+  const gate = await checkRate(person.id);
+  if (!gate.allowed) {
+    return {
+      ok: true,
+      limited: true,
+      message: gate.message,
+      memories: withRecalledText(indexed, null),
+    };
+  }
+  await noteCommand(person.id, "web");
+  const port = await portFor(person, "web", { includeHidden: true });
+  const looked = await recallCitedText(
+    (input) => port.recall(input),
+    wanted.flatMap((row) => (row.blobId ? [{ type: row.type, blobId: row.blobId }] : [])),
+  );
+  if (!looked.reached) {
+    const err = looked.error;
+    console.warn("[memory] chat text recall failed", err instanceof Error ? err.message : err);
+  }
+  const memories = withRecalledText(indexed, looked.found);
+  const limit = indexedReadLimit({
+    reached: looked.reached,
+    missing: storedWordingMissing(memories),
+  });
+  if (limit.limited) return { ok: true, limited: true, message: limit.message, memories };
+  return { ok: true, limited: false, memories };
 }

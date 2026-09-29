@@ -1,4 +1,5 @@
 import { type Citation, factsFromLookup } from "../chat/citations.ts";
+import { CITATION_MISSING, CITATION_UNREACHABLE } from "../chat/cited-text.ts";
 import type { WriteStatus } from "./write-status.ts";
 
 export const WINDOW_PAD_MS = 30_000;
@@ -53,4 +54,21 @@ export function withRecalledText(
     blobId: row.blobId,
     hidden: row.hidden,
   }));
+}
+
+export function storedWordingMissing(memories: readonly ChatMemory[]): boolean {
+  return memories.some(
+    (memory) => memory.status === "stored" && Boolean(memory.blobId) && !memory.text,
+  );
+}
+
+export function indexedReadLimit(input: {
+  reached: boolean;
+  missing: boolean;
+  blocked?: string;
+}): { limited: true; message: string } | { limited: false } {
+  if (input.blocked) return { limited: true, message: input.blocked };
+  if (!input.reached) return { limited: true, message: CITATION_UNREACHABLE };
+  if (input.missing) return { limited: true, message: CITATION_MISSING };
+  return { limited: false };
 }

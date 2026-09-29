@@ -85,10 +85,10 @@ Goal: a person can see, correct, and hide a memory without leaving the thread, a
 2. "Just remembered" card when a `remember` tool result arrives. **Done 2026-09-29.** Shows type, fact text, and status. Status comes from `GET /api/me/memories/:id/status`, which reads `memory_index` only. Poll while `pending`, every 3 seconds, at most 2 minutes, then "still writing".
 3. Actions on that card: view on `/me`, correct, hide. **Done 2026-09-29.** Correct sends a `correction` through `port.remember` and, when the blob id can sit in a tag, links it as `[replaces:blobId]`. Hide calls the existing visibility route. The card says the blob remains on Walrus.
 4. Select text in a user or assistant bubble and choose Remember. **Done 2026-09-29.** The dialog opens an edit of that selection. Nothing is stored until the person confirms.
-5. Persist citations. **Partial 2026-09-29.** Blob id, type, and distance are sealed with the assistant turn. Not the memory text. `toUiMessages` keeps the citation metadata. `POST /api/conversations/:id/citations` can resolve text by recall on the type tag, omit a hidden blob, and return `limited` when recall fails. The page never calls that route, so a reopened chat does not show the citation text.
+5. Persist citations. **Done 2026-09-30, with two limits.** The page calls `POST /api/conversations/:id/citations` after the transcript loads. A missing blob stays partial instead of looking unused. A hidden blob is omitted. A late response for another chat is dropped. The latest 50 messages are the page both sides read. A memory is still tied to a chat by time window, not a `conversationId` column; that column waits on a production schema approval.
 6. A memory toggle next to the composer, wired to the existing on/off command. **Done 2026-09-29.** It calls `setMemoryEnabled`, the same write `/memory on|off` uses. The composer shows `memoryEnabled`. It does not invent a second flag.
 
-Verification: a render test shows a pending card become stored without a relayer call. A unit test drops a hidden blob id from a sealed turn. The page does not resolve citation text on reopen. A mainnet check is not required for the card. Do not weaken `bun run demo`.
+Verification: a render test shows a pending card become stored without a relayer call, and a reopened answer shows the citation text the resolve route returned. A unit test drops a hidden blob id from a sealed turn. A late resolve for another chat is not applied. A mainnet check is not required for the card. Do not weaken `bun run demo`.
 
 ## Phase 3 — Private files
 
