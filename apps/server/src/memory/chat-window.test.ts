@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type IndexedMemory, memoriesInWindow, withRecalledText } from "./chat-memories.ts";
+import { type IndexedMemory, memoriesInWindow, withRecalledText } from "./chat-window.ts";
 
 function row(id: string, at: string, blobId: string | null = "blob-1"): IndexedMemory {
   return {
