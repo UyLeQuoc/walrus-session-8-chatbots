@@ -93,11 +93,14 @@ export function AppSidebar({
                   />
                 </InputGroup>
               </div>
-              <ScrollArea className="min-h-0 flex-1" viewportClassName="scroll-fade-y">
+              <ScrollArea
+                className="min-h-0 flex-1"
+                viewportClassName="scroll-fade-y [&>div]:block! [&>div]:min-w-0"
+              >
                 {shown.length === 0 ? (
                   <p className="px-2 py-6 text-center text-sm text-muted-foreground">No chats</p>
                 ) : (
-                  <SidebarMenu className="pb-2">
+                  <SidebarMenu className="pe-3 pb-2">
                     {shown.map((item) => (
                       <SidebarMenuItem key={item.id}>
                         <SidebarMenuButton

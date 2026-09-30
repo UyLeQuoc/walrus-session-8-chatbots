@@ -457,3 +457,47 @@ seconds after the fact. The date in our own text format is a day and cannot.
 fresh session states the old value. It passed three consecutive runs on
 mainnet. The distance-dedupe trap follows from `SKILL.md`'s own guidance, so it
 is drafted as `docs/issues/13`.
+
+## 14 — Private-file SEAL policy — BLOCKED on the aggregator key
+
+Phase 0 of `docs/CHAT-UPGRADE.md`, run 2026-09-30. Script:
+`packages/memory/scripts/spike-file-seal.ts`. Source read first, from a depth-1
+clone of MemWal at `memwal/services/contract/sources/account.move` (`seal_approve`,
+`assert_seal_id_owner`, `remove_delegate_key`). The clone is gitignored. Nothing
+in it was edited.
+
+**Policy: a document prefix is allowed. A wallet with no MemWalAccount is not.**
+
+`entry fun seal_approve(id, registry, account, ctx)`:
+
+1. `registry.version` must equal the package `VERSION`.
+2. `account.active` must be true.
+3. `id` must end with `bcs(account.owner)` (32 bytes) then `bcs(counter)` (8 bytes, little-endian). Bytes before that tail are ignored. The comment in the function names this as the namespace prefix.
+4. `counter` must be `<= account.access_counter_version`. A future counter aborts.
+5. `ctx.sender()` must be `account.owner`, or its address must be in `delegate_keys`. Otherwise abort `ENoAccess` (100).
+
+`remove_delegate_key` calls `rotate_access_counter` after the key is gone. A removed delegate fails the sender check on every counter, including old ones. A key that delegate already fetched stays in its hands. The ciphertext is not deleted. This was read, not re-executed. The 32-second relayer lag is still §J.
+
+Dry-run on the operator account in the current env, `0x572ee8258575b0ebda3388db02e3b8512276bfd947dd68b5404dfa406d023b89`, type `0xe7c16fbe…::account::MemWalAccount`, owner `0x7f869c02ba0975c83d4946c3903f298d94b72298c147fb06f0e70c0ffa586c0e`, `active` true, `access_counter_version` 0. Move calls targeted the package `GET /config` returned, the same `0xe7c16fbe…`. Identity under test: `hex(utf8("hippo-doc")) || owner || u64le(0)`. Sender of the pass was the delegate address of `MEMWAL_PRIVATE_KEY`.
+
+| dry-run | result |
+|---|---|
+| prefixed id, delegate sender | success |
+| same prefix, owner bytes replaced with 32 zero bytes | abort 100 in `assert_seal_id_owner` |
+| prefixed id, sender `0x…0001` | abort 100 in `seal_approve` |
+
+This is not the account in §0. The env account changed since that section was written. The dry-run only says what this object does.
+
+**Encrypt does not need the API key. Decrypt does.**
+
+`SealClient.encrypt` (`@mysten/seal` 1.4.13) with `threshold: 1`, `packageId` from `/config`, id as above, and server `0x686098f1439237fff9f36b99c7329683c22979d2005c2465cb891acb012a7595` weight 1, `aggregatorUrl` `https://seal-aggregator-mainnet.mystenlabs.com`. Payload was the 15 bytes `hippo-file-spike`. Result: 316-byte ciphertext, parsed package `0xe7c16fbe…`, threshold 1, that one committee server. The plaintext was not printed and was not sent anywhere.
+
+`GET https://seal-aggregator-mainnet.mystenlabs.com/v1/service` returned **401** `{"message":"No API key found in request","request_id":"6db77453e54cf76a3202392f27a1a942"}`.
+
+`fetchKeys` then failed `Error: No API key found in request` with Seal `requestId=5056212a-f44f-40ad-b9c3-6fabe0031f90`. The SDK posts to `{aggregator}/v1/fetch_key` and, when configured, adds the header `apiKeyName: apiKey` (`key-server.mjs`). Official Seal docs say the header name is `X-API-Key` and the value comes from Enoki (`https://docs.sui.io/sui-stack/seal/using-seal`). No such key is in `.env`. Encrypt-without-decrypt is not a pass.
+
+`writeFilesFlow` and a browser `SessionKey` were not run. Both wait on a decrypt.
+
+**Decision.** Phase 3 does not start. The attach control stays disabled. The ask is in `docs/BLOCKERS.md`. When a key exists, re-run this script before any upload: a passing decrypt prints `decrypt roundtrip ok`.
+
+Using this policy for files means the signer is the MemWal account owner or a current delegate. A wallet that has only connected, and has no MemWalAccount, cannot decrypt. That misses the 2026-09-27 decision that a file can belong to a wallet before owned-mode onboarding. An owned account does satisfy "the owner wallet decrypts, hippo's delegate is a reader, and `remove_delegate_key` drops that reader." A separate package is the other way to keep the pre-owned rule. Neither is being published here, because decrypt is blocked for both until the aggregator accepts a key.

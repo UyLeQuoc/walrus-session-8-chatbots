@@ -611,9 +611,13 @@ describe("chat page", () => {
     expect(document.querySelector("[data-slot='sidebar-content']")?.className).toContain(
       "overflow-hidden",
     );
-    expect(document.querySelector("[data-slot='scroll-area-viewport']")?.className).toContain(
-      "scroll-fade-y",
-    );
+    const viewport = document.querySelector("[data-slot='scroll-area-viewport']");
+    expect(viewport?.className).toContain("scroll-fade-y");
+    expect(viewport?.className).toContain("min-w-0");
+    expect(
+      screen.getByRole("button", { name: "Postgres on 5433" }).closest("[data-slot='sidebar-menu']")
+        ?.className,
+    ).toContain("pe-3");
     await user.type(search, "postgres");
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Vietnamese answers" })).toBeNull();
