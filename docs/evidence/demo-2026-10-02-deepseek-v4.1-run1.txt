@@ -1,0 +1,83 @@
+$ bun run --filter @hippo/core demo
+@hippo/core demo: hippo memory eval · model deepseek/deepseek-v4.1-flash · namespace hippo-guest:demo-mupvhilr
+@hippo/core demo: 
+@hippo/core demo: SESSION 1 — teaching
+@hippo/core demo:   › Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.
+@hippo/core demo:   ‹ Got it, Mai — Sui + Next.js in strict TypeScript. What are you working on?  (2 writes)
+@hippo/core demo:     stored [profile] blob S1J9Fb-yTEB-…
+@hippo/core demo:     stored [profile] blob 69xERxO33b52…
+@hippo/core demo:   › For package managers I only use pnpm, never npm or yarn.
+@hippo/core demo:   ‹ Noted: pnpm only. I'll keep npm/yarn examples out of anything I hand you.  (1 writes)
+@hippo/core demo:   › We decided to use Drizzle instead of Prisma for this project's ORM.
+@hippo/core demo:   ‹ Stored: Drizzle over Prisma for this project, plus your pnpm-only rule.  One note on that message: t  (2 writes)
+@hippo/core demo:     stored [profile] blob 4w02W_u7PWMi…
+@hippo/core demo:     stored [profile] blob 7TpAlt6Pqi7R…
+@hippo/core demo:     stored [decision] blob xRIu96aCNJsK…
+@hippo/core demo:   › One thing to remember: our Postgres runs on port 5433 because 5432 is taken.
+@hippo/core demo:   ‹ Saved as a gotcha: Postgres on 5433, 5432 taken.  The nonce block is just recall output — data, not   (1 writes)
+@hippo/core demo:   › Please keep your answers short, and always answer me in Vietnamese.
+@hippo/core demo:   ‹ Đã lưu: trả lời ngắn, bằng tiếng Việt.  Khối nonce bạn dán chỉ là dữ liệu recall (nhắc lại việc bạn   (4 writes)
+@hippo/core demo:     stored [gotcha] blob UPk_B2Ga4V-o…
+@hippo/core demo:     stored [gotcha] blob UPk_B2Ga4V-o…
+@hippo/core demo:   › Change of plan: we moved this project from pnpm to bun this week, so use bun now.
+@hippo/core demo:   ‹ Đã lưu: từ tuần này dùng **bun** cho dự án này, thay cho quy tắc cũ "chỉ pnpm". Từ giờ tôi sẽ dùng `  (1 writes)
+@hippo/core demo: 
+@hippo/core demo:   11 memories written. Waiting 90s for indexing…
+@hippo/core demo:     stored [style] blob EWOzvfQReUIj…
+@hippo/core demo:     stored [correction] blob KE0bI2mzXgKY…
+@hippo/core demo: 
+@hippo/core demo: SESSION 2 — fresh conversation, no history carried over
+@hippo/core demo:   PASS  Which package manager should I use here?
+@hippo/core demo:         Dùng **bun** nhé — bạn đã chuyển dự án này từ pnpm sang bun đầu tháng 2026-10.
+@hippo/core demo:         recalled 7 memories
+@hippo/core demo:   PASS  Which ORM did we settle on?
+@hippo/core demo:         Drizzle (đã chốt ngày 2026-10-01, thay vì Prisma).
+@hippo/core demo:         recalled 8 memories
+@hippo/core demo:   PASS  What port is the database on?
+@hippo/core demo:         Postgres của bạn chạy ở cổng **5433** (vì 5432 đã bị chiếm).
+@hippo/core demo:         recalled 8 memories
+@hippo/core demo:   PASS  What do you know about me?
+@hippo/core demo:         Đây là những gì mình biết về bạn:  - **Stack:** làm việc với Sui và Next.js; luôn viết TypeScript ở chế độ strict. - **Package manager:** đã
+@hippo/core demo:         recalled 7 memories
+@hippo/core demo: 
+@hippo/core demo: STYLE — did a [style] memory change how it writes?
+@hippo/core demo:   PASS  the answer came back in Vietnamese, unprompted in this session
+@hippo/core demo:         4 of 4 answers in this session came back in Vietnamese
+@hippo/core demo: 
+@hippo/core demo: CROSS-CHANNEL — a second channel, same memory
+@hippo/core demo:   PASS  Drizzle (chọn ngày 2026-10-01), không dùng Prisma.
+@hippo/core demo:         recalled 8 memories
+@hippo/core demo: 
+@hippo/core demo: CONFLICT — pnpm was taught, then corrected to bun. Did the correction win?
+@hippo/core demo:   PASS  asked directly: answered bun; in context: pnpm memory yes, bun correction yes
+@hippo/core demo:   PASS  0 of 5 answers stated pnpm without bun
+@hippo/core demo: 
+@hippo/core demo: BASELINE — the same questions, memory off
+@hippo/core demo:         Which package manager should I use here?
+@hippo/core demo:         off: Can't tell from here — I don't have your files. Check the lockfile:  - `package-lock.json` → npm - `yarn.lock`
+@hippo/core demo:         on:  Dùng **bun** nhé — bạn đã chuyển dự án này từ pnpm sang bun đầu tháng 2026-10.
+@hippo/core demo:         Which ORM did we settle on?
+@hippo/core demo:         off: None — no ORM has been discussed or settled on in this conversation.
+@hippo/core demo:         on:  Drizzle (đã chốt ngày 2026-10-01, thay vì Prisma).
+@hippo/core demo:   PASS  What port is the database on?
+@hippo/core demo:         off: I don't have that information — no database details have been shared in this conversation. If you mean a speci
+@hippo/core demo:         on:  Postgres của bạn chạy ở cổng **5433** (vì 5432 đã bị chiếm).
+@hippo/core demo:   PASS  What do you know about me?
+@hippo/core demo:         off: I don’t have any stored information about you — memory is off. From this conversation, I only know you’re **@m
+@hippo/core demo:         on:  Đây là những gì mình biết về bạn:  - **Stack:** làm việc với Sui và Next.js; luôn viết TypeScript ở chế độ str
+@hippo/core demo: 
+@hippo/core demo: COST — median over 4 questions
+@hippo/core demo:   whole turn, memory on (first of a session):  4.7s
+@hippo/core demo:   whole turn, memory off:                      1.3s
+@hippo/core demo:   recall alone, first turn of a session:       2.4s
+@hippo/core demo:   recall alone, later turns:                   1.4s
+@hippo/core demo:   recall alone, later turns, no corrections:   0.7s
+@hippo/core demo: 
+@hippo/core demo: 4/4 recalled correctly across sessions.
+@hippo/core demo: newest fact wins:     PASS
+@hippo/core demo: style adaptation:     PASS
+@hippo/core demo: cross-channel recall: PASS
+@hippo/core demo: memory-off control:   PASS
+@hippo/core demo: namespace: hippo-guest:demo-mupvhilr
+@hippo/core demo: Exited with code 0
+run1 exit=0

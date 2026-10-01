@@ -30,7 +30,7 @@ const MODEL_METERS = {
   },
 } as const;
 
-export const DEFAULT_MODEL_ID = "deepseek/deepseek-v4.1-flash";
+export const DEFAULT_MODEL_ID = "google/gemini-2.5-flash";
 
 export type ComposerMeter = {
   label: string;

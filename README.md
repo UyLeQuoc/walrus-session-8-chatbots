@@ -33,7 +33,7 @@ used. A reload is not the test: it restores the open chat from hippo's own
 encrypted transcript.
 
 Built for Walrus Session 8, "Chatbots That Remember".
-Primary model: `deepseek/deepseek-v4.1-flash` through OpenRouter on the Vercel AI SDK,
+Primary model: `google/gemini-2.5-flash` through OpenRouter on the Vercel AI SDK,
 with `qwen/qwen3.7-flash` as a fallback.
 
 ## Why this is different

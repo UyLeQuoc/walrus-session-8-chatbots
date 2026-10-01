@@ -53,7 +53,7 @@ Never edit files inside `memwal/`. Never import from it; depend on the published
 - Memory text is never stored in Postgres. `memory_index` holds blob IDs, types, hashes and dates only. Text comes from Walrus.
 - Strip credentials (API keys, private keys, tokens) from any text before `remember`.
 - No custom MCP server. Portability is demonstrated with the official Walrus Memory MCP plugin on the same account.
-- LLM goes through OpenRouter (`@openrouter/ai-sdk-provider`). Primary model `deepseek/deepseek-v4.1-flash`. Never route to an OpenAI or Anthropic model; it disqualifies the "Beyond the Big Two" track.
+- LLM goes through OpenRouter (`@openrouter/ai-sdk-provider`). Primary model `google/gemini-2.5-flash`. Never route to an OpenAI or Anthropic model; it disqualifies the "Beyond the Big Two" track.
 - Every SDK or relayer friction you hit gets a note in `docs/PLAN.md` under bug bounty candidates, with a repro.
 - Blocked on something only the human has (keys, tokens, accounts)? Do all other work, append the exact ask to `docs/BLOCKERS.md`, and continue with the next milestone. Do not stop and do not fabricate.
 

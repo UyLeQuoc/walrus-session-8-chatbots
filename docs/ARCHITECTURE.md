@@ -270,7 +270,7 @@ than papering over it.
 |---|---|---|
 | Runtime | Node 20, TypeScript strict, Bun workspaces, Turborepo | Matches MemWal monorepo. |
 | API + bots | Hono on `@hono/node-server`, one process | Streaming responses, tiny, and the bot gateways need a long-lived process anyway. |
-| LLM | OpenRouter via `@openrouter/ai-sdk-provider` + Vercel AI SDK (`ai` v7). Primary `deepseek/deepseek-v4.1-flash`, fallback `qwen/qwen3.7-flash` | One key, model switch by env. Primary model is not OpenAI/Anthropic (Beyond the Big Two). State model + runtime in the article. |
+| LLM | OpenRouter via `@openrouter/ai-sdk-provider` + Vercel AI SDK (`ai` v7). Primary `google/gemini-2.5-flash`, fallback `qwen/qwen3.7-flash` | One key, model switch by env. Primary model is not OpenAI/Anthropic (Beyond the Big Two). State model + runtime in the article. |
 | Memory | `@mysten-incubation/memwal` (`MemWal`, `/account`, `formatUntrustedMemories` from `/ai`) | Official SDK. |
 | Web | Vite 6 + React 19 + Tailwind v4 + shadcn/ui, `react-router`, `@tanstack/react-query`, `@ai-sdk/react` (`useChat`), `@mysten/dapp-kit` 1.x, `@mysten/sui` 2.x | SPA, same wallet stack as the dashboard. |
 | Telegram | `grammy` (long polling) | No public webhook needed. |

@@ -229,7 +229,7 @@ describe("chat page", () => {
     const add = screen.getByRole("button", { name: "Add" });
     expect((add as HTMLButtonElement).disabled).toBe(true);
     expect(container.querySelector("[data-slot='composer-shell']")?.textContent).toContain(
-      "DeepSeek V4.1 Flash",
+      "Gemini 2.5 Flash",
     );
     expect(screen.queryByText(/Try one/)).toBeNull();
   });

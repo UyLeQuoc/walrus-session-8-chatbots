@@ -343,7 +343,8 @@ this repo.
    change every model line. Either fails style: production stays on Gemini, the
    result goes to `docs/BLOCKERS.md` for the owner, and the README matches
    production. Verify: one model named in README, article, submission and
-   `GET /api/health`.
+   `GET /api/health`. **Done 2026-10-02: V4.1 failed style in run 2 of 2, so
+   Gemini everywhere; the owner's choice is in `docs/BLOCKERS.md`.**
 3. **Fix what a first-time user hits. (Agent, by Oct 2)**
    - The memory panel shows "Could not load what this chat remembered." beside
      "Nothing remembered in this chat yet." on the first message of every new
@@ -435,7 +436,7 @@ outside git rather than committed.
 | Real-world use | `docs/evidence/final.md`, baseline vs memory-on transcripts, user survey (WalForm) |
 | Build quality | README quickstart, `bun run typecheck/lint/test/demo`, docker-compose, `docs/ARCHITECTURE.md` |
 | Article | `docs/article.md` → Medium + Inkray |
-| Beyond the Big Two | `LLM_MODEL=deepseek/deepseek-v4.1-flash`, friction notes in article |
+| Beyond the Big Two | `LLM_MODEL=google/gemini-2.5-flash`, friction notes in article |
 | Bug bounty | `docs/issues/` + GitHub links |
 | Promo | `docs/promo.md` + live link |
 

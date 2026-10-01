@@ -1,0 +1,83 @@
+$ bun run --filter @hippo/core demo
+@hippo/core demo: hippo memory eval · model deepseek/deepseek-v4.1-flash · namespace hippo-guest:demo-mupvntv5
+@hippo/core demo: 
+@hippo/core demo: SESSION 1 — teaching
+@hippo/core demo:   › Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.
+@hippo/core demo:   ‹ Got it, Mai — Sui + Next.js in TS strict mode. Noted.  (2 writes)
+@hippo/core demo:     stored [profile] blob rjGwjDHhBSt-…
+@hippo/core demo:     stored [profile] blob 13ra1i7Sp79F…
+@hippo/core demo:   › For package managers I only use pnpm, never npm or yarn.
+@hippo/core demo:   ‹ Noted: pnpm only, no npm/yarn. I'll keep commands and lockfile advice pnpm-flavored.  (1 writes)
+@hippo/core demo:   › We decided to use Drizzle instead of Prisma for this project's ORM.
+@hippo/core demo:   ‹ Drizzle over Prisma — stored. So: schema in TS, migrations via `drizzle-kit`, `pnpm` for everything.  (3 writes)
+@hippo/core demo:     stored [profile] blob TkQrh_NVbnrB…
+@hippo/core demo:     stored [profile] blob Hsvs4INpAn7P…
+@hippo/core demo:   › One thing to remember: our Postgres runs on port 5433 because 5432 is taken.
+@hippo/core demo:   ‹ Stored: Postgres on **5433** (5432 taken). I'll use `postgres://…:5433/…` in any `DATABASE_URL` or D  (1 writes)
+@hippo/core demo:     stored [decision] blob _zGYrMnzUg_S…
+@hippo/core demo:   › Please keep your answers short, and always answer me in Vietnamese.
+@hippo/core demo:   ‹ Đã ghi nhớ: trả lời ngắn, bằng tiếng Việt.  (1 writes)
+@hippo/core demo:     stored [gotcha] blob jjNHfyH0-Q7V…
+@hippo/core demo:     stored [style] blob bKNu-HC6VpZk…
+@hippo/core demo:   › Change of plan: we moved this project from pnpm to bun this week, so use bun now.
+@hippo/core demo:   ‹ Đã cập nhật: **bun** thay cho pnpm (thay thế ghi nhớ cũ "chỉ dùng pnpm"). Từ giờ mình sẽ đưa lệnh dạ  (1 writes)
+@hippo/core demo: 
+@hippo/core demo:   9 memories written. Waiting 90s for indexing…
+@hippo/core demo:     stored [correction] blob 0ZwFOUtV6cJs…
+@hippo/core demo: 
+@hippo/core demo: SESSION 2 — fresh conversation, no history carried over
+@hippo/core demo:   PASS  Which package manager should I use here?
+@hippo/core demo:         Dùng **bun** — tuần này dự án đã chuyển từ pnpm sang bun (`bun install`, `bun add`, `bunx`). Ghi nhớ cũ về pnpm đã bị thay thế.
+@hippo/core demo:         recalled 6 memories
+@hippo/core demo:   PASS  Which ORM did we settle on?
+@hippo/core demo:         **Drizzle** — you decided to use Drizzle instead of Prisma as the ORM for this project.  (Worth remembering alongside it: your Postgres for 
+@hippo/core demo:         recalled 7 memories
+@hippo/core demo:   PASS  What port is the database on?
+@hippo/core demo:         Postgres is on **5433** — 5432 was already taken on your machine, so connection strings and the Drizzle config need to point there.
+@hippo/core demo:         recalled 7 memories
+@hippo/core demo:   PASS  What do you know about me?
+@hippo/core demo:         Here's what I have on you:  - **Name:** Mai. - **Stack:** Sui and Next.js, always in TypeScript strict mode. - **Package manager:** bun — as
+@hippo/core demo:         recalled 6 memories
+@hippo/core demo: 
+@hippo/core demo: STYLE — did a [style] memory change how it writes?
+@hippo/core demo:   FAIL  the answer came back in English, unprompted in this session
+@hippo/core demo:         1 of 4 answers in this session came back in Vietnamese
+@hippo/core demo: 
+@hippo/core demo: CROSS-CHANNEL — a second channel, same memory
+@hippo/core demo:   PASS  Drizzle — you decided to use Drizzle instead of Prisma.
+@hippo/core demo:         recalled 7 memories
+@hippo/core demo: 
+@hippo/core demo: CONFLICT — pnpm was taught, then corrected to bun. Did the correction win?
+@hippo/core demo:   PASS  asked directly: answered bun; in context: pnpm memory yes, bun correction yes
+@hippo/core demo:   PASS  0 of 5 answers stated pnpm without bun
+@hippo/core demo: 
+@hippo/core demo: BASELINE — the same questions, memory off
+@hippo/core demo:         Which package manager should I use here?
+@hippo/core demo:         off: I can't see the project — no memory and no repo context in this conversation. Tell me what's in the directory 
+@hippo/core demo:         on:  Dùng **bun** — tuần này dự án đã chuyển từ pnpm sang bun (`bun install`, `bun add`, `bunx`). Ghi nhớ cũ về pnp
+@hippo/core demo:         Which ORM did we settle on?
+@hippo/core demo:         off: Nothing in this conversation says. I don’t have that context—tell me which ORM and I’ll use it consistently.
+@hippo/core demo:         on:  **Drizzle** — you decided to use Drizzle instead of Prisma as the ORM for this project.  (Worth remembering al
+@hippo/core demo:   PASS  What port is the database on?
+@hippo/core demo:         off: I don’t have that info — no database config was shared in this conversation. Tell me which service/config file
+@hippo/core demo:         on:  Postgres is on **5433** — 5432 was already taken on your machine, so connection strings and the Drizzle config
+@hippo/core demo:   PASS  What do you know about me?
+@hippo/core demo:         off: I know only what’s in this conversation: you’re @mai, on demo. Memory is off, so I don’t have anything else st
+@hippo/core demo:         on:  Here's what I have on you:  - **Name:** Mai. - **Stack:** Sui and Next.js, always in TypeScript strict mode. -
+@hippo/core demo: 
+@hippo/core demo: COST — median over 4 questions
+@hippo/core demo:   whole turn, memory on (first of a session):  4.1s
+@hippo/core demo:   whole turn, memory off:                      1.3s
+@hippo/core demo:   recall alone, first turn of a session:       3.3s
+@hippo/core demo:   recall alone, later turns:                   2.0s
+@hippo/core demo:   recall alone, later turns, no corrections:   0.7s
+@hippo/core demo: 
+@hippo/core demo: 4/4 recalled correctly across sessions.
+@hippo/core demo: newest fact wins:     PASS
+@hippo/core demo: style adaptation:     FAIL
+@hippo/core demo: cross-channel recall: PASS
+@hippo/core demo: memory-off control:   PASS
+@hippo/core demo: namespace: hippo-guest:demo-mupvntv5
+@hippo/core demo: Exited with code 1
+error: script "demo" exited with code 1
+run2 exit=1

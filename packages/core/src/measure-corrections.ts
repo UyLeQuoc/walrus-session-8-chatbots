@@ -33,7 +33,7 @@ const apiKey = process.env.OPENROUTER_API_KEY;
 if (!apiKey) throw new Error("OPENROUTER_API_KEY missing");
 const model = createModel({
   apiKey,
-  model: process.env.LLM_MODEL ?? "deepseek/deepseek-v4.1-flash",
+  model: process.env.LLM_MODEL ?? "google/gemini-2.5-flash",
 });
 const TRIALS = Number(process.env.TRIALS ?? 6);
 

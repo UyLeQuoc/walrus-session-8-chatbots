@@ -4,7 +4,7 @@ import { DEFAULT_MODEL_ID, formatContext, formatPrice, meterFor } from "./compos
 describe("composer meter", () => {
   it("starts at zero for an empty draft", () => {
     const meter = meterFor({ modelId: DEFAULT_MODEL_ID, turns: [], draft: "" });
-    expect(meter.label).toBe("DeepSeek V4.1 Flash");
+    expect(meter.label).toBe("Gemini 2.5 Flash");
     expect(meter.used).toBe(0);
     expect(formatContext(meter)).toBe("0 / 1M · 0%");
     expect(formatPrice(meter.priceUsd)).toBe("$0.00");
@@ -17,8 +17,8 @@ describe("composer meter", () => {
       draft: "b".repeat(4000),
     });
     expect(meter.used).toBe(2000);
-    expect(meter.priceUsd).toBeCloseTo((1000 * 0.3 + 1000 * 1.2) / 1_000_000);
-    expect(formatPrice(meter.priceUsd)).toBe("$0.0015");
+    expect(meter.priceUsd).toBeCloseTo((1000 * 0.3 + 1000 * 2.5) / 1_000_000);
+    expect(formatPrice(meter.priceUsd)).toBe("$0.0028");
   });
 
   it("omits a price it has not measured", () => {

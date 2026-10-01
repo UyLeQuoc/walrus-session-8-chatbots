@@ -66,7 +66,7 @@ local `.env`.
 | `MEMWAL_REGISTRY_ID` | local `.env` |
 | `SUI_NETWORK` | `mainnet` |
 | `OPENROUTER_API_KEY` | local `.env` |
-| `LLM_MODEL` | `deepseek/deepseek-v4.1-flash` |
+| `LLM_MODEL` | `google/gemini-2.5-flash` |
 | `SESSION_SECRET` | local `.env` |
 | `KEY_ENCRYPTION_KEY` | local `.env`, and **never rotate it after users exist**: it decrypts their delegate keys |
 | `TELEGRAM_BOT_TOKEN` | local `.env` |
