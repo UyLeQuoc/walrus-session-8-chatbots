@@ -101,6 +101,32 @@ describe("useChatMemories", () => {
     rerender({ busy: false });
     await waitFor(() => expect(result.current.cards).toHaveLength(1));
     expect(result.current.error).toBe("");
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const paths = () => fetchMock.mock.calls.map((call) => String((call as unknown[])[0]));
+    expect(paths().filter((path) => path.includes(`/${CHAT}/memories`))).toHaveLength(2);
+    await waitFor(() => expect(paths()).toContain("/api/me"));
+  });
+
+  it("refreshes the summary under the box once a write lands", async () => {
+    const urls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = String(input);
+        urls.push(path);
+        if (path.endsWith("/status")) {
+          return json({ status: "stored", blobId: "blob-1", hidden: false, type: "profile" });
+        }
+        if (path.endsWith("/memories")) {
+          return json({
+            limited: false,
+            memories: [{ id: INDEX, type: "profile", text: "I use pnpm", status: "pending" }],
+          });
+        }
+        return json({ mode: "guest", memoryEnabled: true });
+      }),
+    );
+    const { result } = renderHook(() => useChatMemories(CHAT, false));
+    await waitFor(() => expect(result.current.cards[0]?.status).toBe("stored"));
+    await waitFor(() => expect(urls).toContain("/api/me"));
   });
 });

@@ -6,6 +6,7 @@ import {
   STATUS_POLL_LIMIT_MS,
 } from "@/features/chat/remembered";
 import { cardsFromStored, mergeLoadedCards } from "@/features/chat/stored-memories";
+import { loadMe } from "@/features/me/use-me";
 import { apiFetch } from "@/lib/api";
 
 const POLL_MS = 3_000;
@@ -24,7 +25,10 @@ export function useChatMemories(
   const wasBusy = useRef(busy);
 
   useEffect(() => {
-    if (wasBusy.current && !busy) setReload((current) => current + 1);
+    if (wasBusy.current && !busy) {
+      setReload((current) => current + 1);
+      loadMe();
+    }
     wasBusy.current = busy;
   }, [busy]);
   const [state, setState] = useState<{
@@ -147,6 +151,7 @@ export function useChatMemories(
             if (parsed.status === "stored" && !settled.current.has(indexId)) {
               settled.current.add(indexId);
               setReload((current) => current + 1);
+              loadMe();
             }
             setState((current) => {
               if (!current || current.id !== id) return current;
