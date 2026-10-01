@@ -32,7 +32,8 @@ export function AppSidebar({
   onOpenChat: (id: string) => void;
   activeChatId: string | null;
 }) {
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
+  const closeOnPhone = () => setOpenMobile(false);
   const { pathname } = useLocation();
   const collapsed = state === "collapsed";
   const { items, remove } = useConversations();
@@ -43,7 +44,7 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
-        <Link to="/" className="flex items-center rounded-md px-2 py-1.5">
+        <Link to="/" className="flex items-center rounded-md px-2 py-1.5" onClick={closeOnPhone}>
           <Logo variant={collapsed ? "mark" : "lockup"} wordSize={18} />
         </Link>
       </SidebarHeader>
@@ -52,14 +53,20 @@ export function AppSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton type="button" onClick={onNewChat}>
+                <SidebarMenuButton
+                  type="button"
+                  onClick={() => {
+                    closeOnPhone();
+                    onNewChat();
+                  }}
+                >
                   <SquarePen />
                   <span>New chat</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/me"}>
-                  <Link to="/me">
+                  <Link to="/me" onClick={closeOnPhone}>
                     <Library />
                     <span>My memory</span>
                   </Link>
@@ -67,7 +74,7 @@ export function AppSidebar({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/guide"}>
-                  <Link to="/guide">
+                  <Link to="/guide" onClick={closeOnPhone}>
                     <BookOpen />
                     <span>How it works</span>
                   </Link>
@@ -106,7 +113,10 @@ export function AppSidebar({
                         <SidebarMenuButton
                           type="button"
                           isActive={item.id === activeChatId}
-                          onClick={() => onOpenChat(item.id)}
+                          onClick={() => {
+                            closeOnPhone();
+                            onOpenChat(item.id);
+                          }}
                         >
                           <span>{item.title}</span>
                         </SidebarMenuButton>

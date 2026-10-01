@@ -1,5 +1,10 @@
 import { useCallback, useState } from "react";
-import { type PanelChoice, panelOpen, parsePanelChoice } from "@/features/chat/memory-panel-state";
+import {
+  type PanelChoice,
+  panelOpen,
+  panelShown,
+  parsePanelChoice,
+} from "@/features/chat/memory-panel-state";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const KEY = "hippo.memory-panel";
@@ -23,13 +28,22 @@ function writeChoice(open: boolean): void {
 export function useMemoryPanel() {
   const mobile = useIsMobile();
   const [open, setOpen] = useState(() => panelOpen(readChoice()));
+  const [sheetOpen, setSheetOpen] = useState(false);
   const close = useCallback(() => {
+    if (mobile) {
+      setSheetOpen(false);
+      return;
+    }
     writeChoice(false);
     setOpen(false);
-  }, []);
+  }, [mobile]);
   const show = useCallback(() => {
+    if (mobile) {
+      setSheetOpen(true);
+      return;
+    }
     writeChoice(true);
     setOpen(true);
-  }, []);
-  return { open, mobile, close, show };
+  }, [mobile]);
+  return { open: panelShown(mobile, open, sheetOpen), mobile, close, show };
 }

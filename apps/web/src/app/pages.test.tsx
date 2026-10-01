@@ -934,6 +934,27 @@ describe("chat page", () => {
     expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined();
   });
 
+  it("does not cover the chat with the memory sheet on a phone until the person opens it", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("innerWidth", 500);
+    mountChat();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined());
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Open memory" }));
+    expect(await screen.findByRole("dialog")).toBeDefined();
+    expect(screen.getByText("Nothing remembered in this chat yet.")).toBeDefined();
+  });
+
+  it("closes the sidebar on a phone once the person starts a new chat", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("innerWidth", 500);
+    mountChat();
+    await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+    const sheet = await screen.findByRole("dialog", { name: "Sidebar" });
+    await user.click(within(sheet).getByRole("button", { name: "New chat" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Sidebar" })).toBeNull());
+  });
+
   it("shows a remembered fact become stored without calling the relayer", async () => {
     const id = "11111111-1111-4111-8111-111111111111";
     chatMessages = [
