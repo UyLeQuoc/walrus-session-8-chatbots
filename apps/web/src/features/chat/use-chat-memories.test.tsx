@@ -34,7 +34,7 @@ describe("useChatMemories", () => {
         return json({}, 404);
       }),
     );
-    const { result } = renderHook(() => useChatMemories(CHAT));
+    const { result } = renderHook(() => useChatMemories(CHAT, false));
     await waitFor(() => expect(result.current.cards).toHaveLength(1));
     expect(result.current.cards[0]?.textKnown).toBe(false);
     expect(result.current.error).toMatch(/could not read every fact/i);
@@ -62,7 +62,7 @@ describe("useChatMemories", () => {
         });
       }),
     );
-    const { result } = renderHook(() => useChatMemories(CHAT));
+    const { result } = renderHook(() => useChatMemories(CHAT, false));
     await waitFor(() => expect(result.current.cards[0]?.status).toBe("stored"));
     expect(listed).toBe(true);
     expect(urls.some((url) => url.includes("relayer"))).toBe(false);
@@ -72,11 +72,35 @@ describe("useChatMemories", () => {
   it("says the chat could not be loaded and does not invent cards", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => json({}, 404)),
+      vi.fn(async () => json({}, 500)),
     );
-    const { result } = renderHook(() => useChatMemories(CHAT));
+    const { result } = renderHook(() => useChatMemories(CHAT, false));
     await waitFor(() => expect(result.current.error).toMatch(/could not load/i));
     expect(result.current.cards).toEqual([]);
     expect(result.current.loading).toBe(false);
+  });
+
+  it("treats a chat the server does not have yet as empty, and reads it again after the turn", async () => {
+    let created = false;
+    const fetchMock = vi.fn(async () =>
+      created
+        ? json({
+            limited: false,
+            memories: [{ id: INDEX, type: "profile", text: "I use bun", status: "stored" }],
+          })
+        : json({}, 404),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { result, rerender } = renderHook(({ busy }) => useChatMemories(CHAT, busy), {
+      initialProps: { busy: true },
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe("");
+    expect(result.current.cards).toEqual([]);
+    created = true;
+    rerender({ busy: false });
+    await waitFor(() => expect(result.current.cards).toHaveLength(1));
+    expect(result.current.error).toBe("");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

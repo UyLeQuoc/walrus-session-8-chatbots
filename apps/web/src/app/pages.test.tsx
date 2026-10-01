@@ -812,6 +812,52 @@ describe("chat page", () => {
     expect(await screen.findByText(/still on Walrus/i)).toBeDefined();
   });
 
+  it("shows no error on a new chat's first turn, then lists what it remembered", async () => {
+    const user = userEvent.setup();
+    const others = stubFetch({ "/api/me": { mode: "guest", memoryEnabled: true } });
+    let saved = false;
+    let memoryReads = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = String(input).split("?")[0] ?? "";
+        if (!/^\/api\/conversations\/[^/]+\/memories$/.test(path)) return others(input);
+        memoryReads += 1;
+        if (!saved) return { ok: false, status: 404, json: async () => ({}) } as Response;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            limited: false,
+            memories: [
+              {
+                id: "33333333-3333-4333-8333-333333333333",
+                type: "gotcha",
+                text: "Postgres runs on 5433",
+                status: "stored",
+                blobId: "blob-1",
+              },
+            ],
+          }),
+        } as Response;
+      }),
+    );
+    mountChat();
+    await user.type(screen.getByPlaceholderText("Message hippo…"), "Postgres runs on 5433{Enter}");
+    expect(chatSend).toHaveBeenCalled();
+    await waitFor(() => expect(memoryReads).toBe(1));
+    await act(async () => {
+      setChatStatus("streaming");
+    });
+    expect(screen.queryByText("Could not load what this chat remembered.")).toBeNull();
+    saved = true;
+    await act(async () => {
+      setChatStatus("ready");
+    });
+    expect(await screen.findByText("Postgres runs on 5433")).toBeDefined();
+    expect(screen.queryByText("Could not load what this chat remembered.")).toBeNull();
+  });
+
   it("turns memory off from the composer and does not send the chat", async () => {
     const user = userEvent.setup();
     const fetchMock = stubFetch({

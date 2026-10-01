@@ -10,7 +10,10 @@ import { apiFetch } from "@/lib/api";
 
 const POLL_MS = 3_000;
 
-export function useChatMemories(conversationId: string | null): {
+export function useChatMemories(
+  conversationId: string | null,
+  busy: boolean,
+): {
   cards: RememberedCard[];
   loading: boolean;
   error: string;
@@ -18,6 +21,12 @@ export function useChatMemories(conversationId: string | null): {
 } {
   const [reload, setReload] = useState(0);
   const settled = useRef(new Set<string>());
+  const wasBusy = useRef(busy);
+
+  useEffect(() => {
+    if (wasBusy.current && !busy) setReload((current) => current + 1);
+    wasBusy.current = busy;
+  }, [busy]);
   const [state, setState] = useState<{
     id: string;
     cards: RememberedCard[];
@@ -44,6 +53,15 @@ export function useChatMemories(conversationId: string | null): {
       try {
         const res = await apiFetch(`/api/conversations/${id}/memories`);
         if (cancelled) return;
+        if (res.status === 404) {
+          setState((current) => ({
+            id,
+            cards: current?.id === id ? current.cards : [],
+            loading: false,
+            error: "",
+          }));
+          return;
+        }
         if (!res.ok) {
           setState({
             id,

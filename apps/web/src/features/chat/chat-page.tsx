@@ -67,7 +67,7 @@ export function ChatPage() {
   });
   const panel = useMemoryPanel();
   const remembered = useRemembered(messages);
-  const stored = useChatMemories(conversationId);
+  const stored = useChatMemories(conversationId, busy);
   const panelCards = mergeCards(stored.cards, remembered.cards);
   const selection = useSelectionRemember(remembered.add);
   const [text, setText] = useState("");
