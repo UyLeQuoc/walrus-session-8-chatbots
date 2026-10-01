@@ -103,18 +103,18 @@ export function StreamingWords({ text }: { text: string }) {
   );
 }
 
-/** The three dots, before the first token arrives. */
-export function Thinking() {
+/** A spinner and a sentence, before the first token arrives. */
+export function Thinking({ label = "Thinking" }: { label?: string }) {
   return (
     // role="status" so the label is announced and is valid on the element; a
     // bare span supports no aria-label at all.
     <span
       role="status"
-      aria-label="hippo is thinking"
+      aria-label={label === "Thinking" ? "hippo is thinking" : label}
       className="inline-flex items-center gap-2 text-sm text-muted-foreground"
     >
       <Spinner aria-hidden className="size-4" />
-      Thinking
+      {label}
     </span>
   );
 }

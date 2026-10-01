@@ -90,15 +90,17 @@ vi.mock("sonner", () => ({
  * what these stand-ins let us drive.
  */
 let wallet: { address: string } | null = null;
+let installedWallets: Array<{ name: string; id?: string }> = [];
 const signAndExecute = vi.fn(async () => ({ digest: "0xdigest" }));
+const connectWallet = vi.fn(async () => ({ accounts: [] as Array<{ address: string }> }));
 const suiClientStub: { core: Record<string, unknown>; getBalance?: unknown } = { core: {} };
 
 vi.mock("@mysten/dapp-kit", () => ({
   ConnectModal: ({ trigger }: { trigger: React.ReactNode }) => <>{trigger}</>,
   useCurrentAccount: () => wallet,
   useCurrentWallet: () => ({ currentWallet: null, isConnected: Boolean(wallet) }),
-  useWallets: () => [],
-  useConnectWallet: () => ({ mutateAsync: vi.fn(async () => ({ accounts: [] })) }),
+  useWallets: () => installedWallets,
+  useConnectWallet: () => ({ mutateAsync: connectWallet }),
   useSignAndExecuteTransaction: () => ({ mutateAsync: signAndExecute }),
   useSignPersonalMessage: () => ({ mutateAsync: vi.fn(async () => ({ signature: "sig" })) }),
   useSignTransaction: () => ({ mutateAsync: vi.fn(async () => ({ signature: "sig" })) }),
@@ -139,7 +141,10 @@ beforeEach(() => {
   chatStop.mockClear();
   chatRegenerate.mockClear();
   wallet = null;
+  installedWallets = [];
   signAndExecute.mockClear();
+  connectWallet.mockReset();
+  connectWallet.mockImplementation(async () => ({ accounts: [] }));
   suiClientStub.core = {};
   suiClientStub.getBalance = undefined;
   // jsdom here has neither storage; the examples must survive without one.
@@ -355,6 +360,17 @@ describe("chat page", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("status", { name: /thinking/i })).toBeDefined();
+  });
+
+  it("shows a loading line while the reply has not started", () => {
+    chatMessages = [{ id: "1", role: "user", parts: [{ type: "text", text: "hello" }] }];
+    chatStatus = "submitted";
+    render(
+      <MemoryRouter>
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("status", { name: /reading memories/i })).toBeDefined();
   });
 
   it("drops the landing section once there is a conversation", () => {
@@ -611,9 +627,13 @@ describe("chat page", () => {
     expect(document.querySelector("[data-slot='sidebar-content']")?.className).toContain(
       "overflow-hidden",
     );
-    expect(document.querySelector("[data-slot='scroll-area-viewport']")?.className).toContain(
-      "scroll-fade-y",
-    );
+    const viewport = document.querySelector("[data-slot='scroll-area-viewport']");
+    expect(viewport?.className).toContain("scroll-fade-y");
+    expect(viewport?.className).toContain("min-w-0");
+    expect(
+      screen.getByRole("button", { name: "Postgres on 5433" }).closest("[data-slot='sidebar-menu']")
+        ?.className,
+    ).toContain("pe-3");
     await user.type(search, "postgres");
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Vietnamese answers" })).toBeNull();
@@ -1326,6 +1346,31 @@ describe("me page", () => {
     );
     await waitFor(() => expect(container.textContent ?? "").toMatch(/Already own your memory/i));
   });
+
+  it("does not ask to connect a wallet the sidebar already shows", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": {
+          mode: "guest",
+          signedIn: false,
+          walletAddress: `0x${"ab".repeat(32)}`,
+          memoryEnabled: true,
+          namespace: "ns",
+        },
+        "/api/me/memories": { memories: [] },
+        "/api/me/account": { account: null },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText("guest")).toBeDefined());
+    expect(screen.queryByRole("button", { name: /connect your sui wallet/i })).toBeNull();
+    expect(screen.queryByText(/Already own your memory/i)).toBeNull();
+  });
 });
 
 describe("me page, on chain", () => {
@@ -1868,6 +1913,66 @@ describe("connect page", () => {
     await waitFor(() => expect(container.textContent ?? "").toMatch(/sponsors the gas/i));
     expect(container.textContent ?? "").toMatch(/your wallet pays instead/i);
     expect(screen.getByRole("button", { name: /connect your sui wallet/i })).toBeDefined();
+  });
+
+  it("reconnects the last wallet instead of asking to choose it again", async () => {
+    const key = "sui-dapp-kit:wallet-connection-info";
+    const memory = new Map<string, string>([
+      [
+        key,
+        JSON.stringify({
+          state: {
+            lastConnectedWalletName: "Slush",
+            lastConnectedAccountAddress: "0xabc",
+          },
+        }),
+      ],
+    ]);
+    vi.stubGlobal("localStorage", {
+      getItem: (item: string) => memory.get(item) ?? null,
+      setItem: (item: string, value: string) => void memory.set(item, value),
+      removeItem: (item: string) => void memory.delete(item),
+    });
+    installedWallets = [{ name: "Slush" }];
+    let release: (value: { accounts: Array<{ address: string }> }) => void = () => undefined;
+    connectWallet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/connect/": {
+          kind: "connect",
+          publicKey: "ab".repeat(32),
+          label: "hippo (web:uy)",
+          accountId: null,
+        },
+        "/api/config": {
+          network: "mainnet",
+          relayerUrl: "https://r",
+          packageId: "0x1",
+          registryId: "0x2",
+        },
+      }),
+    );
+    render(
+      <MemoryRouter initialEntries={["/connect/tok"]}>
+        <Routes>
+          <Route path="/connect/:token" element={<ConnectPage kind="connect" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("status", { name: /connecting your wallet/i })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /connect your sui wallet/i })).toBeNull();
+    expect(connectWallet).toHaveBeenCalledWith({
+      wallet: { name: "Slush" },
+      accountAddress: "0xabc",
+      silent: true,
+    });
+    release({ accounts: [] });
   });
 
   it("on a dead disconnect link, names /disconnect and offers no wallet", async () => {

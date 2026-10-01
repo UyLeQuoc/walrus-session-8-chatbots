@@ -2,8 +2,10 @@
  * Where the API is, and how this page identifies itself to it.
  *
  * Same-origin is the good case: `apps/web/vercel.json` rewrites `/api/*` to the
- * server, the session rides on an `HttpOnly` cookie, and none of the code below
- * does anything.
+ * server, and the session rides on an `HttpOnly` cookie. The stored session is
+ * still sent, because sign-in writes the wallet onto the person before the
+ * cookie is guaranteed to stick: a `Secure` cookie is dropped on http, and
+ * `/api/me` would then show the address while `signedIn` stays false.
  *
  * Cross-origin is the case that makes the UI portable, Walrus Sites in
  * particular, where nothing can proxy. A `SameSite=Lax` cookie is not sent
@@ -56,10 +58,10 @@ export function forgetSession(): void {
   }
 }
 
-/** Headers that carry identity when the cookie cannot. Empty when same-origin. */
+/** Headers that carry identity when the cookie cannot. The guest id is cross-origin only. */
 export function identityHeaders(): Record<string, string> {
-  if (isSameOrigin) return {};
-  const headers: Record<string, string> = { "x-hippo-guest": guestId() };
+  const headers: Record<string, string> = {};
+  if (!isSameOrigin) headers["x-hippo-guest"] = guestId();
   const session = stored(SESSION_KEY);
   if (session) headers["x-hippo-session"] = session;
   return headers;

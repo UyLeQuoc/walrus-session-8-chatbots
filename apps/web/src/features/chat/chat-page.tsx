@@ -30,6 +30,7 @@ import { mergeCards } from "@/features/chat/remembered";
 import { RememberedList } from "@/features/chat/remembered-list";
 import { commandRoot, commandUsages } from "@/features/chat/slash-menu";
 import { CommandGuide, SlashMenu } from "@/features/chat/slash-menu-panel";
+import { Thinking } from "@/features/chat/streaming-text";
 import type { UiMessage } from "@/features/chat/transcript";
 import { useChatCitations } from "@/features/chat/use-chat-citations";
 import { useChatMemories } from "@/features/chat/use-chat-memories";
@@ -210,6 +211,11 @@ export function ChatPage() {
                         />
                       </MessageScrollerItem>
                     ))}
+                    {busy && last?.role === "user" ? (
+                      <MessageScrollerItem scrollAnchor>
+                        <Thinking label="Reading memories" />
+                      </MessageScrollerItem>
+                    ) : null}
                   </MessageScrollerContent>
                 </MessageScrollerViewport>
                 <MessageScrollerButton />

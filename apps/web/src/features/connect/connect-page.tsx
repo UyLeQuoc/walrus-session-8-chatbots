@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { WalletPicker } from "@/components/wallet-picker";
 import { Web3Address } from "@/components/web3-address";
 import { useConnectFlow } from "@/features/connect/use-connect-flow";
+import { useResumeWallet } from "@/features/connect/use-resume-wallet";
 
 export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
   const { token } = useParams();
@@ -11,6 +12,7 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
     kind,
     token,
   );
+  const resume = useResumeWallet(step === "ready" && !account && !linkDead);
   useShellTitle(kind === "connect" ? "Connect" : "Revoke");
 
   if (step === "loading") {
@@ -83,6 +85,14 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
         <Button onClick={() => void run()} disabled={step === "working"}>
           {step === "working" ? "Working…" : kind === "connect" ? "Grant access" : "Revoke access"}
         </Button>
+      ) : resume.pending ? (
+        <p
+          className="text-sm text-muted-foreground"
+          role="status"
+          aria-label="Connecting your wallet"
+        >
+          Connecting your wallet…
+        </p>
       ) : (
         <WalletPicker label="Connect your Sui wallet" />
       )}
