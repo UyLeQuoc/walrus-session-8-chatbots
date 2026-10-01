@@ -77,8 +77,8 @@ async function approve(label: string, id: string, sender: string): Promise<void>
   });
   try {
     const simulated = await sui.core.simulateTransaction({ transaction: tx });
-    const status = simulated.transaction?.effects?.status;
-    console.log(`simulate ${label} ${JSON.stringify(status ?? simulated)}`);
+    const { status } = simulated.Transaction ?? simulated.FailedTransaction;
+    console.log(`simulate ${label} ${JSON.stringify(status)}`);
   } catch (err) {
     console.log(`simulate ${label} FAILED ${describe(err)}`);
   }
