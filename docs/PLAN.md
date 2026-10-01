@@ -1,6 +1,6 @@
 # Plan
 
-Deadline: **Oct 9, 2026 14:00 UTC**. Today: Sep 22. Real users need about a week, so the bot must be live by **Sep 27**.
+Deadline: **Oct 9, 2026 14:00 UTC**. Written Sep 22; the timeline below is that day's plan. The current plan to the deadline is `docs/GOAL.md` M12.
 
 ## Milestone 0 — Setup (Sep 22)
 

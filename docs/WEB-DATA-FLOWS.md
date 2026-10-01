@@ -38,12 +38,12 @@ Namespace guest là cách ứng dụng phân luồng, **không phải khóa truy
 
 | Thao tác / màn hình | Luồng dữ liệu thực tế |
 |---|---|
-| Mở `/` | `ChatPage` gọi `GET /api/config` để lấy `operatorAccountId` cho link Sui; `Landing`/`LiveStats` gọi `GET /api/stats`. Server đọc số memory `stored`, số `personId` có hàng trong `memory_index`, cache kết quả 60 giây. Chưa tạo `person` chỉ vì mở trang. |
-| Điều hướng | `BrowserRouter` có `/` (chat), `/me`, `/connect/:token`, `/disconnect/:token` và trang 404. `Layout` chứa navigation. |
+| Mở `/` | `ChatPage` gọi `GET /api/me` và `GET /api/me/memories` (`useMe`) cho chế độ memory và dòng "on Walrus" dưới ô nhập; sidebar gọi `GET /api/conversations` để liệt kê chat đã lưu. Nếu `sessionStorage` còn id chat đang mở, trang tải `GET /api/conversations/:id/messages`, `POST /api/conversations/:id/citations` và `GET /api/conversations/:id/memories`. Không còn `Landing`/`LiveStats`, và trang chat không gọi `/api/config` hay `/api/stats`. Chưa tạo `person` chỉ vì mở trang. |
+| Điều hướng | `BrowserRouter` có `/` (chat), `/me`, `/guide`, `/connect/:token`, `/disconnect/:token` và trang 404. `AppLayout` chứa sidebar: New chat, My memory, How it works, danh sách chat có ô tìm kiếm. |
 | Theme sáng/tối | `ThemeToggle` đọc lựa chọn `hippo.theme` từ `localStorage`, nếu chưa có thì theo hệ điều hành; đổi theme chỉ sửa class CSS và `localStorage`, không gọi server. |
 | Cùng origin / khác origin | Mặc định web gọi `/api/*` cùng origin qua Vite proxy hoặc Vercel rewrite, dùng cookie `HttpOnly`, `SameSite=Lax`. Nếu `VITE_API_URL` trỏ sang origin khác, `identityHeaders()` gửi `x-hippo-guest`/`x-hippo-session` từ `localStorage`; server chỉ nhận header có định dạng hợp lệ. Đây là đường dự phòng cho host không proxy được. |
 
-Nguồn: [routes web](../apps/web/src/main.tsx), [stats](../apps/server/src/routes/connect.ts), [theme](../apps/web/src/components/theme-toggle.tsx), [API URL và identity](../apps/web/src/lib/api.ts), [Vite proxy](../apps/web/vite.config.ts).
+Nguồn: [routes web](../apps/web/src/main.tsx), [chat đã lưu](../apps/web/src/features/chat/use-conversations.ts), [theme](../apps/web/src/components/theme-toggle.tsx), [API URL và identity](../apps/web/src/lib/api.ts), [Vite proxy](../apps/web/vite.config.ts).
 
 ## 3. Gửi tin nhắn, trả lời và ghi nhớ
 
@@ -60,7 +60,8 @@ Người dùng nhập tin / chọn gợi ý
   → web hiển thị chữ, trạng thái tool và memory đã dùng kèm blob ID
 ```
 
-- `ChatPage` giữ transcript đang xem trong `useChat`, nhưng chỉ gửi text và id cuộc chat. Reload thường tải lại chat đang mở. Nút demo xóa id đó rồi reload, và `Examples` đặt câu hỏi vào ô nhập chứ không tự gửi. [ChatPage](../apps/web/src/features/chat/chat-page.tsx), [Examples](../apps/web/src/features/chat/examples.tsx).
+- `ChatPage` giữ transcript đang xem trong `useChat`, nhưng chỉ gửi text và id cuộc chat. Reload thường tải lại chat đang mở từ transcript mã hóa trong PostgreSQL, nên reload không chứng minh recall; chỉ **New chat**, không có transcript, mới cho thấy câu trả lời đến từ Walrus. Không có nút demo reload. `Examples` đặt câu vào ô nhập chứ không tự gửi. [ChatPage](../apps/web/src/features/chat/chat-page.tsx), [Examples](../apps/web/src/features/chat/examples.tsx).
+- Panel memory bên phải gọi `GET /api/conversations/:id/memories`. Với chat mới, server chưa có cuộc chat nên trả 404; hook coi 404 là chưa nhớ gì và tải lại khi lượt chat kết thúc. Thẻ đang `pending` được hỏi `GET /api/me/memories/:id/status` mỗi 3 giây, tối đa 2 phút. [use-chat-memories](../apps/web/src/features/chat/use-chat-memories.ts).
 - `POST /api/chat` nhận `{ text, conversationId, clientMessageId }`, không nhận lại cả transcript. Server xác định người dùng, kiểm tra tin quá dài, giới hạn tần suất, ghi dòng user, rồi nạp tối đa 20 lượt hoặc 12.000 ký tự làm ngữ cảnh. Lệnh được trả lời trực tiếp, không gọi model, và được ghi với `kind = command` để không vào prompt. Tin thường đi vào `portFor` → `gatherContext` → `runTurn`. Server stream AI SDK UI messages về web; metadata đầu câu trả lời gồm loại, text, relevance và blob ID của memory đã đưa vào prompt. Khi xong, assistant được ghi và `logTurn` ghi metadata vào `turn_log`. [Chat route](../apps/server/src/routes/chat.ts), [history](../apps/server/src/chat/history.ts), [agent](../packages/core/src/agent.ts).
 - `gatherContext` bỏ qua memory khi `memoryEnabled=false`. Khi bật, nó tìm theo tối đa 300 ký tự đầu của câu hỏi; đầu phiên còn tìm profile/style/commitment; khi có dữ kiện liên quan thì tìm thêm correction. Kết quả được lọc, gộp và sắp theo thời gian trước khi đưa vào prompt. Lỗi recall được ghi log; lượt chat vẫn có thể tiếp tục. [Agent](../packages/core/src/agent.ts).
 - `runTurn` gọi model chính qua OpenRouter và cấp hai tool `remember`, `recall` cho model khi memory bật. `recall` là tìm bổ sung do model yêu cầu. **Web stream không tự chuyển sang fallback model** nếu stream lỗi; đường non-streaming của các kênh khác có fallback. [Model](../packages/core/src/model.ts), [tools](../packages/core/src/tools.ts), [agent](../packages/core/src/agent.ts).
@@ -149,7 +150,7 @@ Lệnh `/memory <cụm khác>` được xử lý như tìm kiếm với chính c
 - **`pending` khác `stored`.** Lệnh ghi trả về sau khi relayer nhận job; blob ID chỉ có khi job nền hoàn tất. `/me` cho thấy `pending` hoặc `failed`. [Memory port](../packages/memory/src/port.ts).
 - **Ẩn khác xóa.** Nút hide và `/memory forget <blob>` chỉ là bộ lọc của hippo. `/memory forget all` bỏ kết quả khỏi search index nhưng không xóa blob Walrus. [Commands](../apps/server/src/chat/commands.ts).
 - **Export không bảo đảm khôi phục toàn bộ text.** Metadata có trong `memory_index`; text chỉ lấy lại được nếu semantic recall tìm thấy, và hash chỉ đánh dấu dòng nào đúng với bản đã ghi. [Export](../apps/server/src/memory/export.ts).
-- **Transcript chat nằm trên server, mã hóa, và xóa được.** Reload thường khôi phục chat đang mở qua id trong `sessionStorage`. Nút demo xóa id đó trước khi reload, nên trang trống vẫn phải trả lời từ Walrus. Sidebar chỉ liệt kê chat `channel = web`. Xóa một chat không xóa memory trên Walrus. [ChatPage](../apps/web/src/features/chat/chat-page.tsx), [history](../apps/server/src/chat/history.ts), [schema](../packages/db/src/schema.ts).
+- **Transcript chat nằm trên server, mã hóa, và xóa được.** Reload thường khôi phục chat đang mở qua id trong `sessionStorage`. New chat bắt đầu không có transcript, nên chỉ có thể trả lời từ Walrus. Sidebar chỉ liệt kê chat `channel = web`. Xóa một chat không xóa memory trên Walrus. [ChatPage](../apps/web/src/features/chat/chat-page.tsx), [history](../apps/server/src/chat/history.ts), [schema](../packages/db/src/schema.ts).
 - **Nút xem ciphertext/explorer chỉ mở URL bên ngoài.** Không có endpoint web giải mã trực tiếp một blob theo ID. [MemoryList](../apps/web/src/features/me/memory-list.tsx).
 
 ## 9. Đối chiếu endpoint

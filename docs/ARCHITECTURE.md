@@ -1,10 +1,10 @@
 # Architecture
 
-Everything below is verified against the MemWal source in `memwal/` (SDK 0.1.8 in repo, 0.1.7 on npm) unless marked **[unverified]**.
+Everything below is verified against the MemWal source in `memwal/` unless marked **[unverified]**. The app depends on `@mysten-incubation/memwal` 0.1.8.
 
 ## 1. Components
 
-One core, many channels. Every channel adapter turns an inbound message into `handleTurn({ personId, channel, text })` and streams the reply back. Nothing channel-specific touches memory.
+One core, many channels. The Telegram, Discord and Slack adapters turn an inbound message into `handleIncoming({ channel, externalId, displayName, text, threadKey })` (`apps/server/src/chat/turn.ts`) and send the reply back. The web chat and the CLI stream the same agent loop through `POST /api/chat`. Nothing channel-specific touches memory.
 
 ```
  Web chat (Vite SPA)   Telegram (grammY)   Discord (discord.js)   Slack (Bolt, socket mode)
@@ -33,7 +33,7 @@ Monorepo (Bun workspaces + Turborepo):
 | `apps/server` | Hono HTTP API (`/api/chat` streaming, `/api/connect/*`, `/api/me/*`) **and** the long-running channel adapters (Discord gateway, Telegram long polling, Slack socket mode) in one Node process. Deployed to Railway. |
 | `packages/core` | Agent loop, system prompt, tools (`remember`, `recall`), streaming helpers. Channel-agnostic. |
 | `packages/memory` | MemWal client factory (guest vs owned), memory text format, dedupe, recall policy, provenance, `signedRequest` for endpoints the SDK does not wrap. |
-| `packages/db` | Drizzle schema + client: `people`, `channel_identities`, `delegate_keys`, `connect_tokens`, `turn_log`. |
+| `packages/db` | Drizzle schema + client: `people`, `channel_identities`, `delegate_keys`, `connect_tokens`, `web_sessions`, `turn_log`, `memory_index`, `teams`, `team_members`, `team_invites`, `conversations`, `messages`. There is no `users` table. `conversations` and `messages` hold the web transcript, encrypted with `KEY_ENCRYPTION_KEY`; memory text is never a column. |
 | `memwal/` | Read-only reference clone of MystenLabs/MemWal. Gitignored. |
 
 ### Identity across channels
@@ -84,7 +84,7 @@ User            Bot (apps/bot)                 Web (apps/web)                   
  │                                                  │ add_delegate_key(pub,label)────▶ POST /sponsor → sign → /sponsor/execute
  │                                                  │ POST /api/connect/<token>/done │
  │                                                  │   {accountId, wallet, digest}  │
- │◀── "connected, migrating N guest memories" ──────┤                                │
+ │◀── "connected, guest memories still recalled" ───┤                                │
 ```
 
 Details that matter:
@@ -94,7 +94,7 @@ Details that matter:
 - Account lookup: `fetchAccountIdForOwner(suiClient, registryId, owner)` reads the registry's `accounts` Table dynamic field keyed by address (`apps/app/src/utils/suiClientCompat.ts`). One account per address, enforced on-chain.
 - Each account holds max 20 delegate keys. Label the bot's key `hippo (<channel>:<username>)` so it is recognizable in the dashboard.
 - The connect token is single-use, expires in 10 minutes, and binds `{personId, channelIdentity, publicKey}`. The done callback is verified server-side: fetch the `MemWalAccount` object and confirm `delegate_keys` contains our public key before flipping the user to owned mode. Never trust the browser's payload alone.
-- After connect, migrate guest memories: recall the guest namespace in pages (broad queries) and `rememberBulk` into the user's account. Note the limitation in §7.
+- After connect, guest memories are not copied. They are dual-read: recall also reads the person's guest namespace and merges by distance, and writes go only to the account the user owns. See §7.
 
 **[unverified]** CORS on `relayer.memory.walrus.xyz/sponsor` for a non-Walrus origin. The dashboard calls it from `memory.walrus.xyz`. First spike: call `/sponsor` from `localhost:3000`. If blocked, proxy through `apps/server` (the request is already signed by the wallet, so a proxy adds no trust).
 
@@ -142,7 +142,7 @@ System prompt follows the official four-part template (`memwal/docs/guides/syste
 
 ### Silently dropped recalls
 
-The relayer sometimes answers a recall with `{"results": [], "total": 0, "dropped_count": N}`: it found N matches and discarded all of them, HTTP 200, no error. Taken at face value the bot forgets. `recallRelevant` treats an empty result with a non-zero `dropped_count` as retryable, three attempts with backoff, and logs each one. See `docs/SPIKES.md` §E.
+The relayer sometimes answers a recall with `{"results": [], "total": 0, "dropped_count": N}`: it found N matches and discarded all of them, HTTP 200, no error. Taken at face value the bot forgets. `recallRelevant` treats an empty result with a non-zero `dropped_count` as retryable, four attempts with backoff (`RECALL_ATTEMPTS` in `packages/memory/src/policy.ts`), and logs each one. See `docs/SPIKES.md` §E.
 
 ### Rate limiting
 
@@ -150,14 +150,16 @@ The relayer allows 60 weighted requests per minute per delegate key, and guest m
 
 ### Recall policy
 
-Per turn, before generation:
+Per turn, before generation (`gatherContext` in `packages/core/src/agent.ts`). Recalls run one at a time, not in parallel (`docs/evidence/latency-2026-09-24.md`):
 
-1. Session start (first message in 6 h): recall `profile` and open `commitment` entries with fixed queries, limit 8.
-2. Every turn: recall with the user message as query, `limit 6`, `maxDistance 0.6`, in the personal scope. In guild channels also recall the team scope, limit 4.
-3. Inject as untrusted data using the SDK's `formatUntrustedMemories()` (nonce-delimited, JSON-encoded) plus its system instruction. Reuse, do not reinvent.
-4. Keep the list of injected memories for the turn so the reply can cite `blob_id` when asked "how do you know that?".
+1. Every turn: the user message, first 300 characters, as the query, `limit 6`, `maxDistance` 0.8 (`DEFAULT_MAX_DISTANCE`). The port also reads the person's team namespaces and any guest namespaces linked into them; an owned person's own guest namespace is read too (`portFor` in `apps/server/src/identity/persons.ts`). Results merge by distance.
+2. Session start (first turn, or more than 6 h since the last, `SESSION_GAP_MS`): one more recall with the type tags as the query, `[profile] [style] [commitment]`, `limit 8`, `maxDistance 0.75`.
+3. If anything correctable came back: one `[correction]` recall, `limit 6`, kept only when the parsed type is `correction`.
+4. Keep the 10 nearest, add the corrections, and order newest first, so of two disagreeing memories the model meets the current one first.
+5. Inject as untrusted data using the SDK's `formatUntrustedMemories()` (nonce-delimited, JSON-encoded) plus its system instruction. Reuse, do not reinvent.
+6. Keep the list of injected memories for the turn so the reply can cite `blob_id` when asked "how do you know that?".
 
-Indexing lag is a few seconds; the tools use `rememberAndWait` for personal facts so a follow-up question in the same minute can find them.
+Writes do not block the reply. `rememberAndWait` measured about 24 s on mainnet, so the `remember` tool accepts the job and records the blob ID in `memory_index` in the background.
 
 ### Local index (what Postgres may hold)
 
