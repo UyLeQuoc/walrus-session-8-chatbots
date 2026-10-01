@@ -106,6 +106,47 @@ Start only after Phase 0 has a passing decrypt. If Phase 0 is blocked, stop at P
 
 Verification: a test with a fake Seal and Walrus client proves ciphertext is what would be uploaded and plaintext is absent from the request log and from the database row. A second test proves a revoked document's extracted memories are hidden. A browser test covers the no-wallet and no-balance refusals. Do not put a real key in a test.
 
+## Thin slice for the submission
+
+Added 2026-10-01. The owner chose to ship private files before the Oct 3 freeze
+only if the Enoki key for the Seal aggregator arrives on 2026-10-01
+(`docs/BLOCKERS.md`). Work on a branch. It merges only if the checks below pass
+by the end of Oct 3. Otherwise it stays on the branch, and the article and
+submission do not mention it.
+
+In:
+
+- Phase 0 steps 3 and 4. Step 3 does not need the key: encrypt already works,
+  and the local test wallet `0x86fcc7fd…` holds 0.09 SUI and 4.81 WAL on
+  mainnet. Step 4 needs it.
+- Owned mode only. The policy is `MemWalAccount::seal_approve` with the
+  `hippo-doc` prefix from `docs/SPIKES.md` §14. A person not in owned mode sees
+  "Connect your wallet to attach files" and the existing `/connect` link
+  (`docs/DECISIONS.md`, 2026-10-01).
+- `documents` and `message_attachments` as Phase 3 item 2 describes them. They
+  reach production only through `plan-push` and the owner's yes.
+- The attach control in the composer, with items 3 to 5 of Phase 3, for `.txt`
+  and `.md` files of at most 100 KB. The wallet pays and is told so before it
+  signs.
+- Asking about the file in the chat it was attached to. The browser decrypts
+  and sends the whole text, which is the excerpt at that size, nonce-delimited
+  like recalled memories. The answer cites the document id and the Markdown
+  heading or line range, stored as message metadata.
+
+Out until after the submission: PDF, the library and `@` reuse in a later
+chat, remember-from-file, revoke-hides, and all of Phase 4.
+
+Checks:
+
+1. The fake Seal and Walrus test from Phase 3's verification: the upload request
+   carries ciphertext, and neither the request log nor the database row
+   contains the plaintext.
+2. A render test of the three refusals: not in owned mode, no SUI, no WAL.
+3. One mainnet round trip in a browser: attach, pay, ask, cite, reload. Digests,
+   blob id and who paid go in `docs/evidence/files-<date>.md`.
+4. `bun run typecheck && bun run lint && bun run test`, and `bun run demo`
+   still passes.
+
 ## Phase 4 — Sui polish
 
 Only after Phase 3 is usable.
