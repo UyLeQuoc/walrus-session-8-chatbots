@@ -19,7 +19,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.9.1",
-    "@mysten-incubation/memwal": "^0.1.7",
+    "@mysten-incubation/memwal": "^0.1.8",
     "@mysten/dapp-kit": "^1.1.17",
     "@mysten/sui": "^2.31.3",
     "@radix-ui/react-slot": "^1.2.4",
