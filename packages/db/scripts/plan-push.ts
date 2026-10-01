@@ -20,6 +20,7 @@ import { pushSchema } from "drizzle-kit/api";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../src/schema.ts";
+import { isAdditive } from "./additive.ts";
 
 const [envFile, flag] = process.argv.slice(2);
 if (!envFile) throw new Error("usage: plan-push.ts <env-file> [--apply]");
@@ -38,7 +39,7 @@ const execute = db.execute.bind(db);
 ) => {
   const result = await execute(query);
   return Array.isArray(result) ? Object.assign(result, { rows: [...result] }) : result;
-}) as typeof execute;
+}) as unknown as typeof execute;
 try {
   console.log(`database host: ${new URL(url).host}`);
   const plan = await pushSchema(schema, db as never);
@@ -46,9 +47,7 @@ try {
   for (const w of plan.warnings) console.log(`warning: ${w}`);
   for (const st of plan.statementsToExecute) console.log(`  ${st}`);
 
-  const additive = plan.statementsToExecute.every((st) =>
-    /^\s*(ALTER TABLE\s+"[^"]+"\s+ADD COLUMN|CREATE TABLE|CREATE INDEX)/i.test(st),
-  );
+  const additive = isAdditive(plan.statementsToExecute);
   if (flag === "--apply") {
     if (plan.hasDataLoss || plan.warnings.length || !additive) {
       console.log("refusing to apply: the plan is not purely additive");
