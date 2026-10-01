@@ -5,9 +5,10 @@
 <h1 align="center">hippo</h1>
 
 <p align="center">
-  A chatbot that remembers you across the web, Telegram, Discord, Slack and a CLI,
-  where <b>you own the memory</b>: it lives in your own Walrus Memory account on Sui
-  mainnet and hippo is a delegate you can revoke in one transaction.
+  A chatbot that remembers you across the web, Telegram and a CLI, with Discord and
+  Slack ready to switch on, where <b>you own the memory</b>: it lives in your own
+  Walrus Memory account on Sui mainnet and hippo is a delegate you can revoke in one
+  transaction.
 </p>
 
 <p align="center">
@@ -68,6 +69,105 @@ The web app makes that concrete rather than claiming it. `/me` reads your
 delegate key the contract will honour, with hippo's own marked, next to a button
 that revokes it. The memory list filters by type, and searching reads the words
 back from Walrus, because the text is never stored in Postgres.
+
+## Features
+
+### Memory
+
+- **Six kinds of fact**: profile, decision, gotcha, commitment, correction and
+  style. The model stores them through a `remember` tool in the same turn it
+  hears them, after a near-duplicate check. API keys, private keys and tokens
+  are stripped from the text first.
+- **Recall before every reply**: the message itself, plus who you are, how you
+  want answers and what you promised at the start of a session. Recalled lines
+  reach the model as untrusted data, never as instructions.
+- **Corrections win.** A change of mind is stored next to the fact it replaces,
+  and the newer one is what hippo believes.
+- **Style changes behaviour.** "Short answers, in Vietnamese" changes how every
+  later reply is written, on every channel you have linked, without being asked
+  again.
+- **Writes land in the background**, about 25 seconds each, and are tracked from
+  writing to on Walrus or failed, so nothing is claimed as saved before it is.
+- **You stay in control**: pause and resume with `/memory off | on`, search with
+  `/memory search`, stop hippo using one memory with `/memory forget`, and take
+  everything away with `/export`, each line checked against the hash recorded
+  when it was written. A forgotten memory's blob stays on Walrus; hippo just
+  stops using it.
+- **Same memory, any channel.** `/link` gives a one-time code that joins another
+  channel to the same memory.
+- **Team memory.** `/team` creates a small group that shares one namespace,
+  written only by `/team remember`.
+
+### Ownership on Sui
+
+- **Guest first.** The first message needs no wallet; memory sits under hippo's
+  account in a namespace of its own.
+- **`/connect`** creates a Walrus Memory account for your wallet and registers
+  hippo's delegate key on it, sponsored, so it costs you nothing. If sponsorship
+  is refused, the page says so and offers a transaction you pay. hippo checks
+  the grant on chain before it switches, and keeps reading what you told it as a
+  guest.
+- **`/disconnect`** removes the key on chain, and hippo deletes its own copy at
+  once.
+- **`/me`** reads your `MemWalAccount` off Sui: owner, every delegate key, a
+  revoke button, and your memories with type filter, search, hide, storage
+  expiry, blob and ciphertext links, export and team. Wallet sign-in proves who
+  you are with a signature, never a typed address.
+
+### The web chat
+
+- Streaming answers with **stop, retry, edit** of your last message, and **copy**,
+  including code blocks.
+- Every answer lists **the memories it used**, linked to their Walrus blobs, and
+  the list comes back when you reopen the chat.
+- A **memory panel** shows what this chat remembered and whether it is on Walrus
+  yet, with View, Correct and Hide on each fact. Select any text in the thread
+  to remember it, after you confirm the wording.
+- Type **`/`** for every command with a short guide. A **memory switch** sits in
+  the composer, next to the model, the context used and an estimated cost.
+- **Saved chats** in the sidebar, searchable and deletable, stored encrypted
+  (AES-256-GCM) in hippo's database and never on Walrus.
+- Three **follow-up suggestions** after an answer, never stored as memory.
+- Light and dark themes, a phone layout, and a **How it works** page.
+
+### Channels
+
+| Channel | State |
+|---|---|
+| Web | Live: https://hippo-web-ten-nu.vercel.app |
+| Telegram | Live: [@walrussession8_bot](https://t.me/walrussession8_bot). `/export` arrives as a file. |
+| CLI | `bun run hippo`, against a running server |
+| Discord | Adapter written and tested, starts when `DISCORD_TOKEN` is set. Answers DMs and mentions; slash-menu clicks are not handled yet. |
+| Slack | Adapter written and tested, starts when the Slack tokens are set. DMs and mentions. |
+
+Every channel shares the same commands:
+
+| Command | What it does |
+|---|---|
+| `/memory` | what hippo remembers about you |
+| `/memory search <q>` | search your memory |
+| `/memory off \| on` | pause or resume remembering |
+| `/memory forget <blob>` | stop hippo using one memory, named by the start of its blob id as `/memory` shows it; `all` for every one |
+| `/memory unhide <blob>` | let hippo use a forgotten memory again |
+| `/whoami` | your account and where the memory lives |
+| `/proof` | the memories behind the last answer |
+| `/export` | your memory as a file |
+| `/link` | use the same memory on another channel |
+| `/team` | share a memory with a few people |
+| `/connect` | own your memory in your own Walrus Memory account |
+| `/disconnect` | revoke hippo's access on chain |
+| `/privacy` | what is stored, where, and for how long |
+| `/help` | all of the above |
+
+### Not built yet
+
+- **Private files.** Encrypted upload, planned in `docs/CHAT-UPGRADE.md`, waits on
+  an API key for the mainnet Seal aggregator. The attach button is disabled.
+- **Google sign-in** through Enoki, for people without a wallet.
+- **Reading your memory without the relayer**, and **deleting** a memory for
+  good. Both are limits of Walrus Memory today; see the limits under Layout.
+- **The Claude Code check.** It follows from how the account works and has not
+  been run.
 
 ## Run it
 
