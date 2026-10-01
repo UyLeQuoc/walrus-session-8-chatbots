@@ -20,15 +20,17 @@
 
 ## See it work in three clicks
 
-1. Open the [live app](https://hippo-web-ten-nu.vercel.app) and click a starter,
-   for example *"I only use pnpm, and I want short answers in Vietnamese."*
-2. Click **Reload, then ask what it knows**. The page reloads and the question is
-   waiting.
-3. Press Send.
+1. Open the [live app](https://hippo-web-ten-nu.vercel.app), click a starter,
+   for example *"I only use pnpm, and I want short answers in Vietnamese."*, and
+   press Send. Wait until the line under the message box says it is on Walrus,
+   about half a minute.
+2. Click **New chat**.
+3. Ask *"What do you know about me?"*
 
-The conversation is gone, so nothing in the page can be answering. Whatever
-comes back came back from Walrus. Transcript of that run:
-`docs/evidence/three-click-demo-2026-09-23.md`.
+A new chat starts with no transcript, so nothing in the page can be answering.
+Whatever comes back came back from Walrus, and the answer lists the memories it
+used. A reload is not the test: it restores the open chat from hippo's own
+encrypted transcript.
 
 Built for Walrus Session 8, "Chatbots That Remember".
 Primary model: `deepseek/deepseek-v4.1-flash` through OpenRouter on the Vercel AI SDK,

@@ -7,15 +7,15 @@ minutes, cut "it follows you" first.
 Shoot at 1280×720 so text stays readable when embedded in the article.
 
 **0:00 — the problem, 15s.** Web chat, memory paused with `/memory off`. Say
-"I only use pnpm". Reload. Ask "which package manager should I use?". It does not
+"I only use pnpm". New chat. Ask "which package manager should I use?". It does not
 know. One sentence over the top: most bots forget you the moment you close the tab.
 
 **0:15 — memory on, 35s.** `/memory on`. Say the same thing plus "answer me in
-Vietnamese, keep it short". Reload the page so nothing is carried in the
-conversation. Ask again. It answers, in Vietnamese, without being asked in this
+Vietnamese, keep it short". Wait for "on Walrus" under the box, then New chat, so
+nothing is carried in the conversation. Ask again. It answers, in Vietnamese, without being asked in this
 session. Point at that: a `style` memory changed how it writes.
 
-Then change your mind: "we moved this project to bun". Reload, ask again. It
+Then change your mind: "we moved this project to bun". New chat, ask again. It
 says bun, and the recalled-memories line under the answer shows both the old
 pnpm memory and the correction. Say: both are still there, the newer one wins.
 This is the beat that was broken three ways before it worked
