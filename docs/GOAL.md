@@ -345,7 +345,12 @@ this repo.
    production. Verify: one model named in README, article, submission and
    `GET /api/health`. **Done 2026-10-02: V4.1 failed style in run 2 of 2, so
    Gemini everywhere; the owner's choice is in `docs/BLOCKERS.md`.**
-3. **Fix what a first-time user hits. (Agent, by Oct 2)**
+3. **Fix what a first-time user hits. (Agent, by Oct 2)** **Done 2026-10-02**
+   (`b67c1a5`, `fc8866f`, `fe26797`; `docs/evidence/identity-2026-10-02.md`).
+   Following the README in a browser found three more, also fixed: the phone
+   memory sheet covering the chat, the on-Walrus line never updating, and the
+   phone sidebar staying open (`3a48c16`, `5398c0a`;
+   `docs/evidence/first-run-2026-10-02.md`).
    - The memory panel shows "Could not load what this chat remembered." beside
      "Nothing remembered in this chat yet." on the first message of every new
      chat. `apps/web/src/features/chat/use-chat-memories.ts` asks for
@@ -360,7 +365,11 @@ this repo.
    - README "See it work in three clicks" tells a judge to click **Reload, then
      ask what it knows**, which is not rendered. Rewrite it to the new-chat path.
      Verify: follow it on the local stack in a browser.
-4. **Ship `main` to production. (Agent runs it, owner approves the schema; by
+4. **Ship `main` to production.** **Ready, not deployed, 2026-10-02:** the eval
+   passed on Gemini, SDK 0.1.8 kept after a bench
+   (`docs/evidence/sdk-0.1.8-bench-2026-10-02.md`), `plan-push` fixed to accept
+   this plan (`ee8b54b`). The owner's steps are `docs/evidence/handoff-2026-10-02.md`.
+   Original: **(Agent runs it, owner approves the schema; by
    Oct 2)** `bun run typecheck && bun run lint && bun run test` and
    `bun run demo` pass first. `ROUNDS=10 bun run --filter @hippo/core
    bench:recall <namespace>` on SDK 0.1.8 against the 0.1.7 numbers in
@@ -403,7 +412,8 @@ this repo.
     one promo post outside Walrus and Sui (Show HN or Viblo); Airtable, DeepSurge,
     Discord, feedback form. The agent ticks `docs/PLAN.md`'s submission
     checklist with links and tags `v1.0-submission`.
-11. **Private files, thin slice. (Owner's key, then agent; by Oct 3)** Scope and
+11. **Private files, thin slice.** **Not shipped 2026-10-02: no key; out of the
+    submission.** Original: **(Owner's key, then agent; by Oct 3)** Scope and
     checks are "Thin slice for the submission" in `docs/CHAT-UPGRADE.md`. Phase
     0 step 3 (`writeFilesFlow` from the test wallet) starts without the key. If
     the Enoki key is not in `apps/web/.env` by the end of Oct 1, stop and leave
