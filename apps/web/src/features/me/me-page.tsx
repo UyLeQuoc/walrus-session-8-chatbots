@@ -1,3 +1,4 @@
+import { useCurrentAccount } from "@mysten/dapp-kit";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -16,6 +17,8 @@ import { WalletSignIn } from "@/features/me/wallet-signin";
 
 export function MePage() {
   const { me, memories, error, load, signOut } = useMe();
+  const account = useCurrentAccount();
+  const linked = Boolean(me?.walletAddress) || Boolean(account);
   useShellTitle("My memory");
 
   if (!me) {
@@ -34,7 +37,7 @@ export function MePage() {
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
-        <WalletSignIn onSignedIn={load} />
+        {linked ? null : <WalletSignIn onSignedIn={load} />}
       </Page>
     );
   }
@@ -70,7 +73,7 @@ export function MePage() {
         {stored > 0 ? <ExportPanel onError={(message) => toast.error(message)} /> : null}
       </div>
 
-      {!me.signedIn ? <WalletSignIn onSignedIn={load} /> : null}
+      {!me.signedIn && !linked ? <WalletSignIn onSignedIn={load} /> : null}
 
       <div className="grid gap-6 md:grid-cols-2">
         <ChainPanel owned={owned} onError={(message) => toast.error(message)} />
