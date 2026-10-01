@@ -1,5 +1,7 @@
 # SDK 0.1.8: read, measured, not merged — 2026-09-25
 
+> Superseded 2026-10-02: 0.1.8 was merged at the owner's word on 2026-10-01, and the healthy-relayer A/B/A/B/A bench asked for below is `docs/evidence/sdk-0.1.8-bench-2026-10-02.md`. It kept 0.1.8.
+
 **Decision: 0.1.8 stays on the `sdk-0.1.8` branch.** It passes everything and did
 not drop more recalls than 0.1.7, but "no slower recall" could not be shown: the
 relayer was degraded for the whole measurement, and under it the two 0.1.8 runs
