@@ -9,13 +9,9 @@ import type { ClientWithCoreApi } from "@mysten/sui/client";
 import { useCallback, useEffect, useState } from "react";
 import {
   type FileChain,
-  sealApiKey,
-  sealClient,
-  sealDecrypt,
   sealEncrypt,
   WAL_COIN_TYPE,
   walrusClient,
-  walrusRead,
   walrusWrite,
 } from "@/features/documents/clients";
 import {
@@ -31,6 +27,8 @@ import { WalletSigner } from "@/features/documents/wallet-signer";
 import { useMe } from "@/features/me/use-me";
 import { useCoreExecutor } from "@/hooks/use-core-executor";
 import { apiFetch } from "@/lib/api";
+import { decryptSealed, sealApiKey, sealClient, walletSession } from "@/lib/seal";
+import { walrusRead } from "@/lib/walrus";
 
 export interface StoredFile {
   id: string;
@@ -224,15 +222,24 @@ export function useDocuments() {
         const text = await openFile(
           {
             fetchBlob: walrusRead,
-            decrypt: (ciphertext) =>
-              sealDecrypt({
+            decrypt: async (ciphertext) =>
+              decryptSealed({
                 seal,
                 sui,
-                chain: config,
-                sealId: file.sealId,
+                approval: {
+                  packageId: config.packageId,
+                  registryId: config.registryId,
+                  accountId: config.accountId,
+                  sender: config.owner,
+                },
+                session: await walletSession({
+                  sui,
+                  address: config.owner,
+                  packageId: config.packageId,
+                  signPersonalMessage: async (message) =>
+                    (await signPersonalMessage({ message })).signature,
+                }),
                 ciphertext,
-                signPersonalMessage: async (message) =>
-                  (await signPersonalMessage({ message })).signature,
               }),
           },
           file.blobId,

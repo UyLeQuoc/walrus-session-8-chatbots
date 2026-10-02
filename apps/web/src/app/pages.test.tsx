@@ -1166,6 +1166,69 @@ describe("how it works", () => {
   });
 });
 
+describe("me page, read it yourself", () => {
+  const owner = `0x${"ab".repeat(32)}`;
+  const account = `0x${"cd".repeat(32)}`;
+  const stored = {
+    id: "1",
+    type: "profile",
+    status: "stored",
+    channel: "web",
+    createdAt: "2026-10-01T00:00:00Z",
+    blobId: "blob-1",
+    expiresAt: null,
+    ciphertextUrl: null,
+    explorerUrl: null,
+    accountId: account,
+    textSha256: "0".repeat(64),
+  };
+
+  it("tells a guest their wallet cannot open hippo's account", async () => {
+    vi.stubEnv("VITE_SEAL_API_KEY", "test-key");
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", memoryEnabled: true, namespace: "hippo-guest:abc" },
+        "/api/me/memories": { memories: [{ ...stored, accountId: `0x${"ee".repeat(32)}` }] },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("Read it yourself")).toBeDefined();
+    expect(screen.getByText(/Only memory in an account you own/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Read with my wallet" })).toBeNull();
+  });
+
+  it("offers the owner a read with their own wallet", async () => {
+    vi.stubEnv("VITE_SEAL_API_KEY", "test-key");
+    wallet = { address: owner };
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": {
+          mode: "owned",
+          memoryEnabled: true,
+          namespace: "hippo",
+          walletAddress: owner,
+          accountId: account,
+          signedIn: true,
+        },
+        "/api/me/memories": { memories: [stored] },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    const button = await screen.findByRole("button", { name: "Read with my wallet" });
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
 describe("me page", () => {
   it("points an anonymous visitor at the chat instead of showing an empty table", async () => {
     vi.stubGlobal(

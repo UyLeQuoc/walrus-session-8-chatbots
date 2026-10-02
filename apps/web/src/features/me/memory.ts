@@ -9,6 +9,8 @@ export interface Memory {
   ciphertextUrl: string | null;
   explorerUrl: string | null;
   hidden?: boolean;
+  accountId?: string;
+  textSha256?: string;
 }
 
 export function ago(iso: string): string {

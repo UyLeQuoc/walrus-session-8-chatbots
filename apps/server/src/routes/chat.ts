@@ -406,6 +406,10 @@ export const chatRoutes = new Hono()
         ciphertextUrl: r.blobId ? explorer.blob(r.blobId) : null,
         explorerUrl: r.blobId ? explorer.blobExplorer(r.blobId) : null,
         hidden: Boolean(r.hiddenAt),
+        // Which account sealed it decides whose wallet can open it, and the
+        // hash lets the browser check what it decrypted against what hippo wrote.
+        accountId: r.accountId,
+        textSha256: r.textSha256,
       })),
     });
   })

@@ -13,6 +13,7 @@ import { Hash } from "@/features/me/hash";
 import { MemoryList } from "@/features/me/memory-list";
 import { TeamPanel } from "@/features/me/team-panel";
 import { useMe } from "@/features/me/use-me";
+import { WalletReadPanel } from "@/features/me/wallet-read-panel";
 import { WalletSignIn } from "@/features/me/wallet-signin";
 import { usePageMeta } from "@/hooks/use-page-meta";
 
@@ -98,6 +99,8 @@ export function MePage() {
           </CardContent>
         </Card>
       </div>
+
+      {stored > 0 ? <WalletReadPanel memories={memories} /> : null}
 
       <TeamPanel onError={(message) => toast.error(message)} />
 
