@@ -397,7 +397,10 @@ this repo.
    11, 12, 13. Bug Bounty is judged separately, and early filing gives the
    maintainers time to answer. Verify: nine URLs written back into the drafts
    and into `docs/submission.md`.
-8. **Keep the story true. (Agent, Oct 6)** The article's `[M6]` paragraph gets
+8. **Keep the story true. (Agent, Oct 6)** **2026-10-03: the grep below prints
+   nothing; `ARCHITECTURE.md` and `WEB-DATA-FLOWS.md` now cover every route and
+   the features shipped on 2026-10-02. The article's `[M6]` numbers still wait
+   for Oct 6.** The article's `[M6]` paragraph gets
    the Oct 6 numbers and nothing before they exist; the model line from task 2;
    every `submission.md` field the agent can fill; `docs/ARCHITECTURE.md` §1
    (`handleIncoming`, the tables listed in `docs/PROGRESS.md`, distance 0.8,
@@ -414,8 +417,8 @@ this repo.
     Discord, feedback form. The agent ticks `docs/PLAN.md`'s submission
     checklist with links and tags `v1.0-submission`.
 11. **Private files, thin slice.** **Built and merged 2026-10-02 (PR #5) after
-    the Seal key arrived; not deployed; the mainnet round trip (check 3) has not
-    run.** Earlier the same day: not shipped, no key. Original: **(Owner's key, then agent; by Oct 3)** Scope and
+    the Seal key arrived, and deployed the same day at the owner's word; the
+    mainnet round trip (check 3) has not run, so nothing claims it yet.** Earlier the same day: not shipped, no key. Original: **(Owner's key, then agent; by Oct 3)** Scope and
     checks are "Thin slice for the submission" in `docs/CHAT-UPGRADE.md`. Phase
     0 step 3 (`writeFilesFlow` from the test wallet) starts without the key. If
     the Enoki key is not in `apps/web/.env` by the end of Oct 1, stop and leave

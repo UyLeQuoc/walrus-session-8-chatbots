@@ -65,6 +65,9 @@ Người dùng nhập tin / chọn gợi ý
 - `POST /api/chat` nhận `{ text, conversationId, clientMessageId }`, không nhận lại cả transcript. Server xác định người dùng, kiểm tra tin quá dài, giới hạn tần suất, ghi dòng user, rồi nạp tối đa 20 lượt hoặc 12.000 ký tự làm ngữ cảnh. Lệnh được trả lời trực tiếp, không gọi model, và được ghi với `kind = command` để không vào prompt. Tin thường đi vào `portFor` → `gatherContext` → `runTurn`. Server stream AI SDK UI messages về web; metadata đầu câu trả lời gồm loại, text, relevance và blob ID của memory đã đưa vào prompt. Khi xong, assistant được ghi và `logTurn` ghi metadata vào `turn_log`. [Chat route](../apps/server/src/routes/chat.ts), [history](../apps/server/src/chat/history.ts), [agent](../packages/core/src/agent.ts).
 - `gatherContext` bỏ qua memory khi `memoryEnabled=false`. Khi bật, nó tìm theo tối đa 300 ký tự đầu của câu hỏi; đầu phiên còn tìm profile/style/commitment; khi có dữ kiện liên quan thì tìm thêm correction. Kết quả được lọc, gộp và sắp theo thời gian trước khi đưa vào prompt. Lỗi recall được ghi log; lượt chat vẫn có thể tiếp tục. [Agent](../packages/core/src/agent.ts).
 - `runTurn` gọi model chính qua OpenRouter và cấp hai tool `remember`, `recall` cho model khi memory bật. `recall` là tìm bổ sung do model yêu cầu. **Web stream không tự chuyển sang fallback model** nếu stream lỗi; đường non-streaming của các kênh khác có fallback. [Model](../packages/core/src/model.ts), [tools](../packages/core/src/tools.ts), [agent](../packages/core/src/agent.ts).
+- Dưới câu trả lời có dùng memory có nút **Answer without memory** → `POST /api/chat/compare` với `{ conversationId, messageId }` của câu hỏi → server đọc transcript đến đúng câu hỏi đó (`modelMessagesThrough`, chỉ của chính người hỏi) → `completeTurn` với `memoryEnabled: false`, cùng đường đối chứng của `bun run demo` → không recall, không tool, không ghi gì → trả text, web hiện cạnh câu trả lời gốc. Ghi `turn_log` mode `compare`, không tính là lượt chat. [compare](../apps/server/src/chat/compare.ts), [use-compare](../apps/web/src/features/chat/use-compare.ts).
+- Sau mỗi câu trả lời, web gọi `POST /api/chat/suggestions` → model gợi ý ba câu tiếp theo từ tối đa 8 dòng gần nhất → không lưu thành memory; ghi `turn_log` mode `suggestion`. [suggestions](../apps/server/src/chat/suggestions.ts).
+- Prompt có hai quy tắc dùng memory: đầu phiên, cam kết đã recall mà quá hạn hoặc còn ≤ 3 ngày thì hỏi một câu; khi hippo biết dưới 3 fact và người dùng chưa quá 6 lượt, mỗi câu trả lời kết thúc bằng một câu hỏi về họ. [prompt](../packages/core/src/prompt.ts), [getting-to-know](../apps/server/src/chat/getting-to-know.ts).
 - Khi tool `remember` chạy: server che các chuỗi giống credential → định dạng `[type] [by] [#channel] [date] text` → kiểm tra trùng (correction chỉ so với correction) → gửi job tới relayer → ghi hàng `memory_index` trạng thái `pending` → trả lời chat ngay → theo dõi job nền rồi cập nhật `stored` + blob ID hoặc `failed`. Vì vậy “remembering” chưa đồng nghĩa đã có blob trên Walrus. `recall` lọc memory đã bị ẩn và thử lại khi relayer báo đã bỏ toàn bộ kết quả. [Memory port](../packages/memory/src/port.ts), [chính sách ghi/tìm](../packages/memory/src/policy.ts), [indexWrites](../apps/server/src/identity/persons.ts).
 
 ## 4. Các thao tác trên `/me`
@@ -84,7 +87,11 @@ Trang `/me` gọi `GET /api/me` và `GET /api/me/memories` song song. Nếu chư
 | Bắt đầu cấp/thu hồi quyền | Nút trong `ChainPanel` → `POST /api/me/connect` hoặc `/api/me/disconnect` → server tạo link token → browser chuyển sang `/connect/:token` hoặc `/disconnect/:token`. Xem mục 5. |
 | Đăng nhập bằng ví | `WalletSignIn` → challenge/signature/session, xem mục 6. |
 | Đăng xuất | `POST /api/auth/signout` xóa web session trong PostgreSQL và cookie; web xóa session header dự phòng, nạp lại `/me`. Guest cookie vẫn còn, nên trang có thể quay về guest của cùng browser. |
-| Hướng dẫn Claude Code | Chỉ hiển thị các bước và nút copy; không tự cài plugin hay gọi API. |
+| Memory đã làm việc | `UsagePanel` và cột "Used in" → `GET /api/me/usage` → đọc `turn_log.injected` của các lượt chat (bỏ `command`, `suggestion`, `compare`, `import`) → số câu trả lời có dùng memory và số lần mỗi blob được dùng. Chỉ blob ID, không có text. |
+| Memory thay đổi thế nào | `ChangesPanel` (chỉ hiện khi có correction đã `stored`) → `GET /api/me/changes` → recall các correction từ Walrus, ghép với fact cũ qua tag `replaces` hoặc gần nghĩa nhất (đánh dấu "probably") → không lưu gì. |
+| Tự đọc bằng ví | `WalletReadPanel` → không qua server ngoài `GET /api/me/memories` (đã có `accountId`, `textSha256`) → browser tải ciphertext từ Walrus aggregator → ví ký session Seal → Seal aggregator (cần `VITE_SEAL_API_KEY`) → giải mã trong browser → so SHA-256 với hash hippo đã ghi → cho tải file. Chỉ owner; guest bị từ chối vì memory nằm ở account của hippo. |
+| Mang memory từ assistant khác | `ImportPanel` → `POST /api/me/import/preview` với text dán vào (≤ 8.000 ký tự) → model tách thành fact có loại, text dán vào được rào như dữ liệu không tin cậy → web hiện danh sách để tick. Không lưu gì. Rồi `POST /api/me/import` với các fact được giữ → `rememberFact` từng cái, kênh `import`, cùng che credential và dedupe → trả số đã lưu/đã biết/lỗi. `bun run evidence` không tính memory import vào chỉ tiêu 10/người. |
+| Dùng cùng memory trong Claude Code | Chỉ hiển thị các bước (cài plugin MemWal, `memwal_login` cùng ví, hỏi với `namespace "hippo"`) và nút copy; không tự cài plugin hay gọi API. Chi tiết: [CLAUDE-CODE-CHECK](CLAUDE-CODE-CHECK.md). |
 
 Nguồn UI: [MePage](../apps/web/src/features/me/me-page.tsx), [MemoryList](../apps/web/src/features/me/memory-list.tsx), [ChainPanel](../apps/web/src/features/me/chain-panel.tsx), [TeamPanel](../apps/web/src/features/me/team-panel.tsx), [ExportPanel](../apps/web/src/features/me/export-panel.tsx). Nguồn server: [chat routes](../apps/server/src/routes/chat.ts), [exportFor](../apps/server/src/memory/export-person.ts), [export logic](../apps/server/src/memory/export.ts), [teams](../apps/server/src/identity/teams.ts).
 
@@ -136,6 +143,7 @@ Mọi lệnh dưới đây đi qua `POST /api/chat`, `handleCommand` xử lý tr
 | `/memory forget <blob>` / `/memory unhide <blob>` | Đặt/xóa `memory_index.hidden_at` cho đúng memory cá nhân; hippo ngừng/dùng lại memory đó, blob vẫn ở Walrus. |
 | `/memory forget all` | Gọi relayer `forget` cho các namespace cá nhân đang đọc (owned, guest cũ, guest kế thừa), rồi xóa các hàng index cá nhân. Memory team giữ nguyên; blob mã hóa vẫn còn đến khi hết hạn lưu trữ. |
 | `/proof` | Đọc `turn_log` của câu trả lời thường gần nhất trên kênh web; liệt kê blob mà câu đó đã dùng. Không tự xác minh lại nội dung blob ở thời điểm gọi. |
+| `/compare` | Trả lời lại câu trả lời thường gần nhất với memory tắt, như nút trên web. Từ chối nếu câu đó không dùng memory hoặc memory đang tắt. |
 | `/export` | Tạo export như nút `/me`; web chat trả lời hướng dẫn tải trên `/me`, không đính kèm file vào khung chat. |
 | `/connect` / `/disconnect` | Tạo key/token hoặc token thu hồi và trả link tới trang ví; thay đổi on-chain chỉ xảy ra sau khi người dùng ký trên trang đó. |
 | `/link` / `/link <code>` | Tạo mã một lần dùng 10 phút để gộp định danh giữa các kênh, hoặc đổi mã để gộp. Bên đổi mã có memory sẵn bị từ chối để tránh đưa dữ liệu cho người phát mã. |
@@ -151,7 +159,7 @@ Lệnh `/memory <cụm khác>` được xử lý như tìm kiếm với chính c
 - **Ẩn khác xóa.** Nút hide và `/memory forget <blob>` chỉ là bộ lọc của hippo. `/memory forget all` bỏ kết quả khỏi search index nhưng không xóa blob Walrus. [Commands](../apps/server/src/chat/commands.ts).
 - **Export không bảo đảm khôi phục toàn bộ text.** Metadata có trong `memory_index`; text chỉ lấy lại được nếu semantic recall tìm thấy, và hash chỉ đánh dấu dòng nào đúng với bản đã ghi. [Export](../apps/server/src/memory/export.ts).
 - **Transcript chat nằm trên server, mã hóa, và xóa được.** Reload thường khôi phục chat đang mở qua id trong `sessionStorage`. New chat bắt đầu không có transcript, nên chỉ có thể trả lời từ Walrus. Sidebar chỉ liệt kê chat `channel = web`. Xóa một chat không xóa memory trên Walrus. [ChatPage](../apps/web/src/features/chat/chat-page.tsx), [history](../apps/server/src/chat/history.ts), [schema](../packages/db/src/schema.ts).
-- **Nút xem ciphertext/explorer chỉ mở URL bên ngoài.** Không có endpoint web giải mã trực tiếp một blob theo ID. [MemoryList](../apps/web/src/features/me/memory-list.tsx).
+- **Server không giải mã blob theo ID.** Nút ciphertext/explorer chỉ mở URL bên ngoài. Owner có thể tự giải mã trong browser bằng ví qua Seal; server không tham gia bước đó. [MemoryList](../apps/web/src/features/me/memory-list.tsx), [use-wallet-read](../apps/web/src/features/me/use-wallet-read.ts).
 
 ## 9. Đối chiếu endpoint
 
@@ -160,10 +168,15 @@ Lệnh `/memory <cụm khác>` được xử lý như tìm kiếm với chính c
 | Nhóm | Endpoint | Vai trò |
 |---|---|---|
 | Chat | `POST /api/chat` | Lệnh hoặc lượt chat streaming. Body là text và id, không phải cả transcript. |
+| Chat | `POST /api/chat/compare`, `POST /api/chat/suggestions` | Trả lời lại không memory; ba gợi ý câu tiếp theo. |
+| Chat | `GET /api/conversations/:id/memories`, `POST /api/conversations/:id/citations` | Memory của một chat cho panel bên phải; đọc lại text của memory đã trích dẫn khi mở lại chat. |
 | Chat | `GET /api/conversations`, `GET /api/conversations/:id/messages`, `DELETE /api/conversations/:id` | Danh sách, một trang tin, và xóa một chat web. |
 | Trang đầu | `GET /api/config`, `GET /api/stats` | Cấu hình public cho ví và số liệu hiển thị. |
 | Tài khoản | `GET /api/me`, `GET /api/me/account` | Thông tin person/session và account đọc từ Sui. |
 | Memory | `GET /api/me/memories`, `GET /api/me/search`, `POST /api/me/memories/visibility`, `GET /api/me/export` | Liệt kê metadata, tìm text, ẩn/hiện, tải file. |
+| Memory | `POST /api/me/memories`, `GET /api/me/memories/:id/status`, `POST /api/me/memory` | Ghi một fact người dùng chọn trong chat; trạng thái một lần ghi; bật/tắt memory. |
+| Memory | `GET /api/me/usage`, `GET /api/me/changes`, `POST /api/me/import/preview`, `POST /api/me/import` | Memory đã làm việc; memory thay đổi; tách fact từ ghi chú dán vào; giữ các fact được tick. |
+| File | `GET /api/documents`, `POST /api/documents` | Danh sách file riêng của người dùng; ghi metadata sau khi browser đã mã hóa và lưu file lên Walrus. Server không nhận nội dung file để lưu. |
 | Team | `GET /api/me/team`, `POST /api/me/team/invite`, `POST /api/me/team/leave` | Xem, mời, rời team. Tạo/join/ghi team đi qua lệnh chat. |
 | Connect | `POST /api/me/connect`, `POST /api/me/disconnect`, `GET /api/connect/:token`, `POST /api/connect/:token/done` | Tạo link; trang ví tải token và xác nhận giao dịch. |
 | Sign-in | `POST /api/auth/challenge`, `POST /api/auth/verify`, `POST /api/auth/signout` | Challenge, kiểm tra chữ ký, session. |

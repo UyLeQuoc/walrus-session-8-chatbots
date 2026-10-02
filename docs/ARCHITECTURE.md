@@ -33,7 +33,7 @@ Monorepo (Bun workspaces + Turborepo):
 | `apps/server` | Hono HTTP API (`/api/chat` streaming, `/api/connect/*`, `/api/me/*`) **and** the long-running channel adapters (Discord gateway, Telegram long polling, Slack socket mode) in one Node process. Deployed to Railway. |
 | `packages/core` | Agent loop, system prompt, tools (`remember`, `recall`), streaming helpers. Channel-agnostic. |
 | `packages/memory` | MemWal client factory (guest vs owned), memory text format, dedupe, recall policy, provenance, `signedRequest` for endpoints the SDK does not wrap. |
-| `packages/db` | Drizzle schema + client: `people`, `channel_identities`, `delegate_keys`, `connect_tokens`, `web_sessions`, `turn_log`, `memory_index`, `teams`, `team_members`, `team_invites`, `conversations`, `messages`. There is no `users` table. `conversations` and `messages` hold the web transcript, encrypted with `KEY_ENCRYPTION_KEY`; memory text is never a column. |
+| `packages/db` | Drizzle schema + client: `people`, `channel_identities`, `delegate_keys`, `connect_tokens`, `web_sessions`, `turn_log`, `memory_index`, `teams`, `team_members`, `team_invites`, `conversations`, `messages`, `documents`, `message_attachments`. There is no `users` table. `conversations` and `messages` hold the web transcript, encrypted with `KEY_ENCRYPTION_KEY`; memory text is never a column. `documents` records a private file's blob, Seal id and ciphertext hash, with its name encrypted; the file's text never reaches the server's database. |
 | `memwal/` | Read-only reference clone of MystenLabs/MemWal. Gitignored. |
 
 ### Identity across channels
@@ -159,6 +159,8 @@ Per turn, before generation (`gatherContext` in `packages/core/src/agent.ts`). R
 5. Inject as untrusted data using the SDK's `formatUntrustedMemories()` (nonce-delimited, JSON-encoded) plus its system instruction. Reuse, do not reinvent.
 6. Keep the list of injected memories for the turn so the reply can cite `blob_id` when asked "how do you know that?".
 
+Two prompt rules use what was recalled (`packages/core/src/prompt.ts`). At session start, a recalled commitment that is due today, overdue, or due within three days gets one short question at the end of the reply; `bun run demo` asserts it. While a person has fewer than three facts and fewer than six conversation turns (`isGettingToKnow`, `apps/server/src/chat/getting-to-know.ts`), each reply ends with one question about them, and their answer is stored like any other fact.
+
 Writes do not block the reply. `rememberAndWait` measured about 24 s on mainnet, so the `remember` tool accepts the job and records the blob ID in `memory_index` in the background.
 
 ### Local index (what Postgres may hold)
@@ -182,9 +184,10 @@ Defined once in `apps/server/src/chat/commands.ts`; every adapter routes through
 | `/memory search <q>` | Explicit recall with distances shown. |
 | `/memory forget` | `POST /api/forget` on the namespace (index only, blobs persist). Explain that in the reply. |
 | `/memory off` / `on` | Per-user toggle used for the baseline phase. Logged for the article. |
-| `/proof` | Blob IDs used in the last answer, with Walrus explorer links. On the web this is also inline: every reply carries its recalled memories as stream metadata and the page shows them under the answer. |
+| `/proof` | Blob IDs used in the last answer, with Walrus explorer links. Reads the last conversation turn in `turn_log`, not the last row, which on the web is the follow-up suggestions' counter. On the web this is also inline: every reply carries its recalled memories as stream metadata and the page shows them under the answer. |
+| `/compare` | The last answer again with memory off: the same messages through `completeTurn` with `memoryEnabled: false`, which is the eval's control. Refused when the last answer used no memory. On the web it is also a button under any answer that recalled something. |
 | CLI | `bun run hippo chat` runs the same core in a terminal. Counts as a channel under the rules and is the fastest way to test and record evals. |
-| `/me` (web) | Memory list by type and date with storage expiry and blob links, wallet sign-in so a Telegram user can see the same memory here, "Use in Claude Code" steps, and a plain statement that a memory can be made unrecallable but not deleted. |
+| `/me` (web) | Memory list by type and date with storage expiry, blob links and how many answers used each memory; wallet sign-in so a Telegram user can see the same memory here; for an owner, reading every memory with their own wallet through Walrus and Seal; each correction beside the fact it replaced; importing facts from another assistant's note, kept only when ticked; "Use the same memory in Claude Code" steps; and a plain statement that a memory can be made unrecallable but not deleted. |
 
 ## 7. Known limitations and how we present them
 
@@ -192,14 +195,16 @@ Everything here was measured, not assumed. Where a limitation changed the design
 the change is named; where it is simply a limit, hippo says so to the user rather
 than papering over it.
 
-- **An owner cannot decrypt their own memory without the relayer.** Mainnet
-  memories are sealed by a committee SEAL key server that the SDK does not list
-  among its mainnet defaults, and that server is reachable only through an
-  aggregator which requires an API key we have no way to obtain. `seal_approve`
-  passes; the key fetch does not. So ownership here is real about access control
-  and revocation, which we measured, and not yet real about reading your own
-  bytes independently. `/proof` links the public ciphertext and says so rather
-  than implying otherwise. See `docs/issues/12`.
+- **Reading your own memory without the relayer needs a Seal API key.** Mainnet
+  memories are sealed by a committee Seal key server that the SDK does not list
+  among its mainnet defaults, reachable only through an aggregator that refuses
+  requests without an API key. Until 2026-10-02 we had no key and could not
+  decrypt. With a Seal Key Server API key issued through Enoki, a real memory
+  decrypted with no relayer involved (`docs/SPIKES.md` §14), and `/me` now does
+  it with the owner's own wallet: ciphertext from a Walrus aggregator, Seal
+  decrypt in the browser, checked against the hash hippo recorded. A guest's
+  memory sits under hippo's account, so no wallet of theirs can open it. See
+  `docs/issues/12`.
 - **No way to read a memory's text by blob ID.** `GET /v1/owners/:owner/memories`
   returns metadata only. So `/memory` lists
   from the local index and reads text back through recall, and `/proof` links the
@@ -256,7 +261,8 @@ than papering over it.
   can revoke on chain at any time. The article says this plainly rather than
   implying hippo never sees a key.
 - **Rate limits.** The write path allows 60 weighted requests per minute per
-  delegate key, not the documented 30, and the weights are unpublished. Guest
+  delegate key, not the documented 30, and the published weights disagree with
+  the code (`docs/issues/06`). Guest
   mode shares one key across every user, so `packages/memory/src/limiter.ts`
   paces all traffic and honours `retry_after_seconds`. The public web chat is
   additionally capped per person at 10 turns a minute and 200 a day, commands
