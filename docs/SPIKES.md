@@ -515,3 +515,10 @@ so that probe is not a health check; `fetchKeys` is. The Enoki *public* key
 Phase 0 step 2 passes. Steps 3 (`writeFilesFlow` from a wallet) and 4 (decrypt
 in the browser with the wallet's own `SessionKey`) have not run.
 
+**Existing memories too, 2026-10-02.** `packages/memory/scripts/spike-decrypt.ts`
+with the same key decrypted a real Walrus Memory blob,
+`m7IqwAQS6mIO42v59pH4H3bqDrrmhndbaLA5bX7-dI8`, from the public Walrus aggregator
+with hippo's delegate, without the relayer: the line came back as written. M1
+spike 7 (manual SEAL decrypt) and the core of `docs/issues/12` are resolved for
+anyone holding a Seal Key Server API key from Enoki.
+

@@ -1,5 +1,14 @@
 # The mainnet relayer seals with a committee key server, so an owner cannot decrypt their own memory
 
+> **Re-verified 2026-10-02: decrypts with an Enoki Seal Key Server API key.**
+> `packages/memory/scripts/spike-decrypt.ts m7IqwAQS6mIO42v59pH4H3bqDrrmhndbaLA5bX7-dI8`,
+> with `SEAL_API_KEY` sent as `X-API-Key` to the mainnet Seal aggregator, prints
+> the memory's plaintext; nothing else changed. So an owner *can* read their own
+> memory without the relayer, once they have that key. What stands is that
+> nothing in Walrus Memory's docs, SDK or dashboard says a separate Enoki
+> product key is needed, and without it the failure is `No API key found in
+> request`. Reword this issue around that before filing.
+
 > **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still reproduces.** Decrypting
 > blob `m7IqwAQS6mIO42v59pH4H3bqDrrmhndbaLA5bX7-dI8` with the account's own key
 > fails with `No API key found in request` (Seal requestId

@@ -60,7 +60,13 @@ console.log(`seal threshold       ${parsed.threshold}`);
 const SEAL_AGGREGATOR_MAINNET = "https://seal-aggregator-mainnet.mystenlabs.com";
 const serverConfigs = parsed.services.map(([objectId, weight]) => {
   console.log(`seal key server      ${objectId} (weight ${weight})`);
-  return { objectId, weight, aggregatorUrl: SEAL_AGGREGATOR_MAINNET };
+  const apiKey = process.env.SEAL_API_KEY;
+  return {
+    objectId,
+    weight,
+    aggregatorUrl: SEAL_AGGREGATOR_MAINNET,
+    ...(apiKey ? { apiKeyName: "X-API-Key", apiKey } : {}),
+  };
 });
 
 const sealClient = new SealClient({
