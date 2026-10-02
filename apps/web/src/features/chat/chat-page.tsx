@@ -46,6 +46,15 @@ import { useSelectionRemember } from "@/features/chat/use-selection-remember";
 import { useSlashMenu } from "@/features/chat/use-slash-menu";
 import { useTranscript } from "@/features/chat/use-transcript";
 import { useMe } from "@/features/me/use-me";
+import { usePageMeta } from "@/hooks/use-page-meta";
+
+const PAGE_META = {
+  title: "hippo — the chatbot that remembers you, on memory you own",
+  description:
+    "Chat on the web, Telegram or a CLI and hippo remembers you between sessions. Your memory lives on Walrus, in a Sui account you own and can revoke.",
+  path: "/",
+  index: true,
+};
 
 export function ChatPage() {
   const {
@@ -143,6 +152,7 @@ export function ChatPage() {
 
   const title = useMemo(() => threadTitle(messages), [messages]);
   useShellTitle(title);
+  usePageMeta(PAGE_META);
   const greeting = useGreeting(newChatTick, messages.length === 0);
 
   const reloadAndAsk = (value: string) => {

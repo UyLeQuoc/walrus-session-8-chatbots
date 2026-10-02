@@ -5,6 +5,22 @@ import { WalletPicker } from "@/components/wallet-picker";
 import { Web3Address } from "@/components/web3-address";
 import { useConnectFlow } from "@/features/connect/use-connect-flow";
 import { useResumeWallet } from "@/features/connect/use-resume-wallet";
+import { usePageMeta } from "@/hooks/use-page-meta";
+
+const PAGE_META = {
+  connect: {
+    title: "Connect your wallet · hippo",
+    description: "Move your hippo memory into a Walrus Memory account your wallet owns.",
+    path: "/connect",
+    index: false,
+  },
+  disconnect: {
+    title: "Revoke hippo's access · hippo",
+    description: "Remove hippo's key from your Walrus Memory account on chain.",
+    path: "/disconnect",
+    index: false,
+  },
+};
 
 export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
   const { token } = useParams();
@@ -14,6 +30,7 @@ export function ConnectPage({ kind }: { kind: "connect" | "disconnect" }) {
   );
   const resume = useResumeWallet(step === "ready" && !account && !linkDead);
   useShellTitle(kind === "connect" ? "Connect" : "Revoke");
+  usePageMeta(PAGE_META[kind]);
 
   if (step === "loading") {
     return <p className="px-4 py-6 text-sm text-muted-foreground">Loading…</p>;

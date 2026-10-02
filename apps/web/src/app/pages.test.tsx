@@ -1666,6 +1666,44 @@ describe("me page, finding a memory", () => {
   });
 });
 
+describe("search engines", () => {
+  it("names the guide for search and points its canonical at the public domain", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", surveyUrl: null },
+        "/api/me/memories": { memories: [] },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <GuidePage />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(document.title).toMatch(/^How hippo works/));
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(
+      "https://ask-hippo.vercel.app/guide",
+    );
+    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe(
+      "index, follow",
+    );
+  });
+
+  it("keeps a page that is not one out of the index, with no canonical", async () => {
+    render(
+      <MemoryRouter>
+        <NotFoundPage />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(document.head.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe(
+        "noindex, nofollow",
+      ),
+    );
+    expect(document.head.querySelector('link[rel="canonical"]')).toBeNull();
+  });
+});
+
 describe("an address that is not a page", () => {
   it("says so and offers a way back, rather than rendering nothing", () => {
     const { container } = render(

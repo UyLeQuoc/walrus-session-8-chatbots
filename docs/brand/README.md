@@ -1,8 +1,10 @@
 # Brand
 
-Five logo candidates, one chosen, and the banner the social card is cut from.
-Everything here is plain SVG and HTML with no build step, so it can be changed
-without a toolchain.
+The mark in use since 2026-09-25 (`2291934`) is the hippo silhouette in
+`apps/web/public/logo-black.svg`, `logo-white.svg` and `favicon.svg`. The five
+SVG candidates below are the earlier round and are kept for the record.
+`mark-white.png` and `mark-black.png` are that silhouette rendered and cropped
+to its ink, for the social card.
 
 ## The candidates
 
@@ -43,27 +45,17 @@ Three places, all hand-edited:
 
 ## Regenerating the social card
 
-`apps/web/public/og.png` is a screenshot of `banner.html`, cropped to 1.91:1 and
-resized to 1200×630:
+`apps/web/public/og.png` is `banner.html`, a 1200×630 page, rendered at twice
+the size and scaled down, so the edges stay sharp in a link card and at the top
+of the README:
 
 ```bash
-cd docs/brand && python3 -m http.server 8777 --bind 127.0.0.1
-# open http://127.0.0.1:8777/banner.html, screenshot it, then crop:
-python3 - <<'PY'
-from PIL import Image
-src = Image.open("screenshot.jpg").convert("RGB")
-bg = src.getpixel((5, 5))
-differs = lambda px: sum(abs(a - b) for a, b in zip(px, bg)) > 40
-w, h = src.size
-cols = [x for x in range(0, w, 3) if any(differs(src.getpixel((x, y))) for y in range(0, h, 3))]
-rows = [y for y in range(0, h, 3) if any(differs(src.getpixel((x, y))) for x in range(0, w, 3))]
-left, right, top, bottom = min(cols), max(cols), min(rows), max(rows)
-fw = min(w, right + left)
-fh = int(round(fw / 1.91))
-y0 = max(0, min(h - fh, (top + bottom) // 2 - fh // 2))
-src.crop((0, y0, fw, y0 + fh)).resize((1200, 630), Image.LANCZOS).save("og.png", optimize=True)
-PY
+CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+"$CHROME" --headless=new --hide-scrollbars --force-device-scale-factor=2 \
+  --window-size=1200,630 --screenshot=/tmp/banner-2x.png "file://$PWD/docs/brand/banner.html"
+python3 -c "from PIL import Image; Image.open('/tmp/banner-2x.png').convert('RGB').resize((1200, 630), Image.LANCZOS).save('apps/web/public/og.png', optimize=True)"
 ```
 
-The crop is derived from where the ink actually is rather than from a fixed box,
-so the framing survives an edit to the copy.
+The icons in `apps/web/public` (`favicon-32.png`, `apple-touch-icon.png`,
+`icon-192.png`, `icon-512.png`) are `favicon.svg` rendered the same way at
+1024×1024 and scaled down.

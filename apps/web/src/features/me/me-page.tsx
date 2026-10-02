@@ -14,12 +14,22 @@ import { MemoryList } from "@/features/me/memory-list";
 import { TeamPanel } from "@/features/me/team-panel";
 import { useMe } from "@/features/me/use-me";
 import { WalletSignIn } from "@/features/me/wallet-signin";
+import { usePageMeta } from "@/hooks/use-page-meta";
+
+const PAGE_META = {
+  title: "My memory · hippo",
+  description:
+    "What hippo remembers about you, where it lives on Walrus and Sui, and the controls to export, hide or revoke it.",
+  path: "/me",
+  index: false,
+};
 
 export function MePage() {
   const { me, memories, error, load, signOut } = useMe();
   const account = useCurrentAccount();
   const linked = Boolean(me?.walletAddress) || Boolean(account);
   useShellTitle("My memory");
+  usePageMeta(PAGE_META);
 
   if (!me) {
     return <p className="px-4 py-6 text-sm text-muted-foreground">{error || "Loading…"}</p>;

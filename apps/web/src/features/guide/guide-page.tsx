@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMe } from "@/features/me/use-me";
+import { usePageMeta } from "@/hooks/use-page-meta";
 
 const COMMANDS: Array<[string, string]> = [
   ["/memory", "what hippo remembers"],
@@ -31,9 +32,18 @@ const CLAUDE_CODE_STEPS = [
   'ask it: "recall what you know about me", namespace hippo',
 ];
 
+const PAGE_META = {
+  title: "How hippo works · memory on Walrus, owned on Sui",
+  description:
+    "How hippo stores what you tell it on Walrus, recalls it before every reply, and hands it to your own Sui account, with a key you can revoke on chain.",
+  path: "/guide",
+  index: true,
+};
+
 export function GuidePage() {
   const { me } = useMe();
   useShellTitle("How it works");
+  usePageMeta(PAGE_META);
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-8 overflow-y-auto px-4 py-6">

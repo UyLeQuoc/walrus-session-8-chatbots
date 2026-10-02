@@ -2,43 +2,79 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>hippo — the chatbot that remembers you, on memory you own</title>
+    <meta
+      name="description"
+      content="Chat on the web, Telegram or a CLI and hippo remembers you between sessions. Your memory lives on Walrus, in a Sui account you own and can revoke."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://ask-hippo.vercel.app/" />
+    <meta name="application-name" content="hippo" />
+    <meta name="apple-mobile-web-app-title" content="hippo" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
     <link
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap"
       rel="stylesheet"
     />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>hippo</title>
-    <meta
-      name="description"
-      content="A chatbot that remembers you, on memory you own. Your memory is an encrypted blob on Walrus, indexed by an account on Sui, and you can revoke the bot's access on chain."
-    />
     <!--
       The submission is shared on X, cross-posted outside the ecosystem and
-      linked from an article. Every one of those renders a link card, and
-      without these it renders a bare URL. The image is generated from
-      docs/brand/banner.html; see docs/brand/README.md to regenerate it.
+      linked from an article. Link cards are read from this file, not from the
+      page after React runs, so every route shares these. The image is
+      docs/brand/banner.html; docs/brand/README.md regenerates it.
     -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="hippo" />
-    <meta property="og:title" content="A chatbot that remembers you, on memory you own" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="hippo — the chatbot that remembers you, on memory you own" />
     <meta
       property="og:description"
-      content="Your memory is an encrypted blob on Walrus, indexed by an account on Sui. hippo reaches it with a delegate key you can revoke on chain at any time."
+      content="Your memory lives on Walrus, in an account your wallet owns on Sui. hippo holds a key you can revoke on chain. Web, Telegram and a CLI share it."
     />
     <meta property="og:url" content="https://ask-hippo.vercel.app/" />
     <meta property="og:image" content="https://ask-hippo.vercel.app/og.png" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="hippo: a chatbot that remembers you, on memory you own. A new chat recalls two memories from Walrus."
+    />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://ask-hippo.vercel.app/og.png" />
-    <meta name="twitter:title" content="A chatbot that remembers you, on memory you own" />
+    <meta name="twitter:title" content="hippo — the chatbot that remembers you, on memory you own" />
     <meta
       name="twitter:description"
-      content="Teach it something, reload the page, and ask again. Anything it still knows came back from Walrus."
+      content="Tell it something, open a new chat, and ask again. What it still knows came back from Walrus, from an account you own."
     />
+    <meta name="twitter:image" content="https://ask-hippo.vercel.app/og.png" />
+    <meta
+      name="twitter:image:alt"
+      content="hippo: a chatbot that remembers you, on memory you own. A new chat recalls two memories from Walrus."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "hippo",
+        "url": "https://ask-hippo.vercel.app/",
+        "description": "A chatbot that remembers you across the web, Telegram and a CLI. Memory is stored on Walrus in a Walrus Memory account your wallet owns on Sui, and hippo reaches it with a delegate key you can revoke on chain.",
+        "applicationCategory": "CommunicationApplication",
+        "operatingSystem": "Web",
+        "image": "https://ask-hippo.vercel.app/og.png",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "sameAs": [
+          "https://github.com/UyLeQuoc/walrus-session-8-chatbots",
+          "https://t.me/walrussession8_bot"
+        ]
+      }
+    </script>
     <!--
       Decide the theme before the first paint. React sets the same class, but it
       does so after mount, which is long enough for a dark-mode reader to get a
