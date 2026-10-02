@@ -92,13 +92,23 @@ await approve(
   "0x0000000000000000000000000000000000000000000000000000000000000001",
 );
 
-const probe = await fetch(`${AGGREGATOR}/v1/service`);
+const sealApiKey = process.env.SEAL_API_KEY ?? "";
+const probe = await fetch(`${AGGREGATOR}/v1/service`, {
+  headers: sealApiKey ? { "X-API-Key": sealApiKey } : {},
+});
 const probeBody = (await probe.text()).slice(0, 180);
 console.log(`aggregator  ${probe.status} ${probeBody}`);
 
 const seal = new SealClient({
   suiClient: sui,
-  serverConfigs: [{ objectId: COMMITTEE, weight: 1, aggregatorUrl: AGGREGATOR }],
+  serverConfigs: [
+    {
+      objectId: COMMITTEE,
+      weight: 1,
+      aggregatorUrl: AGGREGATOR,
+      ...(sealApiKey ? { apiKeyName: "X-API-Key", apiKey: sealApiKey } : {}),
+    },
+  ],
   verifyKeyServers: true,
 });
 

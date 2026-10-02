@@ -501,3 +501,17 @@ This is not the account in §0. The env account changed since that section was w
 **Decision.** Phase 3 does not start. The attach control stays disabled. The ask is in `docs/BLOCKERS.md`. When a key exists, re-run this script before any upload: a passing decrypt prints `decrypt roundtrip ok`.
 
 Using this policy for files means the signer is the MemWal account owner or a current delegate. A wallet that has only connected, and has no MemWalAccount, cannot decrypt. That misses the 2026-09-27 decision that a file can belong to a wallet before owned-mode onboarding. An owned account does satisfy "the owner wallet decrypts, hippo's delegate is a reader, and `remove_delegate_key` drops that reader." A separate package is the other way to keep the pre-owned rule. Neither is being published here, because decrypt is blocked for both until the aggregator accepts a key.
+
+**Unblocked 2026-10-02.** Enoki issued a Seal Key Server API key. Sent as
+`X-API-Key` (`SEAL_API_KEY` in `.env`, passed to `SealClient` as `apiKeyName`
+and `apiKey`), the same script now prints `decrypt roundtrip ok`: 15 bytes
+encrypted under `hippo-doc || owner || 0` for account `0x5a257802…`, threshold 1
+on the committee server `0x686098f1…`, a `SessionKey` signed by hippo's
+delegate, `fetchKeys` through the aggregator, and the plaintext back unchanged.
+A bare `GET /v1/service` with the key answers `400 Unsupported` rather than 401,
+so that probe is not a health check; `fetchKeys` is. The Enoki *public* key
+(`enoki_public_…`) is not accepted there: `401 Unauthorized`.
+
+Phase 0 step 2 passes. Steps 3 (`writeFilesFlow` from a wallet) and 4 (decrypt
+in the browser with the wallet's own `SessionKey`) have not run.
+
