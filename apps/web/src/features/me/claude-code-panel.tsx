@@ -2,7 +2,7 @@ import { CopyButton } from "@/components/copy-button";
 import { Section } from "@/features/me/section";
 
 const SKILL_URL =
-  "https://github.com/UyLeQuoc/walrus-session-8-chatbots/blob/main/.claude/skills/hippo-memory/SKILL.md";
+  "https://raw.githubusercontent.com/UyLeQuoc/walrus-session-8-chatbots/main/.claude/skills/hippo-memory/SKILL.md";
 
 const INSTALL = "/plugin marketplace add MystenLabs/MemWal";
 const PLUGIN = "/plugin install memwal@memwal-plugins";
