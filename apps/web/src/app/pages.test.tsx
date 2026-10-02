@@ -697,6 +697,50 @@ describe("chat page", () => {
     expect(screen.queryByText("blob-hidden")).toBeNull();
   });
 
+  it("answers again without memory beside an answer that used memory", async () => {
+    const user = userEvent.setup();
+    const id = "22222222-2222-4222-8222-222222222222";
+    writeActiveChat(id);
+    const fetchMock = stubFetch({
+      [`/api/conversations/${id}/messages`]: {
+        messages: [
+          { id: "u1", role: "user", kind: "turn", text: "which package manager?", seq: 1 },
+          {
+            id: "a1",
+            role: "assistant",
+            kind: "turn",
+            text: "bun, as you switched last month.",
+            seq: 2,
+            cites: [{ blobId: "blob-bun", type: "correction", distance: 0.2 }],
+          },
+        ],
+      },
+      [`/api/conversations/${id}/citations`]: {
+        status: "complete",
+        limited: false,
+        messages: [
+          {
+            id: "a1",
+            recalled: [
+              { type: "correction", text: "We moved to bun", relevance: 0.8, blobId: "blob-bun" },
+            ],
+          },
+        ],
+      },
+      [`/api/conversations/${id}/memories`]: { limited: false, memories: [] },
+      "/api/chat/compare": { text: "It depends on your project; npm is the default." },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    mountChat();
+    await user.click(await screen.findByRole("button", { name: "Answer without memory" }));
+    expect(await screen.findByText("Without Walrus memory")).toBeDefined();
+    expect(screen.getByText("It depends on your project; npm is the default.")).toBeDefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/chat/compare",
+      expect.objectContaining({ body: JSON.stringify({ conversationId: id, messageId: "u1" }) }),
+    );
+  });
+
   it("shows the facts it could read and says when the rest did not come back", async () => {
     const user = userEvent.setup();
     const id = "11111111-1111-4111-8111-111111111111";

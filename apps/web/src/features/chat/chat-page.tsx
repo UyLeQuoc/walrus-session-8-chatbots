@@ -44,6 +44,7 @@ import type { UiMessage } from "@/features/chat/transcript";
 import { useChatCitations } from "@/features/chat/use-chat-citations";
 import { useChatMemories } from "@/features/chat/use-chat-memories";
 import { useChatThread } from "@/features/chat/use-chat-thread";
+import { questionBefore, useCompare } from "@/features/chat/use-compare";
 import { useComposerMeter } from "@/features/chat/use-composer-meter";
 import { bumpConversations } from "@/features/chat/use-conversations";
 import { useFollowUps } from "@/features/chat/use-follow-ups";
@@ -92,6 +93,7 @@ export function ChatPage() {
   const citations = useChatCitations(conversationId, messages as UiMessage[], (next) => {
     replaceMessages(next as UIMessage[]);
   });
+  const comparisons = useCompare(conversationId);
   const panel = useMemoryPanel();
   const remembered = useRemembered(messages);
   const stored = useChatMemories(conversationId, busy);
@@ -226,20 +228,27 @@ export function ChatPage() {
                 <MessageScrollerViewport>
                   <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
                     <JumpToLatest messageId={lastId ?? null} />
-                    {messages.map((m) => (
-                      <MessageScrollerItem key={m.id} scrollAnchor={m.role === "user"}>
-                        <ChatTurn
-                          message={m}
-                          live={m.id === lastId && busy}
-                          streaming={m.id === lastId && status === "streaming"}
-                          canEdit={!busy && m.id === lastUserId}
-                          canAnswer={!busy && m.id === lastAssistantId}
-                          onEdit={edit}
-                          onRetry={retry}
-                          onRemember={(text) => selection.start({ text, type: "profile" })}
-                        />
-                      </MessageScrollerItem>
-                    ))}
+                    {messages.map((m, index) => {
+                      const asked = m.role === "assistant" ? questionBefore(messages, index) : null;
+                      return (
+                        <MessageScrollerItem key={m.id} scrollAnchor={m.role === "user"}>
+                          <ChatTurn
+                            message={m}
+                            live={m.id === lastId && busy}
+                            streaming={m.id === lastId && status === "streaming"}
+                            canEdit={!busy && m.id === lastUserId}
+                            canAnswer={!busy && m.id === lastAssistantId}
+                            onEdit={edit}
+                            onRetry={retry}
+                            onRemember={(text) => selection.start({ text, type: "profile" })}
+                            comparison={comparisons.byAnswer[m.id]}
+                            onCompare={
+                              asked ? () => void comparisons.compare(m.id, asked) : undefined
+                            }
+                          />
+                        </MessageScrollerItem>
+                      );
+                    })}
                     {busy && last?.role === "user" ? (
                       <MessageScrollerItem scrollAnchor>
                         <Thinking label="Reading memories" />

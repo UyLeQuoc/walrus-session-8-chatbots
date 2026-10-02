@@ -8,11 +8,13 @@ import { getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import { citationsOf } from "../chat/citations.ts";
 import { type CommandContext, handleCommand } from "../chat/commands.ts";
+import { answerWithoutMemory } from "../chat/compare.ts";
 import {
   appendAssistant,
   appendUser,
   claimWebConversation,
   modelMessages,
+  modelMessagesThrough,
   openChannelThread,
   recentTurns,
   storedAnswer,
@@ -111,6 +113,11 @@ const chatBody = z.object({
   clientMessageId: z.string().trim().min(1).max(128).optional(),
   regenerate: z.boolean().optional(),
   document: turnDocument.optional(),
+});
+
+const compareBody = z.object({
+  conversationId: z.uuid(),
+  messageId: z.string().trim().min(1).max(128),
 });
 
 const UNSAVED = "I could not save that message, so I did not answer. Try again.";
@@ -361,6 +368,35 @@ export const chatRoutes = new Hono()
     }
     await noteModelCall(person.id, CHANNEL, "suggestion", model.id);
     return c.json({ suggestions });
+  })
+  .post("/api/chat/compare", async (c) => {
+    const parsed = compareBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "Pick an answer to compare." }, 400);
+    const person = await mePerson(c);
+    if (!person) return c.json({ error: "Say something in the chat first." }, 401);
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    const messages = await modelMessagesThrough(
+      person.id,
+      parsed.data.conversationId,
+      parsed.data.messageId,
+    );
+    if (!messages) return c.json({ error: "That message is not in this chat any more." }, 404);
+    await noteModelCall(person.id, CHANNEL, "compare", model.id);
+    try {
+      const text = await answerWithoutMemory({
+        model,
+        port: await portFor(person, CHANNEL),
+        messages,
+        channel: CHANNEL,
+        userHandle: person.displayName ?? "web",
+        abortSignal: c.req.raw.signal,
+      });
+      return c.json({ text });
+    } catch (err) {
+      console.error("[compare]", err instanceof Error ? err.name : "error");
+      return c.json({ error: describeFailure(err) }, 502);
+    }
   })
 
   /** The memories hippo wrote for this person, newest first, with links and expiry. */

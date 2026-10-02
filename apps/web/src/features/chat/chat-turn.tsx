@@ -1,5 +1,5 @@
 import { sanitizeTable } from "@hippo/core/command-table";
-import { FileText, Pencil, RotateCcw } from "lucide-react";
+import { Columns2, FileText, Pencil, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
@@ -14,6 +14,8 @@ import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
 import { selectedFact } from "@/features/chat/selected-fact";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
 import { fileCiteOf } from "@/features/chat/transcript";
+import type { Comparison } from "@/features/chat/use-compare";
+import { WithoutMemory } from "@/features/chat/without-memory";
 
 interface ChatMessage {
   id: string;
@@ -42,6 +44,8 @@ export function ChatTurn({
   onEdit,
   onRetry,
   onRemember,
+  comparison,
+  onCompare,
 }: {
   message: ChatMessage;
   live: boolean;
@@ -51,6 +55,8 @@ export function ChatTurn({
   onEdit: (text: string) => void;
   onRetry: () => void;
   onRemember: (text: string) => void;
+  comparison?: Comparison;
+  onCompare?: () => void;
 }) {
   const spoken = textOf(message.parts);
   const smoothed = useSmoothedText(spoken, !streaming);
@@ -175,6 +181,16 @@ export function ChatTurn({
             live && <Thinking />
           )}
         </div>
+        {onCompare && recalled.length > 0 && !command && shown && !streaming ? (
+          comparison ? (
+            <WithoutMemory comparison={comparison} />
+          ) : (
+            <Button type="button" variant="ghost" className="self-start" onClick={onCompare}>
+              <Columns2 />
+              Answer without memory
+            </Button>
+          )
+        ) : null}
         {fact && !command ? (
           <Button type="button" variant="outline" onClick={() => onRemember(fact)}>
             Remember

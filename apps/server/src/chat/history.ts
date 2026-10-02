@@ -6,7 +6,7 @@
  * table: `contextWindow` caps what is loaded.
  */
 import { type CommandTable, presentCommandBody } from "@hippo/core/command-table";
-import { and, conversations, desc, eq, isNotNull, isNull, messages, sql } from "@hippo/db";
+import { and, conversations, desc, eq, isNotNull, isNull, messages, or, sql } from "@hippo/db";
 import { decryptSecret, encryptSecret } from "@hippo/memory";
 import type { ModelMessage } from "ai";
 import { db } from "../context.ts";
@@ -443,7 +443,42 @@ export async function appendAssistant(
   });
 }
 
-export async function modelMessages(conversationId: string): Promise<ModelMessage[]> {
+export function modelMessages(conversationId: string): Promise<ModelMessage[]> {
+  return turnMessages(conversationId, null);
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function modelMessagesThrough(
+  personId: string,
+  conversationId: string,
+  messageId: string,
+): Promise<ModelMessage[] | null> {
+  const [user] = await db
+    .select({ seq: messages.seq })
+    .from(messages)
+    .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+    .where(
+      and(
+        eq(messages.conversationId, conversationId),
+        eq(conversations.personId, personId),
+        eq(conversations.channel, "web"),
+        eq(messages.role, "user"),
+        eq(messages.kind, "turn"),
+        UUID.test(messageId)
+          ? or(eq(messages.clientId, messageId), eq(messages.id, messageId))
+          : eq(messages.clientId, messageId),
+      ),
+    )
+    .limit(1);
+  if (!user) return null;
+  return turnMessages(conversationId, user.seq);
+}
+
+async function turnMessages(
+  conversationId: string,
+  throughSeq: number | null,
+): Promise<ModelMessage[]> {
   const rows = await db
     .select({
       id: messages.id,
@@ -453,7 +488,13 @@ export async function modelMessages(conversationId: string): Promise<ModelMessag
       seq: messages.seq,
     })
     .from(messages)
-    .where(and(eq(messages.conversationId, conversationId), eq(messages.kind, "turn")))
+    .where(
+      and(
+        eq(messages.conversationId, conversationId),
+        eq(messages.kind, "turn"),
+        ...(throughSeq === null ? [] : [sql`${messages.seq} <= ${throughSeq}`]),
+      ),
+    )
     .orderBy(desc(messages.seq))
     .limit(40);
   const lines: TranscriptLine[] = [];

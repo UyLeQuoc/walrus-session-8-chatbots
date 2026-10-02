@@ -1,7 +1,7 @@
 import { IMPORT_TYPES, type ImportedFact } from "@hippo/core/import-facts";
 import { useCallback, useState } from "react";
 import { z } from "zod";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, errorMessage } from "@/lib/api";
 
 export interface CandidateFact extends ImportedFact {
   keep: boolean;
@@ -12,13 +12,6 @@ const previewReply = z.object({
 });
 
 const keepReply = z.object({ saved: z.number(), known: z.number(), failed: z.number() });
-
-const errorReply = z.object({ error: z.string() });
-
-async function errorOf(res: Response, fallback: string): Promise<string> {
-  const body = errorReply.safeParse(await res.json().catch(() => null));
-  return body.success ? body.data.error : fallback;
-}
 
 export function useImport(onSaved: () => void) {
   const [text, setText] = useState("");
@@ -38,7 +31,7 @@ export function useImport(onSaved: () => void) {
         body: JSON.stringify({ text }),
       });
       if (!res.ok) {
-        setError(await errorOf(res, "Could not read that note just now."));
+        setError(await errorMessage(res, "Could not read that note just now."));
         return;
       }
       const body = previewReply.safeParse(await res.json().catch(() => null));
@@ -70,7 +63,7 @@ export function useImport(onSaved: () => void) {
         body: JSON.stringify({ facts: kept }),
       });
       if (!res.ok) {
-        setError(await errorOf(res, "Could not keep those facts just now."));
+        setError(await errorMessage(res, "Could not keep those facts just now."));
         return;
       }
       const body = keepReply.safeParse(await res.json().catch(() => null));
