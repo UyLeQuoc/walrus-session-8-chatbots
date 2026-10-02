@@ -62,8 +62,7 @@ fix I found.
 
 **Corrections were lost three ways.** Dedupe discarded "I no longer use VS Code"
 as a duplicate of "I use VS Code", 0.24 apart, because distance cannot see "no".
-The model sometimes acknowledged a change without storing it, and one prompt edit
-of mine made that worse. And "what do you know about me?" recalled the old fact
+The model sometimes acknowledged a change without storing it. And "what do you know about me?" recalled the old fact
 but never the correction. Each needed its own fix.
 
 **I wrote up a security bug against Walrus Memory, and it was mine.** The relayer
@@ -71,8 +70,8 @@ accepted a key my account did not list, so I concluded on-chain access control
 was not what governed access. In fact two Walrus Memory deployments are live on
 mainnet. I took the package id from `GET /config` and the registry id from the
 docs, and so read a real account that was not mine. The same mismatch broke
-every sponsored transaction as an opaque `502`. The report stays in
-my repo, marked retracted. Check the Move type of every id you configure.
+every sponsored transaction as an opaque `502`. Check the Move type of every id
+you configure.
 
 ### What revoking actually does
 
@@ -82,12 +81,14 @@ instantly. On `/disconnect` hippo also destroys its own copy of the key.
 
 ### What ownership does not cover yet
 
-You cannot decrypt your memory yourself. Mainnet memories are sealed by a key
-server the SDK does not list, behind an aggregator that needs an API key, so
-reading still goes through the relayer. And you cannot delete a memory: `forget`
-removes the search index while the encrypted blob stays on Walrus until its
-storage runs out. What hippo can give you is `/export`, a file listing every blob
-with its text checked against the hash recorded when it was written.
+Reading your memory yourself takes a key you have to ask for. Mainnet memories
+are sealed by a key server the SDK does not list, behind an aggregator that
+refuses requests without an API key. With a Seal key from Enoki I decrypted a
+real memory with no relayer involved; without one, reading goes through the
+relayer. And you cannot delete a memory: `forget` removes the search index while
+the encrypted blob stays on Walrus until its storage runs out. hippo gives you
+`/export`, every blob with its text checked against the hash recorded when it
+was written.
 
 These are filed with repros at github.com/MystenLabs/MemWal/issues
 `[HUMAN: file them before publishing; none is filed yet]`.
