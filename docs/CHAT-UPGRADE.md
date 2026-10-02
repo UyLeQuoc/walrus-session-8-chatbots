@@ -150,8 +150,9 @@ Checks:
 ### Status 2026-10-02, branch `files-thin-slice`
 
 **Merged at the owner's word on 2026-10-02 (PR #5, `55a8359`) before check 3
-ran.** Not deployed. The mainnet round trip below is still owed, and the
-article and submission do not claim the feature until it passes.
+ran, and deployed at the owner's word the same day (`c142d2f`,
+`docs/evidence/deploy-2026-10-02.md`).** The mainnet round trip below is still
+owed, and the article and submission do not claim the feature until it passes.
 
 Built: `documents` and `message_attachments` (no name or text column; the name
 is sealed like a title), `POST/GET /api/documents` for owned people only, with
