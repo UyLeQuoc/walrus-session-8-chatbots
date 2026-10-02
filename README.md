@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://hippo-web-ten-nu.vercel.app"><b>Live app</b></a> ·
+  <a href="https://ask-hippo.vercel.app"><b>Live app</b></a> ·
   <a href="https://t.me/walrussession8_bot"><b>@walrussession8_bot</b></a> ·
   <a href="https://suiscan.xyz/mainnet/object/0x5a257802b4881641b49ea3ad3e460a4387f9262b4f96fd68cd4be3928e5a07aa"><b>The account on Sui</b></a>
 </p>
@@ -21,7 +21,7 @@
 
 ## See it work in three clicks
 
-1. Open the [live app](https://hippo-web-ten-nu.vercel.app), click a starter,
+1. Open the [live app](https://ask-hippo.vercel.app), click a starter,
    for example *"I only use pnpm, and I want short answers in Vietnamese."*, and
    press Send. Wait until the line under the message box says it is on Walrus,
    about half a minute.
@@ -134,7 +134,7 @@ back from Walrus, because the text is never stored in Postgres.
 
 | Channel | State |
 |---|---|
-| Web | Live: https://hippo-web-ten-nu.vercel.app |
+| Web | Live: https://ask-hippo.vercel.app |
 | Telegram | Live: [@walrussession8_bot](https://t.me/walrussession8_bot). `/export` arrives as a file. |
 | CLI | `bun run hippo`, against a running server |
 | Discord | Adapter written and tested, starts when `DISCORD_TOKEN` is set. Answers DMs and mentions; slash-menu clicks are not handled yet. |

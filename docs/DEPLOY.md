@@ -1,6 +1,8 @@
 # Deploy
 
-**Live as of 2026-09-22.** Web https://hippo-web-ten-nu.vercel.app, API
+**Live as of 2026-09-22.** Web https://ask-hippo.vercel.app (since 2026-10-02;
+the first URL, https://hippo-web-ten-nu.vercel.app, still serves the same
+deployment), API
 https://hippo-server-production.up.railway.app, database on Neon, Telegram
 polling from production. What was verified rather than assumed is in
 `docs/evidence/deploy-2026-09-22.md`.
@@ -92,7 +94,8 @@ One environment variable: `VITE_API_URL`, the Railway URL from step 2. It is
 baked in at build time, so changing it later needs a redeploy.
 
 Then go back to Railway and set `WEB_BASE_URL` and `CORS_ORIGIN` to the Vercel
-URL. Without that, the browser's cookies never reach the API and every visitor
+URL. Live, `WEB_BASE_URL` is `https://ask-hippo.vercel.app` and `CORS_ORIGIN`
+lists it first, then the older Vercel URL and the three `*.wal.app` origins. Without that, the browser's cookies never reach the API and every visitor
 looks like a stranger on each request.
 
 **Redeploying the live web app.** The live project, `hippo-web`, uploads
