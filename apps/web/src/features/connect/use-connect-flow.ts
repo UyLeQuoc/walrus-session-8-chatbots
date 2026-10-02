@@ -14,6 +14,7 @@ import {
   removeDelegateKeyTx,
 } from "@/features/connect/memwal";
 import { sponsorAndExecute } from "@/features/connect/sponsor";
+import { useCoreExecutor } from "@/hooks/use-core-executor";
 import { apiFetch } from "@/lib/api";
 
 export interface TokenInfo {
@@ -30,7 +31,8 @@ export function useConnectFlow(kind: "connect" | "disconnect", token: string | u
   const suiClient = useSuiClient();
   const { mutateAsync: signTransaction } = useSignTransaction();
   const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
-  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const execute = useCoreExecutor();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction({ execute });
 
   const [info, setInfo] = useState<TokenInfo | null>(null);
   const [chain, setChain] = useState<ChainConfig | null>(null);
