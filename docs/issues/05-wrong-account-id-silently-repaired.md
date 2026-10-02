@@ -1,4 +1,6 @@
-# A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet
+# FIXED UPSTREAM — A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet
+
+> **Fixed upstream, do not file (2026-10-03).** PR #983 ("fix(server): let the signed account id decide, not the cache", merged 2026-09-25) makes the signed account id choose the account, and a later commit removed the registry scan, so a wrong id now gets a 401. #1069 (2026-10-01) describes the earlier behaviour.
 
 > **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still reproduces on mainnet.**
 > The same recall with the correct account id and with the delegate public key

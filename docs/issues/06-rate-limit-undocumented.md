@@ -1,57 +1,57 @@
-# The documented delegate-key limit is 30/min, the deployed one is 60, and the documented weights disagree with the code
+# [Bug] Rate-limit docs disagree with the code and the hosted relayer: 30/min per delegate key documented, 60 enforced; analyze documented at 10 points, weighed at 5
 
-> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0)
-> and MemWal `main` (`3182c16`): docs and code as quoted below. The deployed limit
-> of 60 was not re-measured, because tripping it means throttling a delegate key
-> that live users share.
+### Surface
 
-## Summary
+Docs
 
-`docs/relayer/overview.md` says each delegate key "is independently limited to
-**30 points / minute**", and `docs/api/memory-read-api.md` repeats "the 30/min
-per-delegate-key budget". The managed mainnet relayer, when we tripped it,
-answered:
+### Network
 
-```json
-{"error":"Rate limit exceeded","layer":"delegate_key","limit":"60 weighted-requests/min","retry_after_seconds":60}
-```
+Mainnet (relayer.memory.walrus.xyz)
 
-The code's default is 30 (`services/server/src/rate_limit.rs`,
-`max_requests_per_delegate_key: 30`), overridable with
-`RATE_LIMIT_DELEGATE_KEY_PER_MINUTE`, so the managed deployment appears to set
-60 while every doc a developer reads says 30.
+### Package version
 
-The published weights also disagree with the code that applies them:
+Docs and code at `main` `1e023585` (2026-10-02). Relayer `/health`: `relayerVersion` 0.1.0. SDK `@mysten-incubation/memwal@0.1.8`.
 
-| endpoint | `docs/relayer/overview.md` | `endpoint_weight()` in `rate_limit.rs` |
+### What happened?
+
+We paced a multi-tenant backend (one operator delegate key for every user, as in `docs/sdk/cookbook-multi-tenant.md`) from the documented limits. The hosted relayer enforces a different per-key limit than the docs state, and the documented endpoint weights disagree with `endpoint_weight()`, which applies them. #1073 reports the weights as undocumented; they are documented, and the documented numbers are wrong.
+
+### Steps to reproduce
+
+1. Read `docs/relayer/overview.md` lines 101–113: delegate key "independently limited to **30 points / minute**"; `/api/analyze` = 10 points; `/api/remember` = 5; `/api/restore` and `/api/remember/manual` = 3; `/api/ask` = 2.
+2. Read `endpoint_weight()` in `services/server/src/rate_limit.rs` (line 142) and the default `max_requests_per_delegate_key: 30` (line 70).
+3. Send weighted requests from one delegate key to `https://relayer.memory.walrus.xyz` until it answers 429, and read the error.
+
+### Expected
+
+One set of numbers. The per-key limit in the docs matches what the hosted relayer enforces, and the weight list matches `endpoint_weight()`.
+
+### Actual
+
+| | `docs/relayer/overview.md` | `endpoint_weight()` |
 |---|---|---|
 | `/api/analyze` | 10 | **5** |
 | `/api/remember` | 5 | 5 |
 | `/api/remember/bulk` | not listed | **10** |
 | `/api/restore`, `/api/remember/manual` | 3 | 3 |
-| `/api/ask`, `/api/embed` | 2 (ask only) | 2 |
-| `/v1/owners/:owner/agents` | not listed | 2 |
-| recall and everything else | 1 | 1 |
+| `/api/ask` | 2 | 2 |
+| `/api/embed` | not listed | **2** |
+| `/v1/owners/:owner/agents` | not listed | **2** |
+| everything else, including recall | 1 | 1 |
 
-## Why it matters
+The per-key limit is 30 in the docs and in the code default, and the hosted relayer answers with 60 (step 3). #1073 got the same 60/min error. #686 quotes a 30/min error in August and 60 in a later comment, so the hosted value has changed at least once while the docs stayed at 30; the deployment appears to set `RATE_LIMIT_DELEGATE_KEY_PER_MINUTE=60`.
 
-The official multi-tenant cookbook (`docs/sdk/cookbook-multi-tenant.md`) has one
-operator account and one delegate key serving every end user, so the whole app
-shares one budget. A client that paces itself from the docs runs at half the
-real ceiling; one that paces from the error message is trusting a number the
-docs contradict. And `analyze`, the heaviest call, is priced at half what the
-docs say.
+A client that paces from the docs runs at half the real ceiling. One that paces from the error message trusts a number the docs contradict. And `analyze`, the heaviest call, costs half what the docs say.
 
-## Asks
+### Logs or error text
 
-1. State the managed relayer's actual delegate-key limit in the docs, or
-   configure it to match them.
-2. Bring the weight list in `docs/relayer/overview.md` in line with
-   `endpoint_weight()`, including `remember/bulk` and the owner routes.
-3. Consider returning the remaining budget in a response header so clients can
-   pace without guessing.
+```shell
+{"error":"Rate limit exceeded","layer":"delegate_key","limit":"60 weighted-requests/min","retry_after_seconds":60}
+```
 
-## Our workaround
+### Checks
 
-`packages/memory/src/limiter.ts` paces every call per delegate key at 50/min with
-concurrency 2, and honours `retry_after_seconds` on a `429`.
+- [X] I searched existing issues and this is not a duplicate.
+- [X] This report contains no private keys, mnemonics, or other secrets.
+
+<!-- hippo (walrus-session-8-chatbots): first observed 2026-09-22; re-checked 2026-10-03 against main 1e023585. Related: #1073 (says undocumented), #686 (60/min measured), #1002 (different bug). The 60/min was not re-measured on 2026-10-03 because tripping it throttles a key live users share. -->

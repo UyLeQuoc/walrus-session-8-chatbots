@@ -39,7 +39,7 @@ else
   while IFS= read -r f; do
     # `|| true`: no status is the normal case, and grep finding nothing must not
     # end the script under `set -e`, which it did, silently.
-    status="$(head -1 "$f" | grep -oE '^# (RETRACTED|NOT REPRODUCED|RESOLVED BEFORE FILING|ON HOLD)' | sed 's/^# //' || true)"
+    status="$(head -1 "$f" | grep -oE '^# (RETRACTED|NOT REPRODUCED|RESOLVED BEFORE FILING|ON HOLD|DUPLICATE|FIXED UPSTREAM|COMMENT ON #[0-9]+)' | sed 's/^# //' || true)"
     if [ -n "$status" ]; then
       echo "skipping $(basename "$f") ($(echo "$status" | tr 'A-Z' 'a-z'))" >&2
       continue

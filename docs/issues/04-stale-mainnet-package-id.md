@@ -1,4 +1,6 @@
-# Published mainnet contract IDs are stale, and following them breaks sponsored transactions
+# DUPLICATE — Published mainnet contract IDs are stale, and following them breaks sponsored transactions
+
+> **Duplicate, do not file (2026-10-03).** #1032 (2026-09-26) reports the same stale package and registry ids in the same files and asks for the registry id in `/config`. The one line about sponsorship rejecting the stale package moved into draft 11.
 
 > **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still reproduces.**
 > `docs/contract/overview.md:52` and `apps/app/.env.example:63` in MemWal `main`

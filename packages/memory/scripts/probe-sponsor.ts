@@ -72,6 +72,17 @@ allowed.moveCall({
 });
 await probe("1. create_account, on the allowlist, valid auth", allowed);
 
+const staleRegistry = new Transaction();
+staleRegistry.moveCall({
+  target: `${cfg.packageId}::account::create_account`,
+  arguments: [
+    // The registry the published docs still name, from the superseded deployment.
+    staleRegistry.object("0x0da982cefa26864ae834a8a0504b904233d49e20fcc17c373c8bed99c75a7edd"),
+    staleRegistry.object(SUI_CLOCK),
+  ],
+});
+await probe("1b. create_account, current package, the documented registry", staleRegistry);
+
 const notAllowed = new Transaction();
 notAllowed.moveCall({
   target: "0x2::clock::timestamp_ms",

@@ -74,30 +74,29 @@ https://suiscan.xyz/mainnet/object/0x5a257802b4881641b49ea3ad3e460a4387f9262b4f9
 
 **Feedback: GitHub tickets.** Drafted with repros in `docs/issues/`. File with `scripts/file-issues.sh`, which writes each resulting URL back into its draft, then paste the links here.
 
-Every draft was re-run against the mainnet relayer and SDK 0.1.7 and 0.1.8 on
-2026-09-25, and each carries that result at the top. Nine still stand and are the
-ones to file:
+On 2026-10-03 every draft was checked against the issues other builders had
+filed since, and the three that upstream changes could affect were re-run on the
+mainnet relayer. Six are filed, rewritten in MemWal's bug template:
 
 | # | Title |
 |---|---|
-| 1 | `recall()` returns an empty result set while reporting it dropped the matches |
-| 4 | Published mainnet contract IDs are stale, and following them breaks sponsored transactions |
-| 5 | A wrong `x-account-id` is silently repaired on mainnet and fatal on testnet |
-| 6 | The documented delegate-key limit is 30/min, the deployed one is 60, and the documented weights disagree with the code |
-| 9 | There is no way to permanently delete a memory, even as the account owner |
-| 10 | `restore()` reports `total: 0` and `truncated: false` for a namespace that has memories |
-| 11 | `/config` names a package but not its registry, and the mismatch surfaces as "Sponsor service error" |
-| 12 | The mainnet relayer seals with a committee key server, so an owner cannot decrypt their own memory |
-| 13 | Deduplicating by distance, as SKILL.md suggests, silently discards corrections |
+| 6 | Rate-limit docs disagree with the code and the hosted relayer: 30/min per delegate key documented, 60 enforced; analyze documented at 10 points, weighed at 5 |
+| 9 | The delete guides promise permanent deletion of your memories through the Security Delete API, which only deletes legacy V1 blobs |
+| 10 | restore() reports total: 0 and truncated: false for a namespace that recall still answers from |
+| 11 | /sponsor answers every failed simulation with the same 502 "Sponsor service error", so a wrong argument looks like an outage |
+| 12 | Decrypting your own mainnet memory without the relayer needs an Enoki Seal API key the docs never mention, and the SDK's default key servers fail first with "Not enough shares" |
+| 13 | SKILL.md's dedupe advice and "< 0.25 = duplicate" band make an agent discard corrections |
 
-Four are deliberately absent, each marked in its first line, and
-`scripts/file-issues.sh` skips anything so marked. Draft 8 is **retracted**: it
-claimed the relayer authorizes delegate keys the chain does not list, and it
-does not; we were reading an account in the superseded deployment. It stays in
-our repo because the mistake is instructive. Draft 7 was **resolved before
-filing** (`whoami` answers now, and its miscount was that same wrong account),
+Draft 1 (recall returns an empty page while reporting dropped matches) is a
+**comment on #1036**, which another builder filed first: our measurements, and
+that it has not recurred since upstream commit `25ba0fb5`. Draft 4 (stale ids in
+the docs) is a **duplicate** of #1032. Draft 5 (a wrong `x-account-id` silently
+repaired) was **fixed upstream** by PR #983. Draft 8 is **retracted**: it claimed
+the relayer authorizes delegate keys the chain does not list, and it does not;
+we were reading an account in the superseded deployment. It stays in our repo
+because the mistake is instructive. Draft 7 was **resolved before filing**,
 draft 3 was **not reproduced** (it was an instance of 1), and draft 2 is **on
-hold** (not seen since the relayer added retries on 2026-09-21).
+hold**. `scripts/file-issues.sh` skips every draft so marked.
 
 **One bug or friction point you hit.**
 

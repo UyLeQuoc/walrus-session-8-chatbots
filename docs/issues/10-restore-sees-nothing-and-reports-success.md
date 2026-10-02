@@ -1,95 +1,61 @@
-# `restore()` reports `total: 0` and `truncated: false` for a namespace that has memories
+# [Bug] restore() reports total: 0 and truncated: false for a namespace that recall still answers from
 
-> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8, **with the correct account**
-> (owner `0xf8a4…`, account `0x5a257802…`), which settles the earlier doubt about
-> which deployment it was measured on. **Still reproduces.** The namespace below
-> gave exactly the same output as quoted. A second namespace,
-> `spike-recall-bare:s3`, where recall sees 11 memories, gave `restore(limit=500)`
-> → `total: 2, skipped: 2, truncated: false`: two of eleven, reported as
-> complete.
+### Surface
 
-## Summary
+Relayer / hosted API
 
-`restore()` is the documented recovery path when the relayer's vector index is
-lost: the memories are on Walrus, and restore re-indexes them. On our mainnet
-account it sees nothing at all, and says so in a way that reads like success.
+### Network
 
-```
+Mainnet (relayer.memory.walrus.xyz)
+
+### Package version
+
+`@mysten-incubation/memwal@0.1.8`; relayer `/health` `relayerVersion` 0.1.0. Re-run 2026-10-02 18:51 UTC.
+
+### What happened?
+
+`restore()` is the documented recovery path if the relayer's index is lost. On our mainnet account it finds nothing, or almost nothing, in namespaces whose memories `recall()` returns, and it says so with `truncated: false`, which reads like a complete answer. Not covered by #623 (package migration), #754 (unreadable blobs dropped), #762 (fixed) or #1060 (`created_at` reset on restore).
+
+### Steps to reproduce
+
+1. Use an owner with many Walrus `Blob` objects. Ours, owner `0xf8a4da3a751fba566508deb5166196ec5530602a924b3b0c132963e98188fb04` (account `0x5a257802…`), owns **457** `Blob` objects today, and `GET /v1/owners/:owner/memories` lists **384** active memories.
+2. Pick a namespace that has memories and call `recall({ query, namespace, limit: 5 })`. It returns results.
+3. Call `restore(namespace, limit)` with `limit` 10, 50 and 100.
+
+Script used: `packages/memory/scripts/probe-restore.ts <namespace>` in https://github.com/UyLeQuoc/walrus-session-8-chatbots (recall once, then restore three times). `probe-blob-owner.ts <owner>` counts the owned `Blob` objects.
+
+### Expected
+
+`total` counts the on-chain blobs for `(owner, namespace)`, as the docs define it, so a namespace that recall answers from has `total` of at least its recalled memories. If the owner-wide candidate fetch was capped, the response says so, and `truncated` is not `false`.
+
+### Actual
+
+Namespace 1: recall returns 2 memories, restore sees none.
+Namespace 2: recall returns 5 (the limit asked), restore sees 1 and reports it as complete.
+
+`docs/api/memory-read-api.md` already warns that `truncated=false` is not proof the sidecar saw every on-chain blob, because of the owner-wide candidate cap, and mentions a planned `sourceCapped` field (WALM-451). That field is not in the response yet. Our inference, which we cannot confirm from outside: with 457 owned blobs and a cap around 100, a namespace whose blobs fall outside the first page gets `total: 0`. The observable facts do not depend on that: recall works, the read API lists 384 memories, and restore reports zero.
+
+A recovery tool that silently sees nothing is the case it most needs to report.
+
+### Logs or error text
+
+```shell
 namespace: hippo-guest:163670a8-1c7f-4ae0-9c3c-58fffbc4846a
-recall   : 2 results          ← the index currently holds these
-
+recall   : 2 results
 restore(limit=10):  {"restored":0,"skipped":0,"failed":0,"total":0,"truncated":true}
 restore(limit=50):  {"restored":0,"skipped":0,"failed":0,"total":0,"truncated":false}
 restore(limit=100): {"restored":0,"skipped":0,"failed":0,"total":0,"truncated":false}
+
+namespace: spike-recall-bare:s3
+recall   : 5 results
+restore(limit=10):  {"restored":0,"skipped":0,"failed":0,"total":0,"truncated":true}
+restore(limit=50):  {"restored":0,"skipped":1,"failed":0,"total":1,"truncated":false}
+restore(limit=100): {"restored":0,"skipped":1,"failed":0,"total":1,"truncated":false}
 ```
 
-`total` is documented as "all on-chain blobs the relayer saw for `(owner,
-namespace)` before the limit was applied". Zero, for a namespace whose memories
-`recall` returns right now. `skipped` is also zero, where already-indexed blobs
-should land.
+### Checks
 
-The owner does own the blobs. Listing owned objects for
-`0xf8a4da3a751fba566508deb5166196ec5530602a924b3b0c132963e98188fb04` returns
-**197 Walrus `Blob` objects**, so this is not a case of the relayer keeping blob
-ownership.
+- [X] I searched existing issues and this is not a duplicate.
+- [X] This report contains no private keys, mnemonics, or other secrets.
 
-**Sharper still: your own read API sees 125 of these memories.**
-`GET /v1/owners/:owner/memories` returns 125 rows for this owner, all
-`status: "active"`, 89 of them with a resolved `end_epoch` and `expires_at`
-running to March and April 2027. So one relayer endpoint enumerates 125 live
-memories for the owner while another reports that it can see zero on chain for
-the same owner. Whatever the cause, those two answers cannot both be describing
-the same account.
-
-## Why we think the candidate cap is involved
-
-`docs/api/memory-read-api.md` and the `restore` notes already describe the
-mechanism and its blind spot:
-
-> `truncated=false` is **not** proof the sidecar saw every onchain blob; blobs
-> beyond the owner-wide sidecar candidate cap can still be missing. WALM-451
-> tracks a `sourceCapped` field for that case.
-
-The cap is described as 100. This account owns 197 blobs. If the owner-wide
-candidate fetch takes the first 100 and our namespace's blobs are not among
-them, `total: 0` follows, and `truncated: false` at `limit >= 20` follows too,
-because truncation is then computed from the missing-blob page length rather
-than from anything on chain.
-
-We cannot see the server, so treat the mechanism as our inference. The
-observable facts are not inference: 197 blobs owned, recall working, restore
-reporting zero with `truncated: false`.
-
-## Why it matters
-
-Restore is the answer to the obvious question about this architecture: if the
-relayer's database goes away, is my memory gone? The documented answer is no,
-run restore. On an account with a normal amount of history, restore currently
-reports that there is nothing to restore, and nothing in the response tells the
-caller that its view was truncated. A recovery tool that silently sees nothing
-is worse than one that errors.
-
-It also undercuts a claim builders repeat, us included: that memory on Walrus
-survives the relayer. It may, but not through this endpoint on this account.
-
-## Expected
-
-1. `total` reflects the on-chain blobs for the namespace, or the response says
-   the candidate set was capped. Landing `sourceCapped` (WALM-451) would be
-   enough to stop a caller misreading this.
-2. `truncated: false` should not be returned when the candidate fetch was
-   capped.
-3. Ideally, restore takes a namespace-scoped path rather than an owner-wide scan,
-   so an account's total blob count does not determine whether a small namespace
-   can be recovered.
-
-## Repro
-
-```bash
-# an account with more than ~100 owned Blob objects, and a namespace with memories
-bun run packages/memory/scripts/probe-restore.ts <namespace>
-bun run packages/memory/scripts/probe-blob-owner.ts <owner-address>
-```
-
-The first prints recall working and restore reporting zero. The second prints the
-owned `Blob` count.
+<!-- hippo (walrus-session-8-chatbots): first measured 2026-09-22 (197 blobs, read API 125); re-verified 2026-09-25 and 2026-10-02 18:51 UTC with the numbers above. Responses trimmed of the namespace and owner fields, which match the request. -->

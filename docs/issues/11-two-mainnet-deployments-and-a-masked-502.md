@@ -1,108 +1,63 @@
-# `/config` names a package but not its registry, and the mismatch surfaces as "Sponsor service error"
+# [Bug] /sponsor answers every failed simulation with the same 502 "Sponsor service error", so a wrong argument looks like an outage
 
-> **Re-verified 2026-09-25** against relayer build `5b27683` (`/health` 0.1.0), SDK 0.1.7 and 0.1.8. **Still reproduces, and broader
-> than first written.** `GET /config` still returns no registry id. The sponsor
-> probe with the stale registry still returns `502 Sponsor service error`, whose
-> real cause, simulated directly on Sui, is `CommandArgumentError { arg_idx: 0,
-> kind: TypeMismatch }`. With the correct registry and a sender that already
-> owns an account, it returns the **same** `502` — the simulation there aborts
-> with `EAccountAlreadyExists` (abort code 3 in `account::create_account`). Two
-> unrelated failures, one opaque message: any simulation abort is masked.
+### Surface
 
-## What we observed
+Relayer / hosted API
 
-There are two Walrus Memory deployments live on Sui mainnet, and they are
-separate packages rather than an upgrade of one another:
+### Network
 
-| | package | registry object | registry's Move type |
-|---|---|---|---|
-| documented | `0xcee7a6fd…958a24c6` | `0x0da982ce…c75a7edd` | `0xcee7a6fd…::account::AccountRegistry` |
-| served by `GET /config` | `0xe7c16fbe…a33b81d7f5` | `0x8bf82c9e…e9cf199f` | `0xe7c16fbe…::account::AccountRegistry` |
+Mainnet (relayer.memory.walrus.xyz)
 
-A published upgrade keeps its original type address, so an `AccountRegistry`
-belonging to the newer package would still be typed `0xcee7a6fd…` if it were an
-upgrade. It is not. These are two independent deployments, each with its own
-registry and its own account objects.
+### Package version
 
-`GET /config` returns `packageId` and never returns a registry id, so a client
-that takes the package from `/config` — as the documentation tells you to, since
-the documented package is stale (see `04-stale-mainnet-package-id.md`) — and the
-registry from the documentation ends up calling the new package with the old
-package's registry.
+`@mysten-incubation/memwal@0.1.8`, `@mysten/sui` 2.33; relayer `/health` `relayerVersion` 0.1.0. Re-run 2026-10-02 18:53 UTC. Code reference: `services/server/src/routes/sponsor.rs` at `main` `1e023585`.
 
-The result is a type mismatch on argument 0 of `create_account`. What the
-relayer reports is this:
+### What happened?
 
-```
-POST /sponsor
-502 {"code":"sponsor_upstream_error","error":"Sponsor service error","traceId":"…"}
-```
+Our sponsored `create_account` failed with `502 {"code":"sponsor_upstream_error","error":"Sponsor service error"}`. We treated it as an outage for a working session. The cause was one wrong object argument: the registry id from the docs, which belongs to the superseded deployment (#1032), passed to the package `GET /config` serves. Simulating the transaction ourselves named it at once. The relayer had the same information and returned a message that is identical for a genuine sponsor outage. We later hit a second, unrelated simulation abort (`EAccountAlreadyExists`, a sender that already owns an account) and got the very same 502.
 
-Four probes, all with the same sender and the same signature scheme, isolate it:
+### Steps to reproduce
+
+1. Take `packageId` from `GET https://relayer.memory.walrus.xyz/config` (`0xe7c16fbe…a33b81d7f5`).
+2. Build `create_account(registry, clock)` with the registry the docs list, `0x0da982cefa26864ae834a8a0504b904233d49e20fcc17c373c8bed99c75a7edd`. `GET /config` names no registry, so a client following the docs does exactly this.
+3. Request sponsorship with a valid sponsor authorization: `POST /sponsor`.
+4. Repeat with the current registry `0x8bf82c9e…`, with a call that is not on the allowlist, with the documented package `0xcee7a6fd…`, and with a deliberately bad authorization.
+
+Script used: `packages/memory/scripts/probe-sponsor.ts <address>` in https://github.com/UyLeQuoc/walrus-session-8-chatbots. It requests sponsorship only; it never signs or executes a transaction.
+
+### Expected
+
+A failed simulation says why, or at least that the transaction itself was rejected, with the Move abort or `CommandArgumentError`. A response that means "the sponsor is down" is kept for when the sponsor is down.
+
+### Actual
 
 | request | response |
 |---|---|
-| `create_account`, new package + **old** registry | `502 sponsor_upstream_error` |
-| `create_account`, new package + **new** registry | `200`, sponsored bytes returned |
-| a call that is not on the sponsorship allowlist | `400 Transaction kind is not permitted` |
-| allowlisted call, deliberately invalid authorization | `401 Invalid sponsor authorization` |
+| `create_account`, `/config` package + current registry | `200`, sponsored bytes |
+| `create_account`, `/config` package + documented registry | **`502 sponsor_upstream_error` "Sponsor service error"** |
+| `create_account` on the documented (stale) package | `400` "Transaction kind is not permitted for sponsorship" |
+| a call that is not on the allowlist | `400` "Transaction kind is not permitted for sponsorship" |
+| allowlisted call, bad authorization | `401` "Invalid sponsor authorization" |
 
-So the request was authenticated, the transaction kind was permitted, and the
-bytes were well formed. The only defect was one wrong object argument, and the
-error says nothing about it.
+The request in row 2 is authenticated, its kind is allowed and its bytes are well formed. Simulated directly on Sui it fails with `CommandArgumentError { arg_idx: 0, kind: TypeMismatch } in command 0`. On 2026-09-25, a sender that already owned an account got the same 502 for `create_account` with the correct registry; that simulation aborts with `EAccountAlreadyExists` (abort code 3). Two different faults in the caller's transaction, one response that blames the service.
 
-Simulating the same transaction ourselves names the fault immediately:
+`sponsor.rs` lines 73–77 map every upstream `500..=599` to `BAD_GATEWAY`, `sponsor_upstream_error`, "Sponsor service error". The reference app's `useSponsoredTransaction.ts` then treats it as a rejected transaction and does not retry, which is right, but nothing tells the developer which argument was wrong. Row 3 has the related problem that the stale package is reported as a disallowed transaction kind rather than as an unknown or superseded package.
 
-```
-CommandArgumentError { arg_idx: 0, kind: TypeMismatch } in command 0
-```
+Returning `registryId` from `GET /config` (asked in #1032) removes the cause we hit. Passing the simulation error through fixes the class.
 
-`scripts/probe-sponsor.ts` in this repository reproduces the whole table.
+### Logs or error text
 
-## Why this matters
+```shell
+1b. create_account, current package, the documented registry
+    502  {"code":"sponsor_upstream_error","error":"Sponsor service error","traceId":"ca81f38b-459b-4c84-b482-ed01b27dd210"}
 
-Sponsored transactions are the entire onboarding path: they are what lets a user
-own their memory without ever holding SUI. When that path fails, it fails at the
-first thing a new user ever does.
-
-The 502 is indistinguishable from an outage. `useSponsoredTransaction.ts` in the
-reference app reads it as "the transaction was rejected by the sponsor (it may
-be invalid or already applied)" and deliberately does not retry it, which is
-correct behaviour for a genuinely rejected transaction and useless for
-diagnosis. We spent a working session treating it as a Walrus-side outage,
-measured against mainnet to show the sponsor was healthy for other clients, and
-only found the cause by executing the transaction ourselves and reading the
-simulation error the relayer had swallowed.
-
-The same mismatch has a second and worse effect, which we hit before we noticed
-this one. A client pointed at the old registry resolves an owner to that
-deployment's account object. The account object is real, it is active, and it
-carries delegate keys, so nothing looks wrong. It is simply the wrong account.
-That produced a finding we drafted and have now retracted
-(`08-relayer-honours-a-delegate-the-chain-does-not.md`): our delegate key was
-absent from the account we were reading, and we concluded the relayer was
-authorizing a key the chain did not list. It was listed, on the account in the
-deployment the relayer actually uses.
-
-## What would fix it
-
-1. Return `registryId` from `GET /config` beside `packageId`. A client that
-   reads both from one place cannot mix deployments. This is the whole fix.
-2. Pass the upstream simulation error through, or at least its
-   `CommandArgumentError`, instead of collapsing every upstream failure into
-   `sponsor_upstream_error`. A wrong argument and a sponsor outage should not be
-   the same response.
-3. Update the mainnet package and registry ids in the documentation, or say
-   plainly which deployment is current.
-
-## Reproducing
-
-```bash
-bun run packages/memory/scripts/probe-sponsor.ts <your-address>
+local simulation of the same transaction:
+    CommandArgumentError { arg_idx: 0, kind: TypeMismatch } in command 0
 ```
 
-With `MEMWAL_REGISTRY_ID` set to `0x0da982ce…` the first probe returns 502. With
-it set to `0x8bf82c9e…` the same probe returns 200 and sponsored bytes.
+### Checks
 
-Measured 2026-09-22 against `https://relayer.memory.walrus.xyz`, relayer version
-0.1.0, mainnet.
+- [X] I searched existing issues and this is not a duplicate.
+- [X] This report contains no private keys, mnemonics, or other secrets.
+
+<!-- hippo (walrus-session-8-chatbots): first hit 2026-09-22; re-verified 2026-09-25 and 2026-10-02 18:53 UTC. Draft 04 (stale ids in docs) dropped as a duplicate of #1032; its sponsorship row moved here. The EAccountAlreadyExists row was measured 2026-09-25 and not re-run, because it needs a sender that already owns an account. -->

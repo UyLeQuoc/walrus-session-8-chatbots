@@ -10,41 +10,27 @@ scripts/file-issues.sh              # file all of them
 scripts/file-issues.sh 01 02 11     # or a subset, in that order
 ```
 
-**Every draft was re-run on 2026-09-25** against the redeployed relayer (build
-`5b27683`) and SDK 0.1.8, and carries the result at its top. Nine are worth
-filing. The script skips any draft whose title starts `RETRACTED`, `NOT
-REPRODUCED`, `RESOLVED BEFORE FILING` or `ON HOLD` (08, 03, 07, 02). Two drafts
-contained claims that were wrong from the start and have been corrected: 01 said
-the SDK does not type `dropped_count`, and 06 said the weights were unpublished.
+**Re-checked on 2026-10-03** against the issues other builders filed since,
+and against MemWal `main` `1e023585`. Six are written in MemWal's bug template
+(`.github/ISSUE_TEMPLATE/bug.yml`; the maintainers close issues that are not)
+and ready to file. The script skips any draft whose title starts `RETRACTED`,
+`NOT REPRODUCED`, `RESOLVED BEFORE FILING`, `ON HOLD`, `DUPLICATE`, `FIXED
+UPSTREAM` or `COMMENT ON #n`. Each file's first heading becomes the issue title
+and the rest the body; notes for us sit in an HTML comment at the end, which
+GitHub does not render. The script writes the resulting URL back into the draft.
 
-Each file's first heading becomes the issue title and the rest becomes the body.
-The script writes the resulting URL back into the draft as an HTML comment, so
-`docs/submission.md` can be filled from the files afterwards.
-Every one was hit while building hippo on the managed mainnet relayer, and every
-one has a repro that runs from this repo.
-
-Environment shared by all of them:
-
-```
-SDK:      @mysten-incubation/memwal 0.1.7 (npm latest)
-Relayer:  https://relayer.memory.walrus.xyz  (mainnet, /health reports 0.1.0)
-Runtime:  Node 20+, TypeScript 5.9, macOS 15
-Model:    google/gemini-2.5-flash via OpenRouter (Vercel AI SDK)
-Date:     2026-09-21 to 2026-09-22
-```
-
-| # | Title | Status, re-verified 2026-09-25 |
-|---|---|---|
-| 1 | `recall()` returns an empty list while reporting it dropped the matches | **File.** Intermittent; seen again on 2026-09-25 on SDK 0.1.7 and 0.1.8, with 0.1.8 naming the stalled stage as `seal_decrypt`. Corrected: the SDK does type `dropped_count` |
-| 2 | `remember` jobs die from the relayer's own Sui RPC throttling | **On hold.** Not seen since 2026-09-21; upstream added retries that day |
-| 3 | The two documented `recall()` call forms are not equivalent | **Do not file.** Not reproduced; it was an instance of 1 |
-| 4 | Published mainnet contract IDs are stale | **File.** Still reproduces |
-| 5 | A wrong `x-account-id` is silently repaired on mainnet | **File.** Still reproduces on mainnet |
-| 6 | Documented delegate-key limit and weights disagree with the relayer | **File, rewritten.** The weights were published after all; the mismatches are real |
-| 7 | `whoami` 404; `agents` flaky and miscounts | **Do not file.** Resolved upstream, and the miscount was ours |
-| 8 | ~~The relayer authorizes a delegate key the chain does not list~~ | **Retracted, do not file.** Wrong deployment's account |
-| 9 | No way to permanently delete a memory, even as the owner | **File.** Still applies |
-| 10 | `restore()` misses memories and reports `truncated: false` | **File.** Still reproduces, now measured on the correct account |
-| 11 | `/config` names no registry, and every sponsor simulation failure is a masked 502 | **File.** Still reproduces, and broader |
-| 12 | An owner cannot decrypt their own memory | **File.** Still reproduces |
-| 13 | Distance dedupe, as SKILL.md suggests, discards corrections | **File.** Still applies |
+| # | Status, 2026-10-03 |
+|---|---|
+| 1 | **Comment on #1036**, filed upstream 2026-09-27. Re-run: 18 recalls, no drops; none in five days of production logs; consistent with upstream `25ba0fb5` (2026-09-28) |
+| 2 | **On hold.** Not seen since 2026-09-21; #1071 and #999 report it |
+| 3 | **Do not file.** Not reproduced; it was an instance of 1 |
+| 4 | **Duplicate** of #1032 (2026-09-26). Its sponsorship row moved into 11 |
+| 5 | **Fixed upstream** by PR #983 (2026-09-25); #1069 describes the old behaviour |
+| 6 | **File.** Docs vs code vs hosted value; #1073 says the weights are undocumented, which they are not |
+| 7 | **Do not file.** Resolved upstream, and the miscount was ours |
+| 8 | **Retracted, do not file.** Wrong deployment's account |
+| 9 | **File, reframed** as a docs contradiction: the delete guides promise what Security Delete cannot do. #1030 and #1043 ask for the feature |
+| 10 | **File.** Re-run 2026-10-02 18:51 UTC: recall 2, restore `total: 0`; 457 blobs owned, 384 listed by the read API |
+| 11 | **File, refocused** on the masked 502. Re-run 2026-10-02 18:53 UTC: unchanged |
+| 12 | **File, reworded**: decrypting needs an undocumented Enoki Seal API key; it works with one |
+| 13 | **File.** `SKILL.md` lines unchanged on `main` |
