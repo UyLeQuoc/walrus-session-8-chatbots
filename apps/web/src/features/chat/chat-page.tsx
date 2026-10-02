@@ -163,7 +163,7 @@ export function ChatPage() {
 
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden">
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {panel.open ? null : (
           <div className="flex justify-end px-4 pt-2">
             <Button type="button" variant="ghost" onClick={panel.show}>

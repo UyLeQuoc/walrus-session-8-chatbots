@@ -156,6 +156,7 @@ beforeEach(() => {
   });
   toastError.mockClear();
   vi.stubGlobal("fetch", stubFetch({}));
+  vi.stubGlobal("innerWidth", 1440);
   // jsdom has neither of these, and both the toaster and the theme toggle read
   // them on mount. Without them the component throws before it paints.
   vi.stubGlobal(
@@ -943,6 +944,14 @@ describe("chat page", () => {
     await user.click(screen.getByRole("button", { name: "Open memory" }));
     expect(await screen.findByRole("dialog")).toBeDefined();
     expect(screen.getByText("Nothing remembered in this chat yet.")).toBeDefined();
+  });
+
+  it("keeps the memory panel off the chat on a tablet until the person opens it", async () => {
+    vi.stubGlobal("innerWidth", 1024);
+    mountChat();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined());
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.querySelector("[data-slot='memory-panel']")).toBeNull();
   });
 
   it("closes the sidebar on a phone once the person starts a new chat", async () => {

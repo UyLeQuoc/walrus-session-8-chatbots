@@ -1,13 +1,25 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   type PanelChoice,
   panelOpen,
   panelShown,
   parsePanelChoice,
 } from "@/features/chat/memory-panel-state";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const KEY = "hippo.memory-panel";
+const SIDE_BY_SIDE_FROM = 1280;
+
+function useOverlay(): boolean {
+  const [overlay, setOverlay] = useState(() => window.innerWidth < SIDE_BY_SIDE_FROM);
+  useEffect(() => {
+    const query = window.matchMedia(`(max-width: ${SIDE_BY_SIDE_FROM - 1}px)`);
+    const update = () => setOverlay(window.innerWidth < SIDE_BY_SIDE_FROM);
+    query.addEventListener("change", update);
+    update();
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return overlay;
+}
 
 function readChoice(): PanelChoice | null {
   try {
@@ -26,7 +38,7 @@ function writeChoice(open: boolean): void {
 }
 
 export function useMemoryPanel() {
-  const mobile = useIsMobile();
+  const mobile = useOverlay();
   const [open, setOpen] = useState(() => panelOpen(readChoice()));
   const [sheetOpen, setSheetOpen] = useState(false);
   const close = useCallback(() => {

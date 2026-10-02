@@ -83,7 +83,7 @@ export function Examples({
           ? onReloadAndAsk("What do you know about me?")
           : onPick(row.text)
       }
-      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
+      className="flex items-center gap-2 text-left text-sm text-muted-foreground hover:text-primary"
     >
       <row.icon className="size-4 shrink-0" />
       <span>{row.text}</span>

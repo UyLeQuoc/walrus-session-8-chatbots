@@ -65,7 +65,7 @@ export function MePage() {
             {stored} of {memories.length} on Walrus
           </span>
           {me.namespace ? (
-            <span className="min-w-0 max-w-xs flex-1 text-sm text-muted-foreground">
+            <span className="min-w-48 max-w-xs flex-1 text-sm text-muted-foreground">
               <Hash value={me.namespace} label="namespace" />
             </span>
           ) : null}

@@ -59,7 +59,7 @@ export function ComposerShell({
         ) : null}
         <div className="ml-auto flex min-w-0 items-center gap-3 text-sm text-muted-foreground">
           <span className="truncate">{meter.label}</span>
-          <span className="shrink-0">{formatContext(meter)}</span>
+          <span className="hidden shrink-0 sm:inline">{formatContext(meter)}</span>
           <span className="shrink-0">{formatPrice(meter.priceUsd)}</span>
         </div>
         <Button
