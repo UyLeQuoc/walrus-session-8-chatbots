@@ -4,6 +4,7 @@
  */
 import { eq, sql, turnLog } from "@hippo/db";
 import { db } from "../context.ts";
+import type { ModelSideCall } from "./turn-modes.ts";
 
 const PER_MINUTE = 10;
 const PER_DAY = 200;
@@ -36,9 +37,10 @@ export async function checkRate(personId: string): Promise<RateDecision> {
  * would make them invisible to `checkRate` and therefore unlimited. Record a
  * lightweight row so they count against the same budget.
  */
-export async function noteSuggestion(
+export async function noteModelCall(
   personId: string,
   channel: string,
+  mode: ModelSideCall,
   modelId: string,
 ): Promise<void> {
   await db
@@ -47,12 +49,12 @@ export async function noteSuggestion(
       personId,
       channel,
       memoryEnabled: false,
-      mode: "suggestion",
+      mode,
       model: modelId,
       injected: [],
       writes: 0,
     })
-    .catch((e) => console.error("[ratelimit] noteSuggestion", e));
+    .catch((e) => console.error("[ratelimit] noteModelCall", mode, e));
 }
 
 export async function noteCommand(personId: string, channel: string): Promise<void> {

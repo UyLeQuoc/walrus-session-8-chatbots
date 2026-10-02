@@ -5,6 +5,7 @@
 import { IMPORT_CHANNEL } from "@hippo/core/import-facts";
 import { desc, memoryIndex, people, sql, turnLog } from "@hippo/db";
 import { createClient, explorer, guestScope, RelayerExtras, TEAM_PREFIX } from "@hippo/memory";
+import { isConversationTurn } from "../src/chat/turn-modes.ts";
 import { db, operator } from "../src/context.ts";
 import { env } from "../src/env/load.ts";
 import { countPeople, qualifyingPeople } from "../src/ops/people-count.ts";
@@ -47,24 +48,15 @@ const byPerson = rows(
     .orderBy(desc(sql`count(*)`)),
 );
 
-/**
- * Command rows exist only so slash commands count against the rate limit; they
- * are written with mode "command" and never reach the model. Suggestion rows
- * are the same kind of counter, with mode "suggestion". Counting either as
- * conversation turns would inflate the memory-off side of the before/after the
- * article rests on, so they are separated here.
- */
-const isConversation = sql`${turnLog.mode} <> 'command' and ${turnLog.mode} <> 'suggestion'`;
-
 const [turns] = await db
   .select({
-    total: sql<number>`count(*) filter (where ${isConversation})::int`,
-    commands: sql<number>`count(*) filter (where not ${isConversation})::int`,
-    withMemory: sql<number>`count(*) filter (where ${isConversation} and ${turnLog.memoryEnabled})::int`,
-    withoutMemory: sql<number>`count(*) filter (where ${isConversation} and not ${turnLog.memoryEnabled})::int`,
-    recalls: sql<number>`coalesce(sum(jsonb_array_length(${turnLog.injected})) filter (where ${isConversation}), 0)::int`,
-    turnsWithRecall: sql<number>`count(*) filter (where ${isConversation} and jsonb_array_length(${turnLog.injected}) > 0)::int`,
-    writes: sql<number>`coalesce(sum(${turnLog.writes}) filter (where ${isConversation}), 0)::int`,
+    total: sql<number>`count(*) filter (where ${isConversationTurn})::int`,
+    commands: sql<number>`count(*) filter (where not ${isConversationTurn})::int`,
+    withMemory: sql<number>`count(*) filter (where ${isConversationTurn} and ${turnLog.memoryEnabled})::int`,
+    withoutMemory: sql<number>`count(*) filter (where ${isConversationTurn} and not ${turnLog.memoryEnabled})::int`,
+    recalls: sql<number>`coalesce(sum(jsonb_array_length(${turnLog.injected})) filter (where ${isConversationTurn}), 0)::int`,
+    turnsWithRecall: sql<number>`count(*) filter (where ${isConversationTurn} and jsonb_array_length(${turnLog.injected}) > 0)::int`,
+    writes: sql<number>`coalesce(sum(${turnLog.writes}) filter (where ${isConversationTurn}), 0)::int`,
   })
   .from(turnLog);
 
@@ -72,7 +64,7 @@ const byChannel = rows(
   await db
     .select({ channel: turnLog.channel, turns: sql<number>`count(*)::int` })
     .from(turnLog)
-    .where(isConversation)
+    .where(isConversationTurn)
     .groupBy(turnLog.channel)
     .orderBy(desc(sql`count(*)`)),
 );

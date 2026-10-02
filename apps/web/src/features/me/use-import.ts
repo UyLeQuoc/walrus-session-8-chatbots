@@ -1,26 +1,23 @@
 import { IMPORT_TYPES, type ImportedFact } from "@hippo/core/import-facts";
 import { useCallback, useState } from "react";
+import { z } from "zod";
 import { apiFetch } from "@/lib/api";
 
 export interface CandidateFact extends ImportedFact {
   keep: boolean;
 }
 
-function factsOf(body: unknown): ImportedFact[] {
-  const rows = body && typeof body === "object" ? (body as { facts?: unknown }).facts : null;
-  if (!Array.isArray(rows)) return [];
-  return rows.flatMap((row) => {
-    if (!row || typeof row !== "object") return [];
-    const { type, text } = row as { type?: unknown; text?: unknown };
-    const known = IMPORT_TYPES.find((t) => t === type);
-    return known && typeof text === "string" ? [{ type: known, text }] : [];
-  });
-}
+const previewReply = z.object({
+  facts: z.array(z.object({ type: z.enum(IMPORT_TYPES), text: z.string() })),
+});
+
+const keepReply = z.object({ saved: z.number(), known: z.number(), failed: z.number() });
+
+const errorReply = z.object({ error: z.string() });
 
 async function errorOf(res: Response, fallback: string): Promise<string> {
-  const body: unknown = await res.json().catch(() => null);
-  const error = body && typeof body === "object" ? (body as { error?: unknown }).error : null;
-  return typeof error === "string" ? error : fallback;
+  const body = errorReply.safeParse(await res.json().catch(() => null));
+  return body.success ? body.data.error : fallback;
 }
 
 export function useImport(onSaved: () => void) {
@@ -44,7 +41,8 @@ export function useImport(onSaved: () => void) {
         setError(await errorOf(res, "Could not read that note just now."));
         return;
       }
-      const found = factsOf(await res.json().catch(() => null));
+      const body = previewReply.safeParse(await res.json().catch(() => null));
+      const found = body.success ? body.data.facts : [];
       setFacts(found.map((fact) => ({ ...fact, keep: true })));
       if (found.length === 0) setMessage("No facts about you came out of that note.");
     } finally {
@@ -75,10 +73,11 @@ export function useImport(onSaved: () => void) {
         setError(await errorOf(res, "Could not keep those facts just now."));
         return;
       }
-      const body = (await res.json()) as { saved?: unknown; known?: unknown; failed?: unknown };
-      const count = (value: unknown) => (typeof value === "number" ? value : 0);
+      const body = keepReply.safeParse(await res.json().catch(() => null));
       setMessage(
-        `Kept ${count(body.saved)}. Already known: ${count(body.known)}. Could not keep: ${count(body.failed)}. Each lands on Walrus in about half a minute.`,
+        body.success
+          ? `Kept ${body.data.saved}. Already known: ${body.data.known}. Could not keep: ${body.data.failed}. Each lands on Walrus in about half a minute.`
+          : "Sent. Your memories below show what landed.",
       );
       setFacts([]);
       setText("");

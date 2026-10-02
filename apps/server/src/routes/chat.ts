@@ -19,7 +19,7 @@ import {
 } from "../chat/history.ts";
 import { knownMemoryHashes } from "../chat/known-hashes.ts";
 import { tooLong } from "../chat/limits.ts";
-import { checkRate, noteCommand, noteSuggestion } from "../chat/ratelimit.ts";
+import { checkRate, noteCommand, noteModelCall } from "../chat/ratelimit.ts";
 import { followUpRequest, parseSuggestions } from "../chat/suggestions.ts";
 import { startConnect, startDisconnect } from "../connect/tokens.ts";
 import { db, model } from "../context.ts";
@@ -359,7 +359,7 @@ export const chatRoutes = new Hono()
     } catch (err) {
       console.error("[suggestions]", err instanceof Error ? err.name : "error");
     }
-    await noteSuggestion(person.id, CHANNEL, model.id);
+    await noteModelCall(person.id, CHANNEL, "suggestion", model.id);
     return c.json({ suggestions });
   })
 

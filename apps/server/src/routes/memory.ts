@@ -3,15 +3,13 @@ import {
   IMPORT_FACT_LIMIT,
   IMPORT_TEXT_LIMIT,
   IMPORT_TYPES,
-  importRequest,
-  parseImportedFacts,
 } from "@hippo/core/import-facts";
 import { generateText } from "ai";
 import { Hono } from "hono";
 import { z } from "zod";
 import { dropHidden } from "../chat/citations.ts";
 import { readWebMessages } from "../chat/history.ts";
-import { checkRate, noteCommand } from "../chat/ratelimit.ts";
+import { checkRate, noteCommand, noteModelCall } from "../chat/ratelimit.ts";
 import { resolveStoredCitations } from "../chat/resolve-citations.ts";
 import { PAGE_SIZE } from "../chat/transcript.ts";
 import { model } from "../context.ts";
@@ -19,6 +17,7 @@ import { setMemoryEnabled } from "../identity/memory-flag.ts";
 import { hiddenBlobs, portFor } from "../identity/persons.ts";
 import { memoryChanges } from "../memory/changes.ts";
 import { memoriesForChat } from "../memory/chat-memories.ts";
+import { findImportFacts, keepImportedFacts } from "../memory/import.ts";
 import { rememberFact } from "../memory/remember-fact.ts";
 import { writeStatus } from "../memory/write-status.ts";
 import { mePerson } from "./chat.ts";
@@ -47,10 +46,6 @@ const importBody = z.object({
 });
 
 export const memoryRoutes = new Hono()
-  /**
-   * Bring memory from another assistant: list the facts in a pasted note,
-   * store nothing. The person picks what to keep in the next call.
-   */
   .post("/api/me/import/preview", async (c) => {
     const person = await mePerson(c);
     if (!person) return c.json({ error: "Say something in the chat first." }, 401);
@@ -60,25 +55,19 @@ export const memoryRoutes = new Hono()
     }
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ error: gate.message }, 429);
-    await noteCommand(person.id, CHANNEL);
-    const request = importRequest(parsed.data.text, new Date().toISOString().slice(0, 10));
+    await noteModelCall(person.id, CHANNEL, "import", model.id);
     try {
-      const result = await generateText({
-        model: model.primary,
-        system: request.system,
-        prompt: request.prompt,
-      });
-      return c.json({ facts: parseImportedFacts(result.text) });
+      const facts = await findImportFacts(
+        parsed.data.text,
+        new Date().toISOString().slice(0, 10),
+        async (request) => (await generateText({ model: model.primary, ...request })).text,
+      );
+      return c.json({ facts });
     } catch (err) {
       console.error("[import] preview", err instanceof Error ? err.name : "error");
       return c.json({ error: "Could not read that note just now. Try again." }, 502);
     }
   })
-  /**
-   * Remember the facts the person ticked, one at a time through the same path
-   * as every other write: redaction, dedupe, then Walrus. Written on channel
-   * `import`, so evidence and the page can always tell them apart.
-   */
   .post("/api/me/import", async (c) => {
     const person = await mePerson(c);
     if (!person) return c.json({ error: "Say something in the chat first." }, 401);
@@ -87,27 +76,11 @@ export const memoryRoutes = new Hono()
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ error: gate.message }, 429);
     await noteCommand(person.id, CHANNEL);
-    let saved = 0;
-    let known = 0;
-    let failed = 0;
-    for (const fact of parsed.data.facts) {
-      const result = await rememberFact({
-        person,
-        channel: IMPORT_CHANNEL,
-        type: fact.type,
-        text: fact.text,
-      }).catch(() => null);
-      if (!result?.ok) failed++;
-      else if (result.saved) saved++;
-      else known++;
-    }
-    return c.json({ saved, known, failed });
+    const tally = await keepImportedFacts(parsed.data.facts, (fact) =>
+      rememberFact({ person, channel: IMPORT_CHANNEL, ...fact }),
+    );
+    return c.json(tally);
   })
-  /**
-   * Where the person changed their mind: each correction, newest first, with
-   * the fact it replaced. Read back from Walrus through recall, so nothing about
-   * it is stored here either.
-   */
   .get("/api/me/changes", async (c) => {
     const person = await mePerson(c);
     if (!person) return c.json({ changes: [] });

@@ -11,6 +11,7 @@
  */
 import { sql, turnLog } from "@hippo/db";
 import { readOperatorEnv } from "@hippo/memory";
+import { isConversationTurn } from "../src/chat/turn-modes.ts";
 import { db } from "../src/context.ts";
 import { env } from "../src/env/load.ts";
 
@@ -42,7 +43,7 @@ if (!key) {
 
   const [turns] = await db
     .select({
-      n: sql<number>`count(*) filter (where ${turnLog.mode} <> 'command' and ${turnLog.mode} <> 'suggestion')::int`,
+      n: sql<number>`count(*) filter (where ${isConversationTurn})::int`,
     })
     .from(turnLog);
   const logged = turns?.n ?? 0;

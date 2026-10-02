@@ -18,6 +18,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { memoryIndex, sql, turnLog } from "@hippo/db";
+import { isConversationTurn } from "../src/chat/turn-modes.ts";
 import { db } from "../src/context.ts";
 import {
   type Deployment,
@@ -94,7 +95,7 @@ const [counts] = await db
 
 const [turns] = await db
   .select({
-    turns: sql<number>`count(*) filter (where ${turnLog.mode} <> 'command' and ${turnLog.mode} <> 'suggestion')::int`,
+    turns: sql<number>`count(*) filter (where ${isConversationTurn})::int`,
     commands: sql<number>`count(*) filter (where ${turnLog.mode} = 'command')::int`,
   })
   .from(turnLog)
