@@ -81,6 +81,11 @@ back from Walrus, because the text is never stored in Postgres.
 - **Recall before every reply**: the message itself, plus who you are, how you
   want answers and what you promised at the start of a session. Recalled lines
   reach the model as untrusted data, never as instructions.
+- **It gets to know you.** While hippo knows fewer than three things about a
+  new person, and for at most their first six turns, each reply ends with one
+  question about them: what they are building, how they want replies, a
+  deadline. Their answers are stored like any other fact. It asks nothing when
+  they are in a hurry or say not to (`docs/evidence/getting-to-know-2026-10-02.txt`).
 - **It brings up what you promised.** At the start of a session, a recalled
   commitment that is overdue or due within three days gets one short question
   at the end of the reply. `bun run demo` asserts it
@@ -145,6 +150,10 @@ back from Walrus, because the text is never stored in Postgres.
   including code blocks.
 - Every answer lists **the memories it used**, linked to their Walrus blobs, and
   the list comes back when you reopen the chat.
+- **Answer without memory.** Beside an answer that used memory, one click asks
+  the same conversation again with memory off and shows both, so the difference
+  memory made is on the page rather than claimed. Nothing is recalled or stored
+  for that second answer.
 - A **memory panel** shows what this chat remembered and whether it is on Walrus
   yet, with View, Correct and Hide on each fact. Select any text in the thread
   to remember it, after you confirm the wording.
