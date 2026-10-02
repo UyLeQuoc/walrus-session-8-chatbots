@@ -134,6 +134,9 @@ back from Walrus, because the text is never stored in Postgres.
   recorded when it was written, and lets you download what your wallet read.
   A guest's memory sits under hippo's account, so the page says your wallet
   cannot open it.
+- **Memory at work.** `/me` says how many of your answers used memory, on every
+  channel, and how many answers each memory was used in, counted from the blob
+  ids every turn records.
 - **How your memory changed.** `/me` lists each correction beside the fact it
   replaced, struck through. A pair the correction did not name is matched by
   meaning and marked "probably".
@@ -153,7 +156,7 @@ back from Walrus, because the text is never stored in Postgres.
 - **Answer without memory.** Beside an answer that used memory, one click asks
   the same conversation again with memory off and shows both, so the difference
   memory made is on the page rather than claimed. Nothing is recalled or stored
-  for that second answer.
+  for that second answer. `/compare` does the same on every channel.
 - A **memory panel** shows what this chat remembered and whether it is on Walrus
   yet, with View, Correct and Hide on each fact. Select any text in the thread
   to remember it, after you confirm the wording.
@@ -185,6 +188,7 @@ Every channel shares the same commands:
 | `/memory unhide <blob>` | let hippo use a forgotten memory again |
 | `/whoami` | your account and where the memory lives |
 | `/proof` | the memories behind the last answer |
+| `/compare` | the last answer again, without memory |
 | `/export` | your memory as a file |
 | `/link` | use the same memory on another channel |
 | `/team` | share a memory with a few people |
