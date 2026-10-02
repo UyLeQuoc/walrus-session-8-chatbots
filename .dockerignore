@@ -8,7 +8,8 @@ node_modules
 memwal
 docs
 scripts
-apps/web
+apps/web/*
+!apps/web/package.json
 .env
 .env.*
 !.env.example
