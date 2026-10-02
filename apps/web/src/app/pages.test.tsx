@@ -1259,6 +1259,59 @@ describe("me page, changes", () => {
   });
 });
 
+describe("me page, memory at work", () => {
+  it("says how many answers used memory, and how often each memory was used", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", memoryEnabled: true, namespace: "hippo-guest:abc" },
+        "/api/me/memories": {
+          memories: [
+            {
+              id: "1",
+              type: "profile",
+              status: "stored",
+              channel: "telegram",
+              createdAt: "2026-10-01T00:00:00Z",
+              blobId: "blob-1",
+              expiresAt: null,
+              ciphertextUrl: null,
+              explorerUrl: null,
+            },
+          ],
+        },
+        "/api/me/usage": { answers: 50, withMemory: 34, uses: { "blob-1": 12 } },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("34 of 50 answers used your memory")).toBeDefined();
+    expect(screen.getByText(/That is 68%/)).toBeDefined();
+    expect(await screen.findByText("12 answers")).toBeDefined();
+  });
+
+  it("shows no count before anyone has been answered", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", memoryEnabled: true, namespace: "hippo-guest:abc" },
+        "/api/me/memories": { memories: [] },
+        "/api/me/usage": { answers: 0, withMemory: 0, uses: {} },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await screen.findByText("Bring your memory from another assistant");
+    expect(screen.queryByText("Memory at work")).toBeNull();
+  });
+});
+
 describe("me page, import", () => {
   it("lists the facts in a pasted note and keeps only the ones left ticked", async () => {
     const user = userEvent.setup();

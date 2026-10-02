@@ -19,6 +19,7 @@ import { memoryChanges } from "../memory/changes.ts";
 import { memoriesForChat } from "../memory/chat-memories.ts";
 import { findImportFacts, keepImportedFacts } from "../memory/import.ts";
 import { rememberFact } from "../memory/remember-fact.ts";
+import { usageFor } from "../memory/usage-person.ts";
 import { writeStatus } from "../memory/write-status.ts";
 import { mePerson } from "./chat.ts";
 
@@ -80,6 +81,11 @@ export const memoryRoutes = new Hono()
       rememberFact({ person, channel: IMPORT_CHANNEL, ...fact }),
     );
     return c.json(tally);
+  })
+  .get("/api/me/usage", async (c) => {
+    const person = await mePerson(c);
+    if (!person) return c.json({ answers: 0, withMemory: 0, uses: {} });
+    return c.json(await usageFor(person.id));
   })
   .get("/api/me/changes", async (c) => {
     const person = await mePerson(c);

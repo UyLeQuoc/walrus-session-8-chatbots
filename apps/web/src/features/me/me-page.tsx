@@ -14,7 +14,9 @@ import { Hash } from "@/features/me/hash";
 import { ImportPanel } from "@/features/me/import-panel";
 import { MemoryList } from "@/features/me/memory-list";
 import { TeamPanel } from "@/features/me/team-panel";
+import { UsagePanel } from "@/features/me/usage-panel";
 import { useMe } from "@/features/me/use-me";
+import { useUsage } from "@/features/me/use-usage";
 import { WalletReadPanel } from "@/features/me/wallet-read-panel";
 import { WalletSignIn } from "@/features/me/wallet-signin";
 import { usePageMeta } from "@/hooks/use-page-meta";
@@ -29,6 +31,7 @@ const PAGE_META = {
 
 export function MePage() {
   const { me, memories, error, load, signOut } = useMe();
+  const usage = useUsage();
   const account = useCurrentAccount();
   const linked = Boolean(me?.walletAddress) || Boolean(account);
   useShellTitle("My memory");
@@ -86,6 +89,8 @@ export function MePage() {
         {stored > 0 ? <ExportPanel onError={(message) => toast.error(message)} /> : null}
       </div>
 
+      {usage && usage.answers > 0 ? <UsagePanel usage={usage} /> : null}
+
       <ImportPanel onSaved={load} />
 
       {!me.signedIn && !linked ? <WalletSignIn onSignedIn={load} /> : null}
@@ -112,7 +117,12 @@ export function MePage() {
 
       <TeamPanel onError={(message) => toast.error(message)} />
 
-      <MemoryList memories={memories} onError={(message) => toast.error(message)} onChange={load} />
+      <MemoryList
+        memories={memories}
+        uses={usage?.uses}
+        onError={(message) => toast.error(message)}
+        onChange={load}
+      />
     </Page>
   );
 }

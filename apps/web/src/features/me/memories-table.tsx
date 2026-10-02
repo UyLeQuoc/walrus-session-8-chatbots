@@ -31,6 +31,7 @@ import {
 import { Web3Address } from "@/components/web3-address";
 import { ago, type Memory } from "@/features/me/memory";
 import { useMemoriesTable } from "@/features/me/use-memories-table";
+import { usedInLabel } from "@/features/me/use-usage";
 
 function daysUntil(iso: string): number {
   return Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000);
@@ -38,10 +39,12 @@ function daysUntil(iso: string): number {
 
 export function MemoriesTable({
   memories,
+  uses,
   toggling,
   onToggle,
 }: {
   memories: Memory[];
+  uses?: Record<string, number>;
   toggling: string | null;
   onToggle: (blobId: string, hidden: boolean) => void;
 }) {
@@ -101,6 +104,20 @@ export function MemoriesTable({
           );
         },
       },
+      ...(uses
+        ? [
+            {
+              id: "used",
+              header: "Used in",
+              enableSorting: false,
+              cell: ({ row }: { row: { original: Memory } }) => (
+                <span className="text-muted-foreground">
+                  {usedInLabel(row.original.blobId ? (uses[row.original.blobId] ?? 0) : 0)}
+                </span>
+              ),
+            },
+          ]
+        : []),
       {
         id: "status",
         header: "Status",
@@ -116,7 +133,7 @@ export function MemoriesTable({
         ),
       },
     ],
-    [onToggle, toggling],
+    [onToggle, toggling, uses],
   );
 
   const table = useLegacyTable({

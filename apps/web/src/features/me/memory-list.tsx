@@ -28,10 +28,12 @@ function daysUntil(iso: string): number {
 
 export function MemoryList({
   memories,
+  uses,
   onError,
   onChange,
 }: {
   memories: Memory[];
+  uses?: Record<string, number>;
   onError: (m: string) => void;
   /** Called after a memory is hidden or unhidden, so the page can reload. */
   onChange?: () => void;
@@ -125,6 +127,7 @@ export function MemoryList({
         {hits === null && (
           <MemoriesTable
             memories={memories}
+            uses={uses}
             toggling={toggling}
             onToggle={(id, hidden) => void toggle(id, hidden)}
           />
