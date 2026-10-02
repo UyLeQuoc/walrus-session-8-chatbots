@@ -391,7 +391,11 @@ this repo.
    official Walrus Memory MCP plugin, `memwal_login`, namespace `hippo`, ask what
    hippo knows. Screenshot to `docs/evidence/`. Nothing claims this until the
    screenshot exists. Step by step: `docs/CLAUDE-CODE-CHECK.md`.
-7. **File the issues. (Owner's word, then agent; by Oct 3)** If the relayer has
+7. **File the issues. (Owner's word, then agent; by Oct 3)** **2026-10-03: six
+   drafts rewritten in MemWal's bug template after checking what others filed
+   (01 becomes a comment on #1036, 04 is a duplicate of #1032, 05 was fixed by
+   PR #983), and 10 and 11 re-run on mainnet. Not filed: the owner is reading
+   them first. `docs/issues/README.md` has the table.** If the relayer has
    redeployed since 2026-09-25, re-run each draft's repro first. Then
    `scripts/file-issues.sh --dry-run`, then for real: 01, 04, 05, 06, 09, 10,
    11, 12, 13. Bug Bounty is judged separately, and early filing gives the
