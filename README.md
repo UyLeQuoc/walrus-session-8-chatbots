@@ -81,6 +81,10 @@ back from Walrus, because the text is never stored in Postgres.
 - **Recall before every reply**: the message itself, plus who you are, how you
   want answers and what you promised at the start of a session. Recalled lines
   reach the model as untrusted data, never as instructions.
+- **It brings up what you promised.** At the start of a session, a recalled
+  commitment that is overdue or due within three days gets one short question
+  at the end of the reply. `bun run demo` asserts it
+  (`docs/evidence/demo-2026-10-02-commitments.txt`).
 - **Corrections win.** A change of mind is stored next to the fact it replaces,
   and the newer one is what hippo believes.
 - **Style changes behaviour.** "Short answers, in Vietnamese" changes how every
@@ -97,6 +101,12 @@ back from Walrus, because the text is never stored in Postgres.
   channel to the same memory.
 - **Team memory.** `/team` creates a small group that shares one namespace,
   written only by `/team remember`.
+- **Bring your memory from another assistant.** Paste what ChatGPT or Claude
+  says it knows about you into `/me`; hippo lists the facts it finds, typed,
+  and keeps only the ones you leave ticked, through the same redaction and
+  dedupe as every other write. The pasted note is fenced as untrusted data, and
+  the model is told to leave out keys, health and other people's private
+  lives; nothing is stored until you choose.
 
 ### Ownership on Sui
 
@@ -113,6 +123,15 @@ back from Walrus, because the text is never stored in Postgres.
   revoke button, and your memories with type filter, search, hide, storage
   expiry, blob and ciphertext links, export and team. Wallet sign-in proves who
   you are with a signature, never a typed address.
+- **Read it yourself, without the relayer.** Once the account is yours, `/me`
+  fetches each memory's ciphertext from a Walrus aggregator and decrypts it in
+  your browser with your wallet through Seal, checks it against the hash
+  recorded when it was written, and lets you download what your wallet read.
+  A guest's memory sits under hippo's account, so the page says your wallet
+  cannot open it.
+- **How your memory changed.** `/me` lists each correction beside the fact it
+  replaced, struck through. A pair the correction did not name is matched by
+  meaning and marked "probably".
 - **Google sign-in, no wallet needed.** Enoki zkLogin gives a Google account a
   Sui address and lists it next to Slush in every wallet chooser, so a person
   without a wallet can still own their memory. That address is hippo's alone:
@@ -167,10 +186,12 @@ Every channel shares the same commands:
 
 ### Not built yet
 
-- **Private files.** Encrypted upload, planned in `docs/CHAT-UPGRADE.md`, waits on
-  an API key for the mainnet Seal aggregator. The attach button is disabled.
-- **Reading your memory without the relayer**, and **deleting** a memory for
-  good. Both are limits of Walrus Memory today; see the limits under Layout.
+- **Private files are built, not live.** Encrypt in the browser with Seal,
+  store on Walrus, attach one to a message and get answers with line
+  references (`docs/CHAT-UPGRADE.md`). It is merged but not deployed, and the
+  mainnet round trip, two transactions the owner signs, has not been run.
+- **Deleting** a memory for good. That is a limit of Walrus Memory today; see
+  the limits under Layout.
 - **The Claude Code check.** It follows from how the account works and has not
   been run.
 
@@ -299,12 +320,14 @@ architecture plans.
 Three limits worth knowing before you rely on this. A memory can be made
 unrecallable but not deleted. The relayer's `restore()` does not currently
 re-index this account, so treat the search index as the fragile part and Walrus
-as the durable one. And an owner cannot yet decrypt their own memory without the
-relayer: mainnet ciphertext is sealed by a committee SEAL key server whose
-aggregator requires an API key. Access control is genuinely on chain, and we
-measured that revoking a delegate key stops the relayer within about 32 seconds
-(`docs/evidence/revocation-2026-09-22.md`), but reading the bytes yourself still
-goes through a service. All three are written up in `docs/issues/`.
+as the durable one. And reading your own memory without the relayer
+needs an API key: mainnet ciphertext is sealed by a committee Seal key server
+whose aggregator refuses requests without one. With the key, `/me` decrypts a
+real memory with the owner's wallet and no relayer (`docs/SPIKES.md` §14).
+Access control is genuinely on chain, and we measured that revoking a delegate
+key stops the relayer within about 32 seconds
+(`docs/evidence/revocation-2026-09-22.md`). All three are written up in
+`docs/issues/`.
 
 ## Troubleshooting
 
