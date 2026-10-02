@@ -6,6 +6,7 @@ export interface ImportedFact {
   text: string;
 }
 
+export const IMPORT_CHANNEL = "import";
 export const IMPORT_TEXT_LIMIT = 8_000;
 export const IMPORT_FACT_LIMIT = 20;
 

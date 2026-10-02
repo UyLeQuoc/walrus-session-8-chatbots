@@ -2,6 +2,7 @@
  * `bun run evidence` — the numbers the submission form and the article need.
  * Everything here is read from Postgres plus the relayer, never invented.
  */
+import { IMPORT_CHANNEL } from "@hippo/core/import-facts";
 import { desc, memoryIndex, people, sql, turnLog } from "@hippo/db";
 import { createClient, explorer, guestScope, RelayerExtras, TEAM_PREFIX } from "@hippo/memory";
 import { db, operator } from "../src/context.ts";
@@ -15,9 +16,13 @@ const rows = <T>(r: T[]): T[] => r;
  * memory, not theirs. Counting it toward "3 people with 10 memories each" would
  * let one busy team inflate the requirement check, so every per-person number
  * below leaves team namespaces out and they are reported on their own line.
+ * Facts pasted in from another assistant on /me are left out the same way:
+ * one paste can hold twenty, and the requirement is memory built by using hippo.
  */
-const ownMemory = sql`${memoryIndex.namespace} not like ${`${TEAM_PREFIX}%`}`;
+const notTeam = sql`${memoryIndex.namespace} not like ${`${TEAM_PREFIX}%`}`;
+const ownMemory = sql`${notTeam} and ${memoryIndex.channel} <> ${IMPORT_CHANNEL}`;
 const teamMemory = sql`${memoryIndex.namespace} like ${`${TEAM_PREFIX}%`}`;
+const importedMemory = sql`${notTeam} and ${memoryIndex.channel} = ${IMPORT_CHANNEL}`;
 
 const byPerson = rows(
   await db
@@ -81,6 +86,14 @@ const [team] = await db
   .from(memoryIndex)
   .where(teamMemory);
 
+const [imported] = await db
+  .select({
+    stored: sql<number>`count(*) filter (where ${memoryIndex.status} = 'stored')::int`,
+    people: sql<number>`count(distinct ${memoryIndex.personId})::int`,
+  })
+  .from(memoryIndex)
+  .where(importedMemory);
+
 const counted = countPeople(byPerson);
 const qualifying = qualifyingPeople(counted);
 const totalStored = counted.reduce((n, p) => n + p.stored, 0);
@@ -106,6 +119,9 @@ console.log(
 );
 console.log(
   `Team memories, not counted above: ${team?.stored ?? 0} in ${team?.teams ?? 0} teams, from ${team?.contributors ?? 0} people`,
+);
+console.log(
+  `Imported memories, not counted:  ${imported?.stored ?? 0} from ${imported?.people ?? 0} people`,
 );
 console.log(`Owned-mode people:               ${counted.filter((p) => p.mode === "owned").length}`);
 

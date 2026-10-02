@@ -1,4 +1,5 @@
 import {
+  IMPORT_CHANNEL,
   IMPORT_FACT_LIMIT,
   IMPORT_TEXT_LIMIT,
   IMPORT_TYPES,
@@ -92,7 +93,7 @@ export const memoryRoutes = new Hono()
     for (const fact of parsed.data.facts) {
       const result = await rememberFact({
         person,
-        channel: "import",
+        channel: IMPORT_CHANNEL,
         type: fact.type,
         text: fact.text,
       }).catch(() => null);
