@@ -11,7 +11,12 @@ signature. About 15 minutes.
 ## Before you start
 
 - A browser wallet such as Slush, with the address you want to own the memory.
-  **Not Google sign-in:** hippo's Enoki app and the Walrus Memory dashboard derive
+  **Not the Sessions wallet.** It owns `0x5a257802…`, the operator account where
+  every guest's memory lives, and both hippo's `/connect` and the dashboard's
+  login reuse the account a wallet already owns. Using it would give Claude Code
+  a key to every guest's memory. A fresh Slush wallet also serves for filming
+  `/connect` (`docs/BLOCKERS.md`).
+- **Not Google sign-in:** hippo's Enoki app and the Walrus Memory dashboard derive
   different addresses from the same Google account, so the dashboard would not
   find the account hippo made.
 - A little SUI in that wallet, in case sponsorship is refused. Both
