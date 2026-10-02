@@ -118,7 +118,7 @@ back from Walrus, because the text is never stored in Postgres.
   without a wallet can still own their memory. That address is hippo's alone:
   Claude Code and the Walrus dashboard derive a different one from the same
   Google account, and the chooser says so. It works once the Google OAuth client
-  lists the app's origin, `<origin>/`, as a redirect URI.
+  lists the app's origin, `<origin>/`, as a redirect URI; production does.
 
 ### The web chat
 
