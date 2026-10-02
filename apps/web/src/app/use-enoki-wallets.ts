@@ -2,7 +2,7 @@ import { useSuiClientContext } from "@mysten/dapp-kit";
 import { isEnokiNetwork, registerEnokiWallets } from "@mysten/enoki";
 import type { ClientWithCoreApi } from "@mysten/sui/client";
 import { useEffect } from "react";
-import { enokiConfig, GOOGLE_REDIRECT_PATH } from "@/app/enoki";
+import { enokiConfig, googleRedirect } from "@/app/enoki";
 
 export function useEnokiWallets(): void {
   const { client, network } = useSuiClientContext();
@@ -15,7 +15,7 @@ export function useEnokiWallets(): void {
       providers: {
         google: {
           clientId: config.clientId,
-          redirectUrl: `${window.location.origin}${GOOGLE_REDIRECT_PATH}`,
+          redirectUrl: googleRedirect(config, window.location.origin),
         },
       },
       client: client as unknown as ClientWithCoreApi,
