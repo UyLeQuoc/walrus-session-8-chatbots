@@ -21,20 +21,28 @@ pnpm memory and the correction. Say: both are still there, the newer one wins.
 This is the beat that was broken three ways before it worked
 (`docs/evidence/conflicts-2026-09-24.md`), and `bun run demo` now asserts it.
 
+Then click **Answer without memory** under that answer. The same conversation is
+answered again with memory off and shown beside the first: a generic answer next
+to "bun". Say: same question, same model, memory off. If the video has to be two
+minutes, this five-second shot can replace the 0:00 opening, which makes the
+same point in fifteen.
+
 **0:50 — where the memory actually is, 25s.** Open `/me`. The "On chain" panel
 is the shot: the account object, its owner, and the list of keys that can read
 this memory, all read from Sui rather than from our database. Then the memory
 list below it. Click a blob link to walruscan, then the ciphertext link so the
 raw encrypted bytes are on screen. Say: anyone can download this, only the
-account can read it. Then "Download the full record" under *Take it with you*:
+account can read it. Show **Memory at work** at the top of `/me`: how many of your answers used
+memory, and the "Used in" column beside each one. Then "Download the full record" under *Take it with you*:
 the page says how many memories came back and how many were verified against
 the hash hippo recorded when it wrote them
 (`docs/evidence/export-2026-09-24.md`).
 
-Do not claim on camera that you can decrypt it yourself. You cannot, today:
-mainnet ciphertext is sealed by a committee key server whose aggregator wants an
-API key (`docs/issues/12`). The honest line is that the chain decides who may
-read, which is the part that was measured.
+Do not claim on camera that you can decrypt it yourself unless the owned account
+in this video has used **Read with my wallet** on `/me` first and it worked. A
+script decrypted a real memory with a Seal key and no relayer
+(`docs/SPIKES.md` §14), but no owner has done it in a browser yet. Without that,
+the honest line is that the chain decides who may read, which was measured.
 
 **1:15 — it follows you, 15s.** In the terminal run `bun run hippo`. Web chat
 `/link`, copy the code, `/link <code>` in the terminal, ask what it knows. Same
