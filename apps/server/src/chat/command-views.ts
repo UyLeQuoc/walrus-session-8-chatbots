@@ -40,6 +40,7 @@ const HELP_COMMANDS = [
   "/memory forget <b>",
   "/memory off | on",
   "/disconnect",
+  "/compare",
   "/connect",
   "/privacy",
   "/whoami",
@@ -252,6 +253,14 @@ export function searchView(
         href: explorer.blobExplorer(hit.blobId),
       })),
     },
+  };
+}
+
+export function compareView(answer: string, used: number): CommandView {
+  const lead = `Without the ${used} ${used === 1 ? "memory" : "memories"} my last answer used, I would have said:`;
+  return {
+    text: `${lead}\n\n${answer}`,
+    table: { lead, columns: ["Without memory"], rows: [{ cells: [answer] }] },
   };
 }
 

@@ -75,7 +75,7 @@ export async function handleIncoming(msg: IncomingMessage): Promise<TurnReply> {
   }
 
   try {
-    const command = await handleCommand(ctx, msg.text);
+    const command = await handleCommand({ ...ctx, conversationId }, msg.text);
     if (command) {
       await noteCommand(person.id, msg.channel);
       await appendUser({

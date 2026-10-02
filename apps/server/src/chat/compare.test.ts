@@ -1,7 +1,7 @@
 import { gatherContext } from "@hippo/core";
 import type { MemoryPort } from "@hippo/memory";
 import { describe, expect, it, vi } from "vitest";
-import { memoryOffTurn } from "./compare.ts";
+import { memoryOffTurn, throughLastQuestion } from "./compare.ts";
 
 describe("memoryOffTurn", () => {
   it("answers the same messages without recalling, remembering or a session pull", async () => {
@@ -26,5 +26,27 @@ describe("memoryOffTurn", () => {
     expect(turn.messages).toBe(messages);
     expect(await gatherContext(turn)).toEqual({ injected: [], styleHints: [] });
     expect(recall).not.toHaveBeenCalled();
+  });
+});
+
+describe("throughLastQuestion", () => {
+  it("drops the answer after the last question, so it is asked again", () => {
+    expect(
+      throughLastQuestion([
+        { role: "user", content: "a" },
+        { role: "assistant", content: "b" },
+        { role: "user", content: "c" },
+        { role: "assistant", content: "d" },
+      ]),
+    ).toEqual([
+      { role: "user", content: "a" },
+      { role: "assistant", content: "b" },
+      { role: "user", content: "c" },
+    ]);
+  });
+
+  it("gives nothing when nobody has asked anything", () => {
+    expect(throughLastQuestion([])).toBeNull();
+    expect(throughLastQuestion([{ role: "assistant", content: "hi" }])).toBeNull();
   });
 });

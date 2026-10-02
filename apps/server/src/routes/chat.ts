@@ -222,7 +222,7 @@ export const chatRoutes = new Hono()
       }
     }
 
-    const command = await handleCommand(ctx, text);
+    const command = await handleCommand({ ...ctx, conversationId }, text);
     if (command) {
       const saved = await appendUser({
         conversationId,

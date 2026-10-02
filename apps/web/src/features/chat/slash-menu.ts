@@ -2,6 +2,7 @@ import { CHANNEL_COMMANDS } from "@hippo/core/commands";
 import type { LucideIcon } from "lucide-react";
 import {
   CircleHelp,
+  Columns2,
   Download,
   Eye,
   EyeOff,
@@ -25,6 +26,7 @@ const ICONS: Record<(typeof CHANNEL_COMMANDS)[number]["name"], LucideIcon> = {
   memory: Library,
   whoami: User,
   proof: Fingerprint,
+  compare: Columns2,
   export: Download,
   link: Link,
   team: Users,

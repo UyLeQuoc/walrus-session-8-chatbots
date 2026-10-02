@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HELP, PRIVACY } from "../copy.ts";
 import {
+  compareView,
   connectLinkView,
   exportWebView,
   forgetUsageView,
@@ -14,6 +15,15 @@ import {
 } from "./command-views.ts";
 
 describe("command views", () => {
+  it("says how many memories the compared answer had, then the answer without them", () => {
+    const view = compareView("npm is the default.", 2);
+    expect(view.text).toBe(
+      "Without the 2 memories my last answer used, I would have said:\n\nnpm is the default.",
+    );
+    expect(view.table.rows[0]?.cells).toEqual(["npm is the default."]);
+    expect(compareView("x", 1).text).toMatch(/^Without the 1 memory my/);
+  });
+
   it("keeps the channel sentence for whoami and puts the full id behind copy and open", () => {
     const view = whoamiView({
       mode: "owned",

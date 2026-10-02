@@ -7,7 +7,7 @@
 import type { CommandTable } from "@hippo/core/command-table";
 import { and, desc, eq, memoryIndex, sql, turnLog } from "@hippo/db";
 import { guestScope, MEMORY_TYPES, type MemoryScope, RelayerExtras } from "@hippo/memory";
-import { db, operator } from "../context.ts";
+import { db, model, operator } from "../context.ts";
 import { env } from "../env/load.ts";
 import { createLinkCode, redeemLinkCode } from "../identity/link.ts";
 import { setMemoryEnabled } from "../identity/memory-flag.ts";
@@ -22,6 +22,7 @@ import {
 import { createTeam, currentTeam, inviteToTeam, joinTeam, leaveTeam } from "../identity/teams.ts";
 import { asDownload, type ExportDownload, exportFor } from "../memory/export-person.ts";
 import {
+  compareView,
   connectLinkView,
   disconnectLinkView,
   exportAttachedView,
@@ -44,12 +45,16 @@ import {
   welcomeView,
   whoamiView,
 } from "./command-views.ts";
+import { answerWithoutMemory, throughLastQuestion } from "./compare.ts";
+import { modelMessages } from "./history.ts";
+import { isConversationTurn } from "./turn-modes.ts";
 
 export interface CommandContext {
   person: Person;
   channel: string;
   /** Rendered link the user can open to run the wallet flow. */
   connectUrl: (kind: "connect" | "disconnect") => Promise<string>;
+  conversationId?: string;
 }
 
 export interface CommandResult {
@@ -335,14 +340,48 @@ async function link(ctx: CommandContext, arg: string): Promise<CommandResult> {
   }
 }
 
-async function proof(ctx: CommandContext): Promise<CommandResult> {
+async function lastAnswerMemories(ctx: CommandContext) {
   const [last] = await db
-    .select()
+    .select({ injected: turnLog.injected })
     .from(turnLog)
-    .where(and(eq(turnLog.personId, ctx.person.id), eq(turnLog.channel, ctx.channel)))
+    .where(
+      and(
+        eq(turnLog.personId, ctx.person.id),
+        eq(turnLog.channel, ctx.channel),
+        isConversationTurn,
+      ),
+    )
     .orderBy(desc(turnLog.createdAt))
     .limit(1);
-  const injected = last?.injected ?? [];
+  return last?.injected ?? [];
+}
+
+async function compareLast(ctx: CommandContext): Promise<CommandResult> {
+  if (!ctx.person.memoryEnabled) {
+    return sentence("Memory is off, so my answers already use none. /memory on turns it back on.");
+  }
+  const used = (await lastAnswerMemories(ctx)).length;
+  if (used === 0) {
+    return sentence(
+      "My last answer used no memory, so without it I would say the same. Ask me something you have told me about, then /compare.",
+    );
+  }
+  const messages = ctx.conversationId
+    ? throughLastQuestion(await modelMessages(ctx.conversationId))
+    : null;
+  if (!messages) return sentence("Ask me something first, then /compare.");
+  const answer = await answerWithoutMemory({
+    model,
+    port: await portFor(ctx.person, ctx.channel),
+    messages,
+    channel: ctx.channel,
+    userHandle: ctx.person.displayName ?? ctx.channel,
+  });
+  return compareView(answer, used);
+}
+
+async function proof(ctx: CommandContext): Promise<CommandResult> {
+  const injected = await lastAnswerMemories(ctx);
   return proofView(
     injected.map((item) => ({
       type: item.type ?? "memory",
@@ -378,6 +417,8 @@ export async function handleCommand(
       return link(ctx, arg);
     case "proof":
       return proof(ctx);
+    case "compare":
+      return compareLast(ctx);
     case "export":
       return exportMemories(ctx);
     case "connect":
