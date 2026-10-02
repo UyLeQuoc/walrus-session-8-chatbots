@@ -53,4 +53,11 @@ describe("turn citations", () => {
     ]);
     expect(cites).toEqual([{ blobId: "blob-keep", type: "profile", distance: 0.2 }]);
   });
+
+  it("keeps the file an answer came from inside the sealed body", () => {
+    const doc = { id: "11111111-1111-4111-8111-111111111111", name: "notes.md" };
+    const raw = packTurnBody("Port 5433 (line 2).", [], doc);
+    expect(unpackTurnBody(raw)).toEqual({ text: "Port 5433 (line 2).", cites: [], doc });
+    expect(unpackTurnBody(packTurnBody("Hi.", []))).toEqual({ text: "Hi.", cites: [] });
+  });
 });

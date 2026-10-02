@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./commands": "./src/command-catalog.ts",
-    "./command-table": "./src/command-table.ts"
+    "./command-table": "./src/command-table.ts",
+    "./document": "./src/document.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

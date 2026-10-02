@@ -11,7 +11,7 @@ import { decryptSecret, encryptSecret } from "@hippo/memory";
 import type { ModelMessage } from "ai";
 import { db } from "../context.ts";
 import { env } from "../env/load.ts";
-import { type Citation, packTurnBody, unpackTurnBody } from "./citations.ts";
+import { type Citation, type DocumentCite, packTurnBody, unpackTurnBody } from "./citations.ts";
 import {
   contextWindow,
   conversationTitle,
@@ -38,6 +38,7 @@ export interface TranscriptMessage {
   seq: number;
   table?: CommandTable;
   cites?: Citation[];
+  doc?: DocumentCite;
 }
 
 export interface StoredAnswer {
@@ -54,6 +55,8 @@ export type AppendResult =
       answer: string | null;
       table?: CommandTable;
       userSince?: Date;
+      /** The stored user line this turn answers, when this call wrote or reused it. */
+      messageId?: string;
     }
   | { ok: false; reason: "missing" };
 
@@ -168,7 +171,7 @@ function openStoredBody(
   role: string,
   kind: string,
   raw: string,
-): { text: string; cites: Citation[]; table?: CommandTable } {
+): { text: string; cites: Citation[]; table?: CommandTable; doc?: DocumentCite } {
   if (kind === "command") {
     const presented = presentCommandBody(role, kind, raw);
     return {
@@ -178,8 +181,7 @@ function openStoredBody(
     };
   }
   if (role === "assistant" && kind === "turn") {
-    const opened = unpackTurnBody(raw);
-    return { text: opened.text, cites: opened.cites };
+    return unpackTurnBody(raw);
   }
   return { text: raw, cites: [] };
 }
@@ -321,18 +323,22 @@ export async function appendUser(input: {
           alreadyAnswered: false,
           answer: null,
           userSince: prior.createdAt,
+          messageId: prior.id,
         };
       }
 
       const seq = await nextSeq(tx, conv.id);
-      await tx.insert(messages).values({
-        conversationId: conv.id,
-        seq,
-        role: "user",
-        kind: input.kind,
-        bodyEnc: seal(input.text),
-        clientId: input.clientId,
-      });
+      const [inserted] = await tx
+        .insert(messages)
+        .values({
+          conversationId: conv.id,
+          seq,
+          role: "user",
+          kind: input.kind,
+          bodyEnc: seal(input.text),
+          clientId: input.clientId,
+        })
+        .returning({ id: messages.id });
       const flags = await sessionFlags(tx, conv.id, seq, now);
       await tx
         .update(conversations)
@@ -341,7 +347,13 @@ export async function appendUser(input: {
           ...(conv.titleEnc ? {} : { titleEnc: seal(conversationTitle(input.text)) }),
         })
         .where(eq(conversations.id, conv.id));
-      return { ok: true, ...flags, alreadyAnswered: false, answer: null };
+      return {
+        ok: true,
+        ...flags,
+        alreadyAnswered: false,
+        answer: null,
+        ...(inserted ? { messageId: inserted.id } : {}),
+      };
     });
   } catch (err) {
     if (!isUniqueViolation(err) || !input.clientId) throw err;
@@ -396,9 +408,11 @@ export async function appendAssistant(
   text: string,
   kind: TranscriptKind,
   cites: Citation[] = [],
+  doc?: DocumentCite,
 ): Promise<void> {
   const spoken = text.trim() || "…";
-  const body = kind === "turn" && cites.length > 0 ? packTurnBody(spoken, cites) : spoken;
+  const body =
+    kind === "turn" && (cites.length > 0 || doc) ? packTurnBody(spoken, cites, doc) : spoken;
   await db.transaction(async (tx) => {
     const [conv] = await tx
       .select({ id: conversations.id })
@@ -552,6 +566,7 @@ export async function readWebMessages(
       text: presented.text,
       ...(presented.table ? { table: presented.table } : {}),
       ...(presented.cites.length > 0 ? { cites: presented.cites } : {}),
+      ...(presented.doc ? { doc: presented.doc } : {}),
       seq: row.seq,
     });
   }

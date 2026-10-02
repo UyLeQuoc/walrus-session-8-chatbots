@@ -12,6 +12,7 @@ import { authRoutes } from "./routes/auth.ts";
 import { chatRoutes } from "./routes/chat.ts";
 import { connectRoutes } from "./routes/connect.ts";
 import { conversationRoutes } from "./routes/conversations.ts";
+import { documentRoutes } from "./routes/documents.ts";
 import { healthRoutes } from "./routes/health.ts";
 import { memoryRoutes } from "./routes/memory.ts";
 
@@ -52,6 +53,7 @@ app.route("/", healthRoutes);
 app.route("/", chatRoutes);
 app.route("/", conversationRoutes);
 app.route("/", memoryRoutes);
+app.route("/", documentRoutes);
 app.route("/", connectRoutes);
 app.route("/", authRoutes);
 

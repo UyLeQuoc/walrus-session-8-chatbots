@@ -24,6 +24,8 @@ import { followUpRequest, parseSuggestions } from "../chat/suggestions.ts";
 import { startConnect, startDisconnect } from "../connect/tokens.ts";
 import { db, model } from "../context.ts";
 import { describeFailure } from "../copy.ts";
+import { turnDocument } from "../documents/rules.ts";
+import { attachDocument, documentForTurn } from "../documents/store.ts";
 import { env } from "../env/load.ts";
 import { personFromSession } from "../identity/auth.ts";
 import {
@@ -108,6 +110,7 @@ const chatBody = z.object({
   conversationId: z.uuid().optional(),
   clientMessageId: z.string().trim().min(1).max(128).optional(),
   regenerate: z.boolean().optional(),
+  document: turnDocument.optional(),
 });
 
 const UNSAVED = "I could not save that message, so I did not answer. Try again.";
@@ -239,6 +242,11 @@ export const chatRoutes = new Hono()
       return plainReply(channel, shown, command.files, channel === "web" ? table : undefined);
     }
 
+    const doc = body.document ? await documentForTurn(person.id, body.document.id) : null;
+    if (body.document && !doc) {
+      return plainReply(channel, "That file is not available any more. Pick it again.");
+    }
+
     let placed: Awaited<ReturnType<typeof appendUser>>;
     try {
       placed = await appendUser({
@@ -255,6 +263,11 @@ export const chatRoutes = new Hono()
     }
     if (!placed.ok) return plainReply(channel, UNSAVED);
     if (placed.alreadyAnswered) return textReply(placed.answer ?? "…");
+    if (doc && placed.messageId) {
+      await attachDocument(placed.messageId, doc.id).catch((err) =>
+        console.error(`[${channel}] attach`, doc.id, err instanceof Error ? err.name : "error"),
+      );
+    }
 
     const port = await portFor(person, channel);
     const messages = await modelMessages(conversationId);
@@ -273,6 +286,7 @@ export const chatRoutes = new Hono()
       hasCorrections: await hasCorrections(person.id),
       abortSignal: c.req.raw.signal,
       knownHashes,
+      ...(doc && body.document ? { document: { name: doc.name, text: body.document.text } } : {}),
     };
     const turnCtx = await gatherContext(input);
     if (c.req.raw.signal.aborted) return c.body(null, 204);
@@ -303,6 +317,7 @@ export const chatRoutes = new Hono()
                 relevance: Number((1 - m.distance).toFixed(2)),
                 blobId: m.blob_id,
               })),
+              ...(doc ? { document: doc } : {}),
             }
           : undefined,
       onFinish: async ({ messages: out }) => {
@@ -312,6 +327,7 @@ export const chatRoutes = new Hono()
           spokenText(out),
           "turn",
           citationsOf(turnCtx.injected),
+          doc ?? undefined,
         ).catch((e) => console.error(`[${channel}] history`, e));
         await logTurn(person, channel, turnCtx, writes, model.id).catch((e) =>
           console.error("[web] logTurn", e),
