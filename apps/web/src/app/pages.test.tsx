@@ -195,6 +195,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
 
@@ -228,7 +229,7 @@ describe("chat page", () => {
     for (const phrase of HIDDEN_GUIDANCE) expect(seen).not.toMatch(phrase);
     expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
     const add = screen.getByRole("button", { name: "Add" });
-    expect((add as HTMLButtonElement).disabled).toBe(true);
+    expect((add as HTMLButtonElement).disabled).toBe(false);
     expect(container.querySelector("[data-slot='composer-shell']")?.textContent).toContain(
       "Gemini 2.5 Flash",
     );
@@ -969,6 +970,43 @@ describe("chat page", () => {
     expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeDefined();
     expect(screen.getByText(/only hippo uses/)).toBeDefined();
     expect(screen.getByText(/or your Google account/)).toBeDefined();
+  });
+
+  it("asks a guest to own their memory before keeping a private file", async () => {
+    const user = userEvent.setup();
+    vi.stubEnv("VITE_SEAL_API_KEY", "test-key");
+    vi.stubGlobal("fetch", stubFetch({ "/api/me": { mode: "guest", memoryEnabled: true } }));
+    mountChat();
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    expect(await screen.findByRole("dialog", { name: "Private files" })).toBeDefined();
+    expect(await screen.findByText(/Private files need a memory you own/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Upload a \.txt/ })).toBeNull();
+  });
+
+  it("offers an upload to the owner once their own wallet is connected", async () => {
+    const user = userEvent.setup();
+    const owner = `0x${"ab".repeat(32)}`;
+    vi.stubEnv("VITE_SEAL_API_KEY", "test-key");
+    wallet = { address: owner };
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": {
+          mode: "owned",
+          memoryEnabled: true,
+          walletAddress: owner,
+          accountId: `0x${"cd".repeat(32)}`,
+        },
+        "/api/documents": { documents: [] },
+      }),
+    );
+    mountChat();
+    await waitFor(() => expect(screen.getByRole("switch", { name: "Memory on" })).toBeDefined());
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    expect(
+      await screen.findByRole("button", { name: /Upload a \.txt or \.md file/ }),
+    ).toBeDefined();
+    expect(screen.queryByText(/Private files need a memory you own/)).toBeNull();
   });
 
   it("closes the sidebar on a phone once the person starts a new chat", async () => {

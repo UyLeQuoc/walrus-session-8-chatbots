@@ -8,17 +8,31 @@ const citationSchema = z.object({
 
 export type Citation = z.infer<typeof citationSchema>;
 
+const documentCiteSchema = z.object({
+  id: z.uuid(),
+  name: z.string().min(1).max(200),
+});
+
+export type DocumentCite = z.infer<typeof documentCiteSchema>;
+
 const envelopeSchema = z.object({
   v: z.literal(1),
   text: z.string(),
   cites: z.array(citationSchema).max(20),
+  doc: documentCiteSchema.optional(),
 });
 
-export function packTurnBody(text: string, cites: Citation[]): string {
-  return JSON.stringify({ v: 1, text, cites });
+export interface TurnBody {
+  text: string;
+  cites: Citation[];
+  doc?: DocumentCite;
 }
 
-export function unpackTurnBody(raw: string): { text: string; cites: Citation[] } {
+export function packTurnBody(text: string, cites: Citation[], doc?: DocumentCite): string {
+  return JSON.stringify({ v: 1, text, cites, ...(doc ? { doc } : {}) });
+}
+
+export function unpackTurnBody(raw: string): TurnBody {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -27,7 +41,11 @@ export function unpackTurnBody(raw: string): { text: string; cites: Citation[] }
   }
   const envelope = envelopeSchema.safeParse(parsed);
   if (!envelope.success) return { text: raw, cites: [] };
-  return { text: envelope.data.text, cites: envelope.data.cites };
+  return {
+    text: envelope.data.text,
+    cites: envelope.data.cites,
+    ...(envelope.data.doc ? { doc: envelope.data.doc } : {}),
+  };
 }
 
 export function dropHidden(cites: Citation[], hidden: ReadonlySet<string>): Citation[] {

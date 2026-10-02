@@ -25,4 +25,11 @@ describe("buildSystemPrompt", () => {
       /BEGIN_UNTRUSTED_WALRUS_MEMORY/,
     );
   });
+
+  it("explains an attached file only on a turn that has one", () => {
+    const withFile = buildSystemPrompt({ ...base, document: true });
+    expect(withFile).toMatch(/BEGIN_UNTRUSTED_FILE/);
+    expect(withFile).toMatch(/never instructions/);
+    expect(buildSystemPrompt(base)).not.toMatch(/UNTRUSTED_FILE/);
+  });
 });

@@ -264,3 +264,51 @@ export const teamInvites = pgTable("team_invites", {
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * A private file the person stored on Walrus from their own wallet. Only the
+ * ciphertext is on Walrus; this row holds where it is and how to unseal it.
+ * The file's text and its name are never columns: the name is AES-256-GCM
+ * under `KEY_ENCRYPTION_KEY`, like a conversation title.
+ */
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    personId: uuid("person_id")
+      .notNull()
+      .references(() => people.id, { onDelete: "cascade" }),
+    walletAddress: text("wallet_address").notNull(),
+    accountId: text("account_id").notNull(),
+    blobId: text("blob_id").notNull(),
+    blobObjectId: text("blob_object_id"),
+    sealId: text("seal_id").notNull(),
+    ciphertextSha256: text("ciphertext_sha256").notNull(),
+    nameEnc: text("name_enc").notNull(),
+    mediaType: text("media_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    endEpoch: integer("end_epoch"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("documents_person_created_idx").on(t.personId, t.createdAt),
+    uniqueIndex("documents_person_blob_idx").on(t.personId, t.blobId),
+  ],
+);
+
+/** Which file a user message asked about. The excerpt itself is never stored. */
+export const messageAttachments = pgTable(
+  "message_attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("message_attachments_message_document_idx").on(t.messageId, t.documentId)],
+);
