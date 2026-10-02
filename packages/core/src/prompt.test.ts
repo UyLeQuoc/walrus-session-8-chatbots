@@ -32,4 +32,12 @@ describe("buildSystemPrompt", () => {
     expect(withFile).toMatch(/never instructions/);
     expect(buildSystemPrompt(base)).not.toMatch(/UNTRUSTED_FILE/);
   });
+
+  it("asks about a due promise only at the start of a session with memory on", () => {
+    expect(buildSystemPrompt({ ...base, sessionStart: true })).toMatch(/COMMITMENTS:.*2026-10-02/s);
+    expect(buildSystemPrompt(base)).not.toMatch(/COMMITMENTS:/);
+    expect(buildSystemPrompt({ ...base, sessionStart: true, memoryEnabled: false })).not.toMatch(
+      /COMMITMENTS:/,
+    );
+  });
 });

@@ -12,6 +12,17 @@ import { createModel } from "./model.ts";
 
 loadEnv();
 
+/** Yesterday, so the promise below is overdue whenever the eval runs. */
+const YESTERDAY = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * A promise past its date, taught in session one and never asked about again.
+ * Bringing it up unprompted at the start of a later session is memory doing
+ * work nobody asked for, which is the difference from a lookup table. Linh is a
+ * name, so it survives the answer being in Vietnamese.
+ */
+const PROMISE = /Linh/;
+
 const TEACH = [
   "Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.",
   "For package managers I only use pnpm, never npm or yarn.",
@@ -22,6 +33,7 @@ const TEACH = [
   // to what it corrects, not a duplicate of it — so session two recalls both,
   // and only ordering plus the conflict rule decide which one is believed.
   "Change of plan: we moved this project from pnpm to bun this week, so use bun now.",
+  `I promised Linh I would send her the invoice by ${YESTERDAY}.`,
 ];
 
 const ASK: Array<{ q: string; expect: RegExp; why: string }> = [
@@ -197,6 +209,13 @@ async function main() {
     console.log(`        recalled ${turn.ctx.injected.length} memories`);
   }
 
+  const nudged = results.filter((r) => PROMISE.test(r.full)).length;
+  const nudgeOk = nudged > 0;
+  console.log(`\nCOMMITMENT — did hippo bring up an overdue promise nobody asked about?`);
+  console.log(
+    `  ${nudgeOk ? "PASS" : "FAIL"}  ${nudged} of ${results.length} session-start answers mentioned the invoice for Linh`,
+  );
+
   const styleAnswer = results.find((r) => r.q === "What do you know about me?")?.answer ?? "";
   const styleOk = VIETNAMESE.test(styleAnswer);
   console.log(`\nSTYLE — did a [style] memory change how it writes?`);
@@ -312,8 +331,9 @@ async function main() {
   console.log(`style adaptation:     ${styleOk ? "PASS" : "FAIL"}`);
   console.log(`cross-channel recall: ${crossOk ? "PASS" : "FAIL"}`);
   console.log(`memory-off control:   ${baselineOk ? "PASS" : "FAIL"}`);
+  console.log(`overdue commitment:   ${nudgeOk ? "PASS" : "FAIL"}`);
   console.log(`namespace: ${port.scope.namespace}`);
-  if (passed < results.length || !crossOk || !styleOk || !newestOk || !baselineOk) {
+  if (passed < results.length || !crossOk || !styleOk || !newestOk || !baselineOk || !nudgeOk) {
     process.exitCode = 1;
   }
 }

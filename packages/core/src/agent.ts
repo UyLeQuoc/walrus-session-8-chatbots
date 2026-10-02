@@ -155,6 +155,7 @@ export function runTurn(input: TurnInput, ctx: TurnContext, useFallback = false)
     today: isoDate(),
     styleHints: ctx.styleHints,
     document: Boolean(input.document),
+    sessionStart: input.sessionStart,
   });
   const messages: ModelMessage[] = [...input.messages];
   if (ctx.injected.length) {

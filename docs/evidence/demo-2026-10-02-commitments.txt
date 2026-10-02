@@ -1,0 +1,88 @@
+$ bun run --filter @hippo/core demo
+@hippo/core demo: hippo memory eval · model google/gemini-2.5-flash · namespace hippo-guest:demo-muqtsdno
+@hippo/core demo: 
+@hippo/core demo: SESSION 1 — teaching
+@hippo/core demo:   › Hi, I'm Mai. I work on Sui and Next.js, always in TypeScript strict mode.
+@hippo/core demo:   ‹ Hi Mai. What can I help you with?  (2 writes)
+@hippo/core demo:     stored [profile] blob tvze-Ou6xTbm…
+@hippo/core demo:     stored [profile] blob puHmuXR198Yb…
+@hippo/core demo:   › For package managers I only use pnpm, never npm or yarn.
+@hippo/core demo:   ‹ Got it. You use pnpm for package management.  (1 writes)
+@hippo/core demo:   › We decided to use Drizzle instead of Prisma for this project's ORM.
+@hippo/core demo:   ‹ OK. You're using Drizzle ORM for this project.  (1 writes)
+@hippo/core demo:     stored [profile] blob eto4nV4-xXyW…
+@hippo/core demo:   › One thing to remember: our Postgres runs on port 5433 because 5432 is taken.
+@hippo/core demo:   ‹ Got it. Your Postgres runs on port 5433 because 5432 is taken.  (1 writes)
+@hippo/core demo:     stored [decision] blob Ibz9x20qoCFI…
+@hippo/core demo:   › Please keep your answers short, and always answer me in Vietnamese.
+@hippo/core demo:   ‹ Tuyệt vời. Từ giờ tôi sẽ giữ câu trả lời ngắn gọn và luôn trả lời bạn bằng tiếng Việt.  (1 writes)
+@hippo/core demo:     stored [gotcha] blob 6ti1nlv7ewQV…
+@hippo/core demo:   › Change of plan: we moved this project from pnpm to bun this week, so use bun now.
+@hippo/core demo:   ‹ Đã hiểu. Dự án này đã chuyển từ pnpm sang bun.  (1 writes)
+@hippo/core demo:     stored [style] blob bMNJx5KNis0I…
+@hippo/core demo:     stored [correction] blob CgNBUDeopY-A…
+@hippo/core demo:   › I promised Linh I would send her the invoice by 2026-10-01.
+@hippo/core demo:   ‹ Đã lưu. Có cần hỗ trợ gì nữa không?   (1 writes)
+@hippo/core demo: 
+@hippo/core demo:   8 memories written. Waiting 90s for indexing…
+@hippo/core demo:     stored [commitment] blob 7tKssr8THeRG…
+@hippo/core demo: 
+@hippo/core demo: SESSION 2 — fresh conversation, no history carried over
+@hippo/core demo:   PASS  Which package manager should I use here?
+@hippo/core demo:         Bạn nên dùng bun. Hoá đơn cho Linh đã gửi chưa?
+@hippo/core demo:         recalled 7 memories
+@hippo/core demo:   PASS  Which ORM did we settle on?
+@hippo/core demo:         Chúng ta đã quyết định dùng Drizzle thay vì Prisma cho ORM của dự án này.  Hoá đơn cho Linh đã được gửi chưa?
+@hippo/core demo:         recalled 8 memories
+@hippo/core demo:   PASS  What port is the database on?
+@hippo/core demo:         Postgres chạy trên cổng 5433. Bạn đã gửi hóa đơn cho Linh chưa?
+@hippo/core demo:         recalled 8 memories
+@hippo/core demo:   PASS  What do you know about me?
+@hippo/core demo:         Bạn là Mai. Bạn làm việc với Sui và Next.js, luôn ở chế độ nghiêm ngặt TypeScript. Bạn sử dụng bun làm trình quản lý gói.  Bạn đã gửi hóa đơ
+@hippo/core demo:         recalled 6 memories
+@hippo/core demo: 
+@hippo/core demo: COMMITMENT — did hippo bring up an overdue promise nobody asked about?
+@hippo/core demo:   PASS  4 of 4 session-start answers mentioned the invoice for Linh
+@hippo/core demo: 
+@hippo/core demo: STYLE — did a [style] memory change how it writes?
+@hippo/core demo:   PASS  the answer came back in Vietnamese, unprompted in this session
+@hippo/core demo:         4 of 4 answers in this session came back in Vietnamese
+@hippo/core demo: 
+@hippo/core demo: CROSS-CHANNEL — a second channel, same memory
+@hippo/core demo:   PASS  Chúng ta đã chọn Drizzle thay vì Prisma cho ORM của dự án này.  Hóa đơn cho Linh đã gửi chưa?
+@hippo/core demo:         recalled 8 memories
+@hippo/core demo: 
+@hippo/core demo: CONFLICT — pnpm was taught, then corrected to bun. Did the correction win?
+@hippo/core demo:   PASS  asked directly: answered bun; in context: pnpm memory yes, bun correction yes
+@hippo/core demo:   PASS  0 of 5 answers stated pnpm without bun
+@hippo/core demo: 
+@hippo/core demo: BASELINE — the same questions, memory off
+@hippo/core demo:         Which package manager should I use here?
+@hippo/core demo:         off: Context is needed to recommend a package manager. What are you building and what ecosystem are you in?
+@hippo/core demo:         on:  Bạn nên dùng bun. Hoá đơn cho Linh đã gửi chưa?
+@hippo/core demo:         Which ORM did we settle on?
+@hippo/core demo:         off: This is our first conversation, so we haven't settled on an ORM.
+@hippo/core demo:         on:  Chúng ta đã quyết định dùng Drizzle thay vì Prisma cho ORM của dự án này.  Hoá đơn cho Linh đã được gửi chưa?
+@hippo/core demo:   PASS  What port is the database on?
+@hippo/core demo:         off: I need more information. Which database are you referring to?
+@hippo/core demo:         on:  Postgres chạy trên cổng 5433. Bạn đã gửi hóa đơn cho Linh chưa?
+@hippo/core demo:   PASS  What do you know about me?
+@hippo/core demo:         off: I know your name is @mai.
+@hippo/core demo:         on:  Bạn là Mai. Bạn làm việc với Sui và Next.js, luôn ở chế độ nghiêm ngặt TypeScript. Bạn sử dụng bun làm trình q
+@hippo/core demo: 
+@hippo/core demo: COST — median over 4 questions
+@hippo/core demo:   whole turn, memory on (first of a session):  5.2s
+@hippo/core demo:   whole turn, memory off:                      1.2s
+@hippo/core demo:   recall alone, first turn of a session:       2.8s
+@hippo/core demo:   recall alone, later turns:                   2.1s
+@hippo/core demo:   recall alone, later turns, no corrections:   0.8s
+@hippo/core demo: 
+@hippo/core demo: 4/4 recalled correctly across sessions.
+@hippo/core demo: newest fact wins:     PASS
+@hippo/core demo: style adaptation:     PASS
+@hippo/core demo: cross-channel recall: PASS
+@hippo/core demo: memory-off control:   PASS
+@hippo/core demo: overdue commitment:   PASS
+@hippo/core demo: namespace: hippo-guest:demo-muqtsdno
+@hippo/core demo: Exited with code 0
+exit=0

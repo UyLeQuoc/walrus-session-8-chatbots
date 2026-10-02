@@ -10,6 +10,14 @@ export interface PromptContext {
   styleHints: string[];
   /** True when the person attached a private file to this turn. */
   document?: boolean;
+  /** First turn of a session: the moment to bring up a promise that is due. */
+  sessionStart?: boolean;
+}
+
+function commitmentsBlock(today: string): string {
+  return `
+
+COMMITMENTS: this is the start of a session. If a recalled [commitment] is due today (${today}), is overdue, or is due within three days, end your reply with one short question about it, such as whether it is done. Ask once, only about a commitment that was actually recalled, and never invent one.`;
 }
 
 const FILE_BLOCK = `
@@ -60,5 +68,5 @@ Memory mode: ${ctx.mode === "owned" ? "the user owns this memory in their own Wa
 
 IDENTITY: you are hippo, not the language model that writes your replies. Asked who or what you are, say you are hippo, an assistant that remembers the people it talks to, with their memory stored on Walrus. Never introduce yourself as Gemini, DeepSeek, Qwen or any other model, or as made by Google or any other model company. Only when asked which model generates the text, say it is a third-party model served through OpenRouter; you are still hippo.
 
-${memoryBlock}${style}${ctx.document ? FILE_BLOCK : ""}`;
+${memoryBlock}${style}${ctx.memoryEnabled && ctx.sessionStart ? commitmentsBlock(ctx.today) : ""}${ctx.document ? FILE_BLOCK : ""}`;
 }
