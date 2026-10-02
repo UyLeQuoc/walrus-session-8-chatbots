@@ -147,6 +147,41 @@ Checks:
 4. `bun run typecheck && bun run lint && bun run test`, and `bun run demo`
    still passes.
 
+### Status 2026-10-02, branch `files-thin-slice`
+
+Built: `documents` and `message_attachments` (no name or text column; the name
+is sealed like a title), `POST/GET /api/documents` for owned people only, with
+the seal identity checked against the person's own wallet, the file sent with a
+turn as a nonce-delimited block with numbered lines and never stored, the
+answer's `doc` citation inside its sealed body, and in the browser: Seal
+encrypt and decrypt against the committee server with the Enoki Seal key,
+`writeBlob` through the mainnet upload relay signed by the wallet (WalForm's
+signer), balances checked before any signature, a "Private files" dialog behind
+the composer's Add button with upload and "Your files", and "From your file"
+under the answer. The connect flow's wallet-paid fallback now broadcasts over
+gRPC, which it could not before.
+
+Checks: 1 passes (`file-store.test.ts`: only ciphertext is uploaded, the record
+body has no file text; `rules.test.ts`: the name is never a clear column).
+2 passes for "not owned" as a page test and for "no SUI" and "no WAL" as unit
+tests of the sentence shown before any signature. 4 passes (core 19, db 4,
+memory 47, server 146, web 168). **3 has not run**: it needs a wallet to sign
+two mainnet transactions. Steps for the owner:
+
+1. On this branch with `SEAL_API_KEY` in `.env` and `VITE_SEAL_API_KEY` in
+   `apps/web/.env`: `bun install && bun run dev`, open http://localhost:5173 in
+   a browser with Slush.
+2. Say something, run `/connect`, and connect a wallet that holds about 0.02 SUI
+   and a little WAL. The Sessions wallet works: it owns the operator account.
+3. Add → Upload a `.md` file → approve the two transactions. The chip appears.
+4. Ask about the file. The answer cites lines or a heading and shows "From your
+   file".
+5. Reload. The answer keeps its citation. Add → Your files → pick it → approve
+   the signature. Ask again.
+6. Send the agent the two digests and the blob id for `docs/evidence/files-<date>.md`.
+
+Then merge, `plan-push` the two tables (additive), and deploy.
+
 ## Phase 4 — Sui polish
 
 Only after Phase 3 is usable.
