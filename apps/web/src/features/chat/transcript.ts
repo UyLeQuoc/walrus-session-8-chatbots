@@ -14,6 +14,12 @@ export interface StoredMessage {
   table?: unknown;
   cites?: unknown;
   recalled?: unknown;
+  doc?: unknown;
+}
+
+export interface FileCite {
+  id: string;
+  name: string;
 }
 
 export interface UiCitation {
@@ -32,7 +38,17 @@ export interface UiMessage {
     table?: CommandTable;
     cites?: StoredCitation[];
     recalled?: UiCitation[];
+    document?: FileCite;
   };
+}
+
+/** The private file an answer was built from, whether it arrived streaming or from the transcript. */
+export function fileCiteOf(value: unknown): FileCite | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as { id?: unknown; name?: unknown };
+  return typeof row.id === "string" && typeof row.name === "string"
+    ? { id: row.id, name: row.name }
+    : null;
 }
 
 export function isStoredMessage(value: unknown): value is StoredMessage {
@@ -90,11 +106,13 @@ export function toUiMessages(rows: unknown[]): UiMessage[] {
     const table = row.role === "assistant" ? sanitizeTable(row.table) : undefined;
     const cites = citesOf(row.cites);
     const recalled = recalledOf(row.recalled);
+    const document = row.role === "assistant" ? fileCiteOf(row.doc) : null;
     const metadata: NonNullable<UiMessage["metadata"]> = {
       ...(row.kind === "command" ? { command: true as const } : {}),
       ...(table ? { table } : {}),
       ...(cites.length > 0 ? { cites } : {}),
       ...(recalled.length > 0 ? { recalled } : {}),
+      ...(document ? { document } : {}),
     };
     out.push({
       id: row.id,

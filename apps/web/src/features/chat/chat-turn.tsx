@@ -1,5 +1,5 @@
 import { sanitizeTable } from "@hippo/core/command-table";
-import { Pencil, RotateCcw } from "lucide-react";
+import { FileText, Pencil, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
@@ -13,6 +13,7 @@ import { messageActionClass } from "@/features/chat/message-action";
 import { Recalled, type RecalledMemory } from "@/features/chat/recalled";
 import { selectedFact } from "@/features/chat/selected-fact";
 import { Thinking, useSmoothedText } from "@/features/chat/streaming-text";
+import { fileCiteOf } from "@/features/chat/transcript";
 
 interface ChatMessage {
   id: string;
@@ -147,11 +148,18 @@ export function ChatTurn({
   );
   const command = isCommand(message);
   const table = sanitizeTable((message.metadata as { table?: unknown } | undefined)?.table);
+  const file = fileCiteOf((message.metadata as { document?: unknown } | undefined)?.document);
   return (
     <Message>
       <MessageContent className="gap-1" ref={rootRef} onMouseUp={readSelection}>
         <div className="flex w-full min-w-0 flex-col gap-2.5">
           <Recalled memories={recalled} />
+          {file ? (
+            <p className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+              <FileText className="size-4 shrink-0" />
+              <span className="truncate">From your file {file.name}</span>
+            </p>
+          ) : null}
           {tools.map((part, index) => (
             <ToolLine key={`${String(part.type)}-${index}`} part={part} />
           ))}

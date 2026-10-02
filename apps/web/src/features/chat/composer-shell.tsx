@@ -1,5 +1,5 @@
 import { ArrowUp, Plus, Square } from "lucide-react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,8 @@ export function ComposerShell({
   meter,
   command,
   memory,
+  onAdd,
+  attachment,
 }: {
   text: string;
   onText: (value: string) => void;
@@ -23,6 +25,8 @@ export function ComposerShell({
   meter: ComposerMeter;
   command?: boolean;
   memory?: { enabled: boolean; pending: boolean; onChange: (enabled: boolean) => void };
+  onAdd?: () => void;
+  attachment?: ReactNode;
 }) {
   return (
     <div
@@ -34,6 +38,7 @@ export function ComposerShell({
         command && "[&_textarea]:text-transparent [&_textarea]:caret-foreground",
       )}
     >
+      {attachment ? <div className="px-3 pt-3">{attachment}</div> : null}
       <div className="relative max-h-60 overflow-y-auto scroll-fade-y">
         {command ? <CommandPaint text={text} /> : null}
         <textarea
@@ -46,7 +51,14 @@ export function ComposerShell({
         />
       </div>
       <div className="flex items-center gap-2 px-2 pb-2">
-        <Button type="button" variant="ghost" size="icon" disabled aria-label="Add">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          disabled={!onAdd}
+          aria-label="Add"
+          onClick={onAdd}
+        >
           <Plus />
         </Button>
         {memory ? (
