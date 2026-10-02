@@ -95,6 +95,26 @@ Then go back to Railway and set `WEB_BASE_URL` and `CORS_ORIGIN` to the Vercel
 URL. Without that, the browser's cookies never reach the API and every visitor
 looks like a stranger on each request.
 
+**Redeploying the live web app.** The live project, `hippo-web`, uploads
+`apps/web` on its own, and the web app imports `@hippo/core` from the workspace,
+which is not in that upload. Build where the workspace is and ship the output,
+from `apps/web`:
+
+```bash
+vercel pull --yes --environment=production
+vercel build --prod
+vercel deploy --prebuilt --prod --yes
+```
+
+The `/api/*` rewrite in `apps/web/vercel.json` is carried into the build output.
+Done this way on 2026-10-02 (`docs/evidence/deploy-2026-10-02.md`).
+
+**The server image needs every workspace manifest.** `bun install
+--frozen-lockfile` resolves the whole workspace, so `.dockerignore` keeps
+`apps/web/package.json` while dropping the rest of `apps/web`. Excluding the
+whole folder stopped every image from building between the Bun migration and
+2026-10-02.
+
 ## 4. Check it
 
 ```bash
@@ -105,8 +125,9 @@ curl https://<railway-url>/api/health/deep     # database and relayer, named
 `/api/health/deep` returns 200 even when a dependency is down, so the platform
 does not restart a container that is working; `status` carries the real answer.
 
-Then open the Vercel URL, say something, reload, and ask what it knows. If the
-reply forgets you, `CORS_ORIGIN` is wrong: the cookie is not surviving.
+Then open the Vercel URL, tell it something, wait for "on Walrus" under the
+message box, click New chat, and ask what it knows. If the reply forgets you,
+`CORS_ORIGIN` is wrong: the cookie is not surviving.
 
 Message `@walrussession8_bot` on Telegram. Its first ever message will arrive
 here, so watch the Railway logs while you send it.

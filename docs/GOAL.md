@@ -365,7 +365,8 @@ this repo.
    - README "See it work in three clicks" tells a judge to click **Reload, then
      ask what it knows**, which is not rendered. Rewrite it to the new-chat path.
      Verify: follow it on the local stack in a browser.
-4. **Ship `main` to production.** **Ready, not deployed, 2026-10-02:** the eval
+4. **Ship `main` to production.** **Deployed 2026-10-02** at the owner's word
+   (`docs/evidence/deploy-2026-10-02.md`). Before that, ready: the eval
    passed on Gemini, SDK 0.1.8 kept after a bench
    (`docs/evidence/sdk-0.1.8-bench-2026-10-02.md`), `plan-push` fixed to accept
    this plan (`ee8b54b`). The owner's steps are `docs/evidence/handoff-2026-10-02.md`.
