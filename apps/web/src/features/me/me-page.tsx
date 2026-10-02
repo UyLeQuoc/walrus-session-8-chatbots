@@ -11,6 +11,7 @@ import { ChainPanel } from "@/features/me/chain-panel";
 import { ChangesPanel } from "@/features/me/changes-panel";
 import { ExportPanel } from "@/features/me/export-panel";
 import { Hash } from "@/features/me/hash";
+import { ImportPanel } from "@/features/me/import-panel";
 import { MemoryList } from "@/features/me/memory-list";
 import { TeamPanel } from "@/features/me/team-panel";
 import { useMe } from "@/features/me/use-me";
@@ -84,6 +85,8 @@ export function MePage() {
         )}
         {stored > 0 ? <ExportPanel onError={(message) => toast.error(message)} /> : null}
       </div>
+
+      <ImportPanel onSaved={load} />
 
       {!me.signedIn && !linked ? <WalletSignIn onSignedIn={load} /> : null}
 

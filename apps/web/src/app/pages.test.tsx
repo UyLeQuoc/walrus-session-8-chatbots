@@ -1215,6 +1215,45 @@ describe("me page, changes", () => {
   });
 });
 
+describe("me page, import", () => {
+  it("lists the facts in a pasted note and keeps only the ones left ticked", async () => {
+    const user = userEvent.setup();
+    const fetchMock = stubFetch({
+      "/api/me": { mode: "guest", memoryEnabled: true, namespace: "hippo-guest:abc" },
+      "/api/me/memories": { memories: [] },
+      "/api/me/import/preview": {
+        facts: [
+          { type: "profile", text: "I build on Sui with TypeScript." },
+          { type: "style", text: "Keep answers short." },
+        ],
+      },
+      "/api/me/import": { saved: 1, known: 0, failed: 0 },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    await user.type(
+      await screen.findByLabelText("What another assistant knows about you"),
+      "You build on Sui and like short answers.",
+    );
+    await user.click(screen.getByRole("button", { name: "Find facts" }));
+    await user.click(await screen.findByLabelText("Keep: Keep answers short."));
+    await user.click(screen.getByRole("button", { name: "Remember 1 fact" }));
+    expect(await screen.findByText(/Kept 1\. Already known: 0\./)).toBeDefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/me/import",
+      expect.objectContaining({
+        body: JSON.stringify({
+          facts: [{ type: "profile", text: "I build on Sui with TypeScript." }],
+        }),
+      }),
+    );
+  });
+});
+
 describe("me page, read it yourself", () => {
   const owner = `0x${"ab".repeat(32)}`;
   const account = `0x${"cd".repeat(32)}`;

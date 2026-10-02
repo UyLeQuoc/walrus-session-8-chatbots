@@ -1,3 +1,11 @@
+import {
+  IMPORT_FACT_LIMIT,
+  IMPORT_TEXT_LIMIT,
+  IMPORT_TYPES,
+  importRequest,
+  parseImportedFacts,
+} from "@hippo/core/import-facts";
+import { generateText } from "ai";
 import { Hono } from "hono";
 import { z } from "zod";
 import { dropHidden } from "../chat/citations.ts";
@@ -5,6 +13,7 @@ import { readWebMessages } from "../chat/history.ts";
 import { checkRate, noteCommand } from "../chat/ratelimit.ts";
 import { resolveStoredCitations } from "../chat/resolve-citations.ts";
 import { PAGE_SIZE } from "../chat/transcript.ts";
+import { model } from "../context.ts";
 import { setMemoryEnabled } from "../identity/memory-flag.ts";
 import { hiddenBlobs, portFor } from "../identity/persons.ts";
 import { memoryChanges } from "../memory/changes.ts";
@@ -27,7 +36,72 @@ const memoryBody = z.object({
 
 const idParam = z.uuid();
 
+const importPreviewBody = z.object({ text: z.string().trim().min(10).max(IMPORT_TEXT_LIMIT) });
+
+const importBody = z.object({
+  facts: z
+    .array(z.object({ type: z.enum(IMPORT_TYPES), text: z.string().trim().min(3).max(300) }))
+    .min(1)
+    .max(IMPORT_FACT_LIMIT),
+});
+
 export const memoryRoutes = new Hono()
+  /**
+   * Bring memory from another assistant: list the facts in a pasted note,
+   * store nothing. The person picks what to keep in the next call.
+   */
+  .post("/api/me/import/preview", async (c) => {
+    const person = await mePerson(c);
+    if (!person) return c.json({ error: "Say something in the chat first." }, 401);
+    const parsed = importPreviewBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return c.json({ error: `Paste up to ${IMPORT_TEXT_LIMIT} characters.` }, 400);
+    }
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, CHANNEL);
+    const request = importRequest(parsed.data.text, new Date().toISOString().slice(0, 10));
+    try {
+      const result = await generateText({
+        model: model.primary,
+        system: request.system,
+        prompt: request.prompt,
+      });
+      return c.json({ facts: parseImportedFacts(result.text) });
+    } catch (err) {
+      console.error("[import] preview", err instanceof Error ? err.name : "error");
+      return c.json({ error: "Could not read that note just now. Try again." }, 502);
+    }
+  })
+  /**
+   * Remember the facts the person ticked, one at a time through the same path
+   * as every other write: redaction, dedupe, then Walrus. Written on channel
+   * `import`, so evidence and the page can always tell them apart.
+   */
+  .post("/api/me/import", async (c) => {
+    const person = await mePerson(c);
+    if (!person) return c.json({ error: "Say something in the chat first." }, 401);
+    const parsed = importBody.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "Pick at least one fact to keep." }, 400);
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, CHANNEL);
+    let saved = 0;
+    let known = 0;
+    let failed = 0;
+    for (const fact of parsed.data.facts) {
+      const result = await rememberFact({
+        person,
+        channel: "import",
+        type: fact.type,
+        text: fact.text,
+      }).catch(() => null);
+      if (!result?.ok) failed++;
+      else if (result.saved) saved++;
+      else known++;
+    }
+    return c.json({ saved, known, failed });
+  })
   /**
    * Where the person changed their mind: each correction, newest first, with
    * the fact it replaced. Read back from Walrus through recall, so nothing about
@@ -38,7 +112,7 @@ export const memoryRoutes = new Hono()
     if (!person) return c.json({ changes: [] });
     const gate = await checkRate(person.id);
     if (!gate.allowed) return c.json({ error: gate.message }, 429);
-    await noteCommand(person.id, "web");
+    await noteCommand(person.id, CHANNEL);
     const port = await portFor(person, "web");
     const changes = await memoryChanges(port).catch(() => null);
     if (changes === null) {
