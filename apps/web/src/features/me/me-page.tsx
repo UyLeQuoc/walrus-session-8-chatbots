@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { ChainPanel } from "@/features/me/chain-panel";
 import { ChangesPanel } from "@/features/me/changes-panel";
+import { ClaudeCodePanel } from "@/features/me/claude-code-panel";
 import { ExportPanel } from "@/features/me/export-panel";
 import { Hash } from "@/features/me/hash";
 import { ImportPanel } from "@/features/me/import-panel";
@@ -114,6 +115,8 @@ export function MePage() {
       {memories.some((m) => m.type === "correction" && m.status === "stored") ? (
         <ChangesPanel />
       ) : null}
+
+      <ClaudeCodePanel owned={owned} />
 
       <TeamPanel onError={(message) => toast.error(message)} />
 

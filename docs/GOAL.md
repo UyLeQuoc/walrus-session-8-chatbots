@@ -390,7 +390,7 @@ this repo.
 6. **Claude Code recall. (Owner, after task 5)** Same wallet: install the
    official Walrus Memory MCP plugin, `memwal_login`, namespace `hippo`, ask what
    hippo knows. Screenshot to `docs/evidence/`. Nothing claims this until the
-   screenshot exists.
+   screenshot exists. Step by step: `docs/CLAUDE-CODE-CHECK.md`.
 7. **File the issues. (Owner's word, then agent; by Oct 3)** If the relayer has
    redeployed since 2026-09-25, re-run each draft's repro first. Then
    `scripts/file-issues.sh --dry-run`, then for real: 01, 04, 05, 06, 09, 10,

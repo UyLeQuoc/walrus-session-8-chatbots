@@ -1312,6 +1312,40 @@ describe("me page, memory at work", () => {
   });
 });
 
+describe("me page, Claude Code", () => {
+  const mount = (mode: "guest" | "owned") => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": {
+          mode,
+          memoryEnabled: true,
+          namespace: mode === "owned" ? "hippo" : "hippo-guest:abc",
+        },
+        "/api/me/memories": { memories: [] },
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+  };
+
+  it("gives an owner the plugin, the login and the question to ask", async () => {
+    mount("owned");
+    expect(await screen.findByText("Use the same memory in Claude Code")).toBeDefined();
+    expect(screen.getByText("/plugin install memwal@memwal-plugins")).toBeDefined();
+    expect(screen.getByText(/namespace "hippo"/)).toBeDefined();
+    expect(screen.queryByText(/Own your memory first/)).toBeNull();
+  });
+
+  it("tells a guest to own the memory first", async () => {
+    mount("guest");
+    expect(await screen.findByText(/Own your memory first/)).toBeDefined();
+  });
+});
+
 describe("me page, import", () => {
   it("lists the facts in a pasted note and keeps only the ones left ticked", async () => {
     const user = userEvent.setup();

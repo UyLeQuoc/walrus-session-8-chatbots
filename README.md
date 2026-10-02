@@ -137,6 +137,9 @@ back from Walrus, because the text is never stored in Postgres.
 - **Memory at work.** `/me` says how many of your answers used memory, on every
   channel, and how many answers each memory was used in, counted from the blob
   ids every turn records.
+- **Use it in Claude Code.** `/me` gives the steps to add Claude Code as a second
+  delegate on the same account through the official Walrus Memory MCP and ask it
+  what hippo knows (`docs/CLAUDE-CODE-CHECK.md`). Not yet run by an owner.
 - **How your memory changed.** `/me` lists each correction beside the fact it
   replaced, struck through. A pair the correction did not name is matched by
   meaning and marked "probably".
