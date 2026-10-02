@@ -6,7 +6,8 @@ import { checkRate, noteCommand } from "../chat/ratelimit.ts";
 import { resolveStoredCitations } from "../chat/resolve-citations.ts";
 import { PAGE_SIZE } from "../chat/transcript.ts";
 import { setMemoryEnabled } from "../identity/memory-flag.ts";
-import { hiddenBlobs } from "../identity/persons.ts";
+import { hiddenBlobs, portFor } from "../identity/persons.ts";
+import { memoryChanges } from "../memory/changes.ts";
 import { memoriesForChat } from "../memory/chat-memories.ts";
 import { rememberFact } from "../memory/remember-fact.ts";
 import { writeStatus } from "../memory/write-status.ts";
@@ -27,6 +28,24 @@ const memoryBody = z.object({
 const idParam = z.uuid();
 
 export const memoryRoutes = new Hono()
+  /**
+   * Where the person changed their mind: each correction, newest first, with
+   * the fact it replaced. Read back from Walrus through recall, so nothing about
+   * it is stored here either.
+   */
+  .get("/api/me/changes", async (c) => {
+    const person = await mePerson(c);
+    if (!person) return c.json({ changes: [] });
+    const gate = await checkRate(person.id);
+    if (!gate.allowed) return c.json({ error: gate.message }, 429);
+    await noteCommand(person.id, "web");
+    const port = await portFor(person, "web");
+    const changes = await memoryChanges(port).catch(() => null);
+    if (changes === null) {
+      return c.json({ error: "Walrus Memory could not be reached just now." }, 502);
+    }
+    return c.json({ changes });
+  })
   .get("/api/me/memories/:id/status", async (c) => {
     const person = await mePerson(c);
     const id = idParam.safeParse(c.req.param("id"));

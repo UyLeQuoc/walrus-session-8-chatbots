@@ -1166,6 +1166,55 @@ describe("how it works", () => {
   });
 });
 
+describe("me page, changes", () => {
+  it("shows a change of mind next to the fact it replaced, marked when it is a guess", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubFetch({
+        "/api/me": { mode: "guest", memoryEnabled: true, namespace: "hippo-guest:abc" },
+        "/api/me/memories": {
+          memories: [
+            {
+              id: "1",
+              type: "correction",
+              status: "stored",
+              channel: "web",
+              createdAt: "2026-10-02T00:00:00Z",
+              blobId: "c1",
+              expiresAt: null,
+              ciphertextUrl: null,
+              explorerUrl: null,
+            },
+          ],
+        },
+        "/api/me/changes": {
+          changes: [
+            {
+              blobId: "c1",
+              text: "We moved this project from pnpm to bun.",
+              date: "2026-10-02T09:00:00Z",
+              replaced: {
+                blobId: "p1",
+                text: "I only use pnpm.",
+                date: "2026-09-30T09:00:00Z",
+                certain: false,
+              },
+            },
+          ],
+        },
+      }),
+    );
+    const { container } = render(
+      <MemoryRouter>
+        <MePage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("We moved this project from pnpm to bun.")).toBeDefined();
+    expect(container.querySelector("s")?.textContent).toBe("I only use pnpm.");
+    expect(screen.getByText("probably")).toBeDefined();
+  });
+});
+
 describe("me page, read it yourself", () => {
   const owner = `0x${"ab".repeat(32)}`;
   const account = `0x${"cd".repeat(32)}`;

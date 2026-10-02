@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { ChainPanel } from "@/features/me/chain-panel";
+import { ChangesPanel } from "@/features/me/changes-panel";
 import { ExportPanel } from "@/features/me/export-panel";
 import { Hash } from "@/features/me/hash";
 import { MemoryList } from "@/features/me/memory-list";
@@ -101,6 +102,10 @@ export function MePage() {
       </div>
 
       {stored > 0 ? <WalletReadPanel memories={memories} /> : null}
+
+      {memories.some((m) => m.type === "correction" && m.status === "stored") ? (
+        <ChangesPanel />
+      ) : null}
 
       <TeamPanel onError={(message) => toast.error(message)} />
 
