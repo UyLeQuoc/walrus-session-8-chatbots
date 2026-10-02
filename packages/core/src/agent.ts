@@ -30,6 +30,7 @@ export interface TurnInput {
   knownHashes?: ReadonlySet<string>;
   /** A private file the person attached, already decrypted in their browser. */
   document?: AttachedDocument;
+  gettingToKnow?: boolean;
 }
 
 export interface TurnContext {
@@ -156,6 +157,7 @@ export function runTurn(input: TurnInput, ctx: TurnContext, useFallback = false)
     styleHints: ctx.styleHints,
     document: Boolean(input.document),
     sessionStart: input.sessionStart,
+    gettingToKnow: input.gettingToKnow,
   });
   const messages: ModelMessage[] = [...input.messages];
   if (ctx.injected.length) {

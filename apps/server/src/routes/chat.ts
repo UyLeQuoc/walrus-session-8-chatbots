@@ -9,6 +9,7 @@ import { z } from "zod";
 import { citationsOf } from "../chat/citations.ts";
 import { type CommandContext, handleCommand } from "../chat/commands.ts";
 import { answerWithoutMemory } from "../chat/compare.ts";
+import { isGettingToKnow } from "../chat/getting-to-know.ts";
 import {
   appendAssistant,
   appendUser,
@@ -32,6 +33,7 @@ import { env } from "../env/load.ts";
 import { personFromSession } from "../identity/auth.ts";
 import {
   hasCorrections,
+  knownSoFar,
   logTurn,
   ownMemoryOf,
   type Person,
@@ -291,6 +293,7 @@ export const chatRoutes = new Hono()
       memoryEnabled: person.memoryEnabled,
       sessionStart: placed.sessionStart,
       hasCorrections: await hasCorrections(person.id),
+      gettingToKnow: person.memoryEnabled && isGettingToKnow(await knownSoFar(person.id)),
       abortSignal: c.req.raw.signal,
       knownHashes,
       ...(doc && body.document ? { document: { name: doc.name, text: body.document.text } } : {}),

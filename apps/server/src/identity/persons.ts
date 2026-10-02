@@ -22,6 +22,7 @@ import {
   teamScope,
   type WriteEvent,
 } from "@hippo/memory";
+import { isConversationTurn } from "../chat/turn-modes.ts";
 import { db, operator } from "../context.ts";
 import { env } from "../env/load.ts";
 import { inheritedGuestIds } from "./predicates.ts";
@@ -182,6 +183,18 @@ export async function hasCorrections(personId: string): Promise<boolean> {
     .where(and(ownMemoryOf(personId), eq(memoryIndex.type, "correction")))
     .limit(1);
   return Boolean(row);
+}
+
+export async function knownSoFar(personId: string): Promise<{ facts: number; turns: number }> {
+  const [facts] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(memoryIndex)
+    .where(and(ownMemoryOf(personId), sql`${memoryIndex.status} <> 'failed'`));
+  const [turns] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(turnLog)
+    .where(and(eq(turnLog.personId, personId), isConversationTurn));
+  return { facts: facts?.n ?? 0, turns: turns?.n ?? 0 };
 }
 
 /** Blob ids this person asked hippo to stop using. */

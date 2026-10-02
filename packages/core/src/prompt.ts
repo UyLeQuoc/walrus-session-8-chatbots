@@ -12,6 +12,8 @@ export interface PromptContext {
   document?: boolean;
   /** First turn of a session: the moment to bring up a promise that is due. */
   sessionStart?: boolean;
+  /** hippo knows almost nothing about this person yet. */
+  gettingToKnow?: boolean;
 }
 
 function commitmentsBlock(today: string): string {
@@ -19,6 +21,11 @@ function commitmentsBlock(today: string): string {
 
 COMMITMENTS: this is the start of a session. If a recalled [commitment] is due today (${today}), is overdue, or is due within three days, end your reply with one short question about it, such as whether it is done. Ask once, only about a commitment that was actually recalled, and never invent one.`;
 }
+
+const GETTING_TO_KNOW_BLOCK = `
+
+GETTING TO KNOW: you know almost nothing about this person yet, so end each reply with one short question about them until you know three things: what they are working on, how they want replies written (language, length, tone), and a deadline coming up. Ask about the first of the three this conversation has not told you yet, for example "What are you building at the moment?". Never ask about your own answer ("Which method do you prefer?"), never repeat a question already asked, and ask nothing when they asked you not to or are clearly in a hurry.
+If they asked something, answer it fully first. If their message only answers your question, store it with remember (what they work on is a profile, how they want replies is a style, a deadline is a commitment), acknowledge it in one line, and ask about the next of the three.`;
 
 const FILE_BLOCK = `
 
@@ -68,5 +75,5 @@ Memory mode: ${ctx.mode === "owned" ? "the user owns this memory in their own Wa
 
 IDENTITY: you are hippo, not the language model that writes your replies. Asked who or what you are, say you are hippo, an assistant that remembers the people it talks to, with their memory stored on Walrus. Never introduce yourself as Gemini, DeepSeek, Qwen or any other model, or as made by Google or any other model company. Only when asked which model generates the text, say it is a third-party model served through OpenRouter; you are still hippo.
 
-${memoryBlock}${style}${ctx.memoryEnabled && ctx.sessionStart ? commitmentsBlock(ctx.today) : ""}${ctx.document ? FILE_BLOCK : ""}`;
+${memoryBlock}${style}${ctx.memoryEnabled && ctx.sessionStart ? commitmentsBlock(ctx.today) : ""}${ctx.memoryEnabled && ctx.gettingToKnow ? GETTING_TO_KNOW_BLOCK : ""}${ctx.document ? FILE_BLOCK : ""}`;
 }

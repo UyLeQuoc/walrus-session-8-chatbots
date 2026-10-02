@@ -1,0 +1,35 @@
+# getting-to-know probe, 2026-10-02T11:14Z, model google/gemini-2.5-flash via OpenRouter
+# apps/server/scripts/archive/probe-getting-to-know.ts — fake port: recall returns nothing, remember is recorded, nothing is written to Walrus
+run 1 | new person, a task | ends with question: true | ? count: 1
+  last line: What kind of project are you working on?
+run 1 | same task, hippo already knows them | ends with question: false | ? count: 0
+  last line:     ```
+run 1 | new person, Vietnamese | ends with question: true | ? count: 1
+  last line: Bạn đang làm việc trên dự án nào vậy?
+run 1 | new person, in a hurry | ends with question: false | ? count: 0
+  last line: Postgres uses port 5432.
+run 1 | answers the first question | ends with question: true | ? count: 1
+  last line: How do you like replies written (language, length, tone)?
+  remembered: [profile] A Sui dApp in TypeScript | [commitment] The demo is due on 2026-10-09.
+run 2 | new person, a task | ends with question: true | ? count: 1
+  last line: What kind of project are you working on right now?
+run 2 | same task, hippo already knows them | ends with question: false | ? count: 0
+  last line: You can reverse a list in Python using slicing: `my_list[::-1]`.
+run 2 | new person, Vietnamese | ends with question: true | ? count: 1
+  last line: Bạn đang làm việc trên dự án nào vậy?
+run 2 | new person, in a hurry | ends with question: false | ? count: 0
+  last line: Postgres uses port 5432.
+run 2 | answers the first question | ends with question: true | ? count: 1
+  last line: How do you prefer me to reply (e.g., language, length, tone)?
+  remembered: [profile] I am working on a Sui dApp in TypeScript. | [commitment] The demo for my Sui dApp is due on 2026-10-09.
+run 3 | new person, a task | ends with question: true | ? count: 1
+  last line: What are you building at the moment?
+run 3 | same task, hippo already knows them | ends with question: false | ? count: 0
+  last line: *   **`reversed()` function:** `list(reversed(my_list))` returns an iterator that yields elements in reverse order, which you can convert to a list.
+run 3 | new person, Vietnamese | ends with question: true | ? count: 1
+  last line: Bạn đang làm việc trên dự án nào vậy?
+run 3 | new person, in a hurry | ends with question: false | ? count: 0
+  last line: Postgres uses port 5432.
+run 3 | answers the first question | ends with question: true | ? count: 2
+  last line: How do you want me to reply to you? For example, do you prefer short and direct answers, or more detailed explanations?
+  remembered: [commitment] The demo for my Sui dApp in TypeScript is due on 2026-10-09.

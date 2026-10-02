@@ -7,8 +7,15 @@ import { completeTurn } from "@hippo/core";
 import { startConnect, startDisconnect } from "../connect/tokens.ts";
 import { model } from "../context.ts";
 import { describeFailure } from "../copy.ts";
-import { hasCorrections, logTurn, portFor, resolvePerson } from "../identity/persons.ts";
+import {
+  hasCorrections,
+  knownSoFar,
+  logTurn,
+  portFor,
+  resolvePerson,
+} from "../identity/persons.ts";
 import { type CommandContext, type CommandResult, handleCommand } from "./commands.ts";
+import { isGettingToKnow } from "./getting-to-know.ts";
 import { appendAssistant, appendUser, modelMessages, openChannelThread } from "./history.ts";
 import { tooLong } from "./limits.ts";
 import { checkRate, noteCommand } from "./ratelimit.ts";
@@ -124,6 +131,7 @@ export async function handleIncoming(msg: IncomingMessage): Promise<TurnReply> {
       memoryEnabled: person.memoryEnabled,
       sessionStart: placed.sessionStart,
       hasCorrections: await hasCorrections(person.id),
+      gettingToKnow: person.memoryEnabled && isGettingToKnow(await knownSoFar(person.id)),
     }));
   } catch (err) {
     // The adapter would otherwise say the same sentence for a dead provider and

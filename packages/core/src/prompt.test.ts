@@ -33,6 +33,16 @@ describe("buildSystemPrompt", () => {
     expect(buildSystemPrompt(base)).not.toMatch(/UNTRUSTED_FILE/);
   });
 
+  it("asks one getting-to-know question only while hippo knows little and memory is on", () => {
+    expect(buildSystemPrompt({ ...base, gettingToKnow: true })).toMatch(
+      /GETTING TO KNOW:.*end each reply with one short question.*answer it fully first/s,
+    );
+    expect(buildSystemPrompt(base)).not.toMatch(/GETTING TO KNOW:/);
+    expect(buildSystemPrompt({ ...base, gettingToKnow: true, memoryEnabled: false })).not.toMatch(
+      /GETTING TO KNOW:/,
+    );
+  });
+
   it("asks about a due promise only at the start of a session with memory on", () => {
     expect(buildSystemPrompt({ ...base, sessionStart: true })).toMatch(/COMMITMENTS:.*2026-10-02/s);
     expect(buildSystemPrompt(base)).not.toMatch(/COMMITMENTS:/);
