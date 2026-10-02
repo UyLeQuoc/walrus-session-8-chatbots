@@ -3,6 +3,7 @@ import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ComponentProps, ReactNode } from "react";
 import "@mysten/dapp-kit/dist/index.css";
+import { useEnokiWallets } from "@/app/use-enoki-wallets";
 
 const { networkConfig } = createNetworkConfig({
   mainnet: { url: "https://fullnode.mainnet.sui.io:443", network: "mainnet" },
@@ -21,6 +22,11 @@ function createClient(name: string, cfg: { url: string }): ReturnType<CreateClie
   return client as unknown as ReturnType<CreateClient>;
 }
 
+function EnokiWallets(): null {
+  useEnokiWallets();
+  return null;
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
@@ -30,6 +36,7 @@ export function Providers({ children }: { children: ReactNode }) {
         createClient={createClient}
       >
         {/* Reconnect-on-load opens Slush with no picker, and a rejected reconnect marks the wallet disconnected. */}
+        <EnokiWallets />
         <WalletProvider autoConnect={false}>{children}</WalletProvider>
       </SuiClientProvider>
     </QueryClientProvider>

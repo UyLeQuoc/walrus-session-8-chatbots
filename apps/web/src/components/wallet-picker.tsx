@@ -22,7 +22,10 @@ export function WalletPicker({
   onSignedIn?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { wallets, pick, busy, error, status } = useWalletPicker({ signIn, onSignedIn });
+  const { wallets, googleListed, pick, busy, error, status } = useWalletPicker({
+    signIn,
+    onSignedIn,
+  });
 
   const choose = async (wallet: (typeof wallets)[number]) => {
     const ok = await pick(wallet);
@@ -38,7 +41,11 @@ export function WalletPicker({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Choose a wallet</DialogTitle>
-            <DialogDescription>Slush, or any other Sui wallet in this browser.</DialogDescription>
+            <DialogDescription>
+              {googleListed
+                ? "Slush, any other Sui wallet in this browser, or your Google account."
+                : "Slush, or any other Sui wallet in this browser."}
+            </DialogDescription>
           </DialogHeader>
           {wallets.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -62,6 +69,12 @@ export function WalletPicker({
               ))}
             </div>
           )}
+          {googleListed ? (
+            <p className="text-sm text-muted-foreground">
+              Google gives you a Sui address that only hippo uses. To reach the same memory from
+              Claude Code or the Walrus dashboard, connect a wallet instead.
+            </p>
+          ) : null}
           {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </DialogContent>

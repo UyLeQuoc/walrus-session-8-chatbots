@@ -90,7 +90,7 @@ vi.mock("sonner", () => ({
  * what these stand-ins let us drive.
  */
 let wallet: { address: string } | null = null;
-let installedWallets: Array<{ name: string; id?: string }> = [];
+let installedWallets: Array<{ name: string; id?: string; features?: Record<string, unknown> }> = [];
 const signAndExecute = vi.fn(async () => ({ digest: "0xdigest" }));
 const connectWallet = vi.fn(async () => ({ accounts: [] as Array<{ address: string }> }));
 const suiClientStub: { core: Record<string, unknown>; getBalance?: unknown } = { core: {} };
@@ -952,6 +952,23 @@ describe("chat page", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Open memory" })).toBeDefined());
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.querySelector("[data-slot='memory-panel']")).toBeNull();
+  });
+
+  it("says a Google sign-in gets an address only hippo uses", async () => {
+    const user = userEvent.setup();
+    installedWallets = [
+      { name: "Slush" },
+      {
+        name: "Sign in with Google",
+        features: { "enoki:getMetadata": { getMetadata: () => ({ provider: "google" }) } },
+      },
+    ];
+    vi.stubGlobal("fetch", stubFetch({ "/api/me": { mode: "guest", memoryEnabled: true } }));
+    mountChat();
+    await user.click(await screen.findByRole("button", { name: "Connect wallet" }));
+    expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeDefined();
+    expect(screen.getByText(/only hippo uses/)).toBeDefined();
+    expect(screen.getByText(/or your Google account/)).toBeDefined();
   });
 
   it("closes the sidebar on a phone once the person starts a new chat", async () => {

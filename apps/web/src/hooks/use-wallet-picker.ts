@@ -4,6 +4,7 @@ import {
   useCurrentWallet,
   useWallets,
 } from "@mysten/dapp-kit";
+import { isGoogleWallet } from "@mysten/enoki";
 import { useCallback, useState } from "react";
 import { finishSignIn, requestSignInChallenge } from "@/hooks/wallet-sign-in";
 
@@ -67,5 +68,9 @@ export function useWalletPicker(options: { signIn: boolean; onSignedIn?: () => v
     [account, connectWallet, currentWallet, options.signIn, signInWith],
   );
 
-  return { wallets, pick, busy, error, status };
+  const googleListed = wallets.some(
+    (wallet) => typeof wallet.features === "object" && isGoogleWallet(wallet),
+  );
+
+  return { wallets, googleListed, pick, busy, error, status };
 }
