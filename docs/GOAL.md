@@ -413,8 +413,9 @@ this repo.
     one promo post outside Walrus and Sui (Show HN or Viblo); Airtable, DeepSurge,
     Discord, feedback form. The agent ticks `docs/PLAN.md`'s submission
     checklist with links and tags `v1.0-submission`.
-11. **Private files, thin slice.** **Not shipped 2026-10-02: no key; out of the
-    submission.** Original: **(Owner's key, then agent; by Oct 3)** Scope and
+11. **Private files, thin slice.** **Built and merged 2026-10-02 (PR #5) after
+    the Seal key arrived; not deployed; the mainnet round trip (check 3) has not
+    run.** Earlier the same day: not shipped, no key. Original: **(Owner's key, then agent; by Oct 3)** Scope and
     checks are "Thin slice for the submission" in `docs/CHAT-UPGRADE.md`. Phase
     0 step 3 (`writeFilesFlow` from the test wallet) starts without the key. If
     the Enoki key is not in `apps/web/.env` by the end of Oct 1, stop and leave
