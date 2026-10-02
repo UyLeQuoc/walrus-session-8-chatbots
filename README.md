@@ -113,6 +113,12 @@ back from Walrus, because the text is never stored in Postgres.
   revoke button, and your memories with type filter, search, hide, storage
   expiry, blob and ciphertext links, export and team. Wallet sign-in proves who
   you are with a signature, never a typed address.
+- **Google sign-in, no wallet needed.** Enoki zkLogin gives a Google account a
+  Sui address and lists it next to Slush in every wallet chooser, so a person
+  without a wallet can still own their memory. That address is hippo's alone:
+  Claude Code and the Walrus dashboard derive a different one from the same
+  Google account, and the chooser says so. It works once the Google OAuth client
+  lists `<origin>/auth-callback.html` as a redirect URI.
 
 ### The web chat
 
@@ -163,7 +169,6 @@ Every channel shares the same commands:
 
 - **Private files.** Encrypted upload, planned in `docs/CHAT-UPGRADE.md`, waits on
   an API key for the mainnet Seal aggregator. The attach button is disabled.
-- **Google sign-in** through Enoki, for people without a wallet.
 - **Reading your memory without the relayer**, and **deleting** a memory for
   good. Both are limits of Walrus Memory today; see the limits under Layout.
 - **The Claude Code check.** It follows from how the account works and has not

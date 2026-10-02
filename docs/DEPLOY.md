@@ -110,6 +110,14 @@ vercel deploy --prebuilt --prod --yes
 ```
 
 The `/api/*` rewrite in `apps/web/vercel.json` is carried into the build output.
+
+Google sign-in needs `VITE_ENOKI_API_KEY` and `VITE_GOOGLE_CLIENT_ID` in
+`apps/web/.env` on the machine that builds (`apps/web/.env.example`). Do not add
+them to the Vercel project: it stores production variables as Sensitive,
+`vercel pull` brings a Sensitive value back empty, and that empty value
+overrides `apps/web/.env` during `vercel build`. That shipped a build with
+Google sign-in silently missing on 2026-10-02. Both values are public; the
+browser sends them.
 Done this way on 2026-10-02 (`docs/evidence/deploy-2026-10-02.md`).
 
 **The server image needs every workspace manifest.** `bun install
