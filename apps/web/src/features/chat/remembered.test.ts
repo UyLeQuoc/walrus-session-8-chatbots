@@ -3,6 +3,8 @@ import {
   canCorrect,
   cardsFromMessages,
   keepPolling,
+  mergeCards,
+  type RememberedCard,
   STATUS_POLL_LIMIT_MS,
   writeLabel,
 } from "./remembered.ts";
@@ -70,5 +72,30 @@ describe("remembered cards", () => {
         indexId: "11111111-1111-4111-8111-111111111111",
       },
     ]);
+  });
+
+  it("keeps the wording a tool result knew when the stored row has none yet", () => {
+    const fromTool: RememberedCard = {
+      key: "index-1",
+      type: "profile",
+      text: "I only use pnpm",
+      saved: true,
+      indexId: "index-1",
+      status: "pending",
+      startedAt: 0,
+      hidden: false,
+    };
+    const fromRow: RememberedCard = {
+      ...fromTool,
+      text: "Writing to Walrus.",
+      textKnown: false,
+      status: "stored",
+      blobId: "blob-1",
+    };
+    const [card] = mergeCards([fromRow], [fromTool]);
+    expect(card?.text).toBe("I only use pnpm");
+    expect(card?.status).toBe("stored");
+    expect(card?.blobId).toBe("blob-1");
+    expect(card ? canCorrect(card) : false).toBe(true);
   });
 });

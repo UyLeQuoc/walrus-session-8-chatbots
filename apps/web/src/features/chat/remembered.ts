@@ -116,10 +116,17 @@ export function mergeCards(primary: RememberedCard[], extra: RememberedCard[]): 
   const byKey = new Map<string, RememberedCard>();
   for (const card of [...extra, ...primary]) {
     const prior = byKey.get(card.key);
-    byKey.set(
-      card.key,
-      prior ? { ...card, hidden: prior.hidden || card.hidden, error: prior.error } : card,
-    );
+    if (!prior) {
+      byKey.set(card.key, card);
+      continue;
+    }
+    const keepWording = card.textKnown === false && prior.textKnown !== false;
+    byKey.set(card.key, {
+      ...card,
+      ...(keepWording ? { text: prior.text, textKnown: true } : {}),
+      hidden: prior.hidden || card.hidden,
+      error: prior.error,
+    });
   }
   return [...byKey.values()];
 }
