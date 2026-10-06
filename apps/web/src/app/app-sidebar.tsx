@@ -1,8 +1,9 @@
-import { BookOpen, Library, Search, SquarePen, Trash2, Users } from "lucide-react";
+import { BookOpen, Library, Search, Send, SquarePen, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { WalletAccount } from "@/app/wallet-account";
 import { Logo } from "@/components/logo";
+import { TelegramCard } from "@/components/telegram-link";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -22,6 +23,7 @@ import {
 import { filterConversations } from "@/features/chat/conversations-filter";
 import { useConversations } from "@/features/chat/use-conversations";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { TELEGRAM_BOT } from "@/lib/channels";
 
 export function AppSidebar({
   onNewChat,
@@ -149,6 +151,17 @@ export function AppSidebar({
         )}
       </SidebarContent>
       <SidebarFooter>
+        <TelegramCard />
+        <SidebarMenu className="hidden group-data-[collapsible=icon]:flex">
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Open in Telegram">
+              <a href={TELEGRAM_BOT.url} target="_blank" rel="noreferrer">
+                <Send />
+                <span>Open in Telegram</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <WalletAccount />
       </SidebarFooter>
     </Sidebar>

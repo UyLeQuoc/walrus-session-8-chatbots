@@ -1,9 +1,11 @@
 import { ArrowRight, Users } from "lucide-react";
 import { Link } from "react-router";
 import { useShellTitle } from "@/app/shell";
+import { TelegramButton } from "@/components/telegram-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  ChannelPair,
   ChatVsMemory,
   ClaudeCodeSteps,
   CommandGroups,
@@ -49,11 +51,19 @@ export function GuidePage() {
           <Button asChild variant="outline">
             <Link to="/me">See my memory</Link>
           </Button>
+          <TelegramButton />
         </div>
       </header>
 
       <GuideSection title="The life of a memory">
         <MemoryFlow />
+      </GuideSection>
+
+      <GuideSection
+        title="One memory, on the web and on Telegram"
+        lead="Type /link in one, send the code in the other, and both read the same memory."
+      >
+        <ChannelPair />
       </GuideSection>
 
       <GuideSection

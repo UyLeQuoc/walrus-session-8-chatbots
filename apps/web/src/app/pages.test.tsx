@@ -235,6 +235,9 @@ describe("chat page", () => {
       "Gemini 2.5 Flash",
     );
     expect(screen.queryByText(/Try one/)).toBeNull();
+    expect(screen.getByRole("link", { name: /Open in Telegram/ }).getAttribute("href")).toBe(
+      "https://t.me/walrussession8_bot",
+    );
   });
 
   it("offers something to teach it before there is a conversation", async () => {
@@ -1209,6 +1212,10 @@ describe("how it works", () => {
     expect(container.textContent ?? "").toMatch(/\/connect/);
     expect(container.textContent ?? "").toMatch(/\/compare/);
     expect(screen.getByRole("link", { name: /Start chatting/ }).getAttribute("href")).toBe("/");
+    expect(screen.getByRole("link", { name: /Open in Telegram/ }).getAttribute("href")).toBe(
+      "https://t.me/walrussession8_bot",
+    );
+    expect(screen.getByText("One memory, on the web and on Telegram")).toBeDefined();
     expect(screen.queryByRole("button", { name: /own this memory/i })).toBeNull();
   });
 });
