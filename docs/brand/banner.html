@@ -1,60 +1,81 @@
 <!doctype html><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=block">
 <style>
   * { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#0a0a0a; }
   .banner {
-    width:1200px; height:630px; background:#0a0a0a; color:#fafafa;
+    width:1200px; height:630px; background:#0a0a0a; color:#fafafa; position:relative; overflow:hidden;
     font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    display:flex; align-items:center; gap:56px; padding:0 64px 0 72px;
-    position:relative; overflow:hidden;
+    display:flex; flex-direction:column; padding:52px 64px 56px;
   }
-  .glow { position:absolute; right:-160px; top:-120px; width:620px; height:620px;
-          background:radial-gradient(closest-side, rgba(56,189,248,.12), transparent); }
-  .copy { flex:1; display:flex; flex-direction:column; gap:26px; position:relative; }
-  .brand { display:flex; align-items:center; gap:14px; }
-  .brand img { height:58px; width:auto; display:block; }
-  .brand b { font-size:44px; letter-spacing:-.035em; font-weight:650; }
-  h1 { font-size:58px; line-height:1.04; letter-spacing:-.04em; font-weight:650; margin:0; }
-  p { font-size:23px; line-height:1.45; color:#a1a1aa; margin:0; max-width:31ch; }
-  .chips { display:flex; gap:10px; flex-wrap:wrap; }
-  .chip { border:1px solid #27272a; border-radius:999px; padding:8px 16px; font-size:18px; color:#d4d4d8; }
-  .url { font-size:21px; color:#fafafa; display:flex; align-items:center; gap:10px; }
-  .url span { color:#38bdf8; }
-  .chat { width:420px; flex:none; background:#111113; border:1px solid #27272a; border-radius:24px;
-          padding:26px; display:flex; flex-direction:column; gap:16px; position:relative;
-          box-shadow:0 30px 80px rgba(0,0,0,.55); }
-  .label { font-size:14px; color:#71717a; letter-spacing:.06em; text-transform:uppercase; }
-  .me { align-self:flex-end; background:#27272a; border-radius:18px; padding:12px 16px; font-size:19px; }
-  .used { display:inline-flex; align-items:center; gap:8px; font-size:15px; color:#a1a1aa;
-          border:1px solid #27272a; border-radius:999px; padding:5px 12px; align-self:flex-start; }
-  .dot { width:8px; height:8px; border-radius:50%; background:#38bdf8; }
-  .bot { font-size:19px; line-height:1.45; color:#e4e4e7; }
-  .facts { display:flex; flex-direction:column; gap:8px; border-top:1px solid #27272a; padding-top:16px; }
-  .fact { display:flex; justify-content:space-between; gap:12px; font-size:15px; color:#d4d4d8; }
-  .fact em { font-style:normal; color:#71717a; }
-  .ok { color:#4ade80; white-space:nowrap; }
+  .grid { position:absolute; inset:0; opacity:.5;
+          background-image:linear-gradient(#ffffff08 1px, transparent 1px), linear-gradient(90deg, #ffffff08 1px, transparent 1px);
+          background-size:48px 48px; mask-image:radial-gradient(ellipse at 70% 0%, #000 0%, transparent 70%); }
+  .top { display:flex; align-items:center; justify-content:space-between; position:relative; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .brand img { height:44px; width:auto; display:block; }
+  .brand b { font-size:34px; letter-spacing:-.03em; font-weight:650; }
+  .chips { display:flex; gap:10px; }
+  .chip { border:1px solid #ffffff1a; border-radius:999px; padding:7px 15px; font-size:16px; color:#d4d4d4; }
+  h1 { font-family:"Instrument Serif", Georgia, serif; font-weight:400; font-size:78px; line-height:1.02;
+       letter-spacing:-.01em; margin:34px 0 0; position:relative; }
+  .sub { font-size:23px; line-height:1.4; color:#a1a1a1; margin:16px 0 0; position:relative; }
+  .flow { margin-top:auto; display:flex; align-items:center; gap:12px; position:relative; }
+  .step { flex:1; background:#171717; border:1px solid #ffffff1a; border-radius:18px; padding:18px;
+          display:flex; flex-direction:column; gap:14px; height:150px; }
+  .head { display:flex; align-items:center; justify-content:space-between; }
+  .tile { width:42px; height:42px; border-radius:11px; background:#262626; display:flex; align-items:center; justify-content:center; }
+  .tile svg { width:21px; height:21px; }
+  .num { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:14px; color:#737373; }
+  .title { font-size:19px; font-weight:600; }
+  .detail { font-size:16px; color:#a1a1a1; margin-top:4px; }
+  .arrow svg { width:20px; height:20px; color:#737373; display:block; }
+  .url { position:absolute; right:64px; bottom:18px; font-size:15px; color:#737373; }
 </style>
 <div class="banner">
-  <div class="glow"></div>
-  <div class="copy">
+  <div class="grid"></div>
+  <div class="top">
     <div class="brand"><img src="mark-white.png" alt=""><b>hippo</b></div>
-    <h1>A chatbot that<br>remembers you,<br>on memory you own</h1>
-    <p>Your memory lives on Walrus, in an account your wallet owns on Sui. hippo holds a key you can revoke on chain.</p>
     <div class="chips">
       <span class="chip">Walrus Memory</span>
       <span class="chip">Sui mainnet</span>
       <span class="chip">Web · Telegram · CLI</span>
     </div>
-    <div class="url"><span>→</span>ask-hippo.vercel.app</div>
   </div>
-  <div class="chat">
-    <div class="label">New chat</div>
-    <div class="me">What do you know about me?</div>
-    <div class="used"><span class="dot"></span>recalled 2 memories from Walrus</div>
-    <div class="bot">You moved this project from pnpm to bun, and you want short answers.</div>
-    <div class="facts">
-      <div class="fact"><span><em>correction</em>&nbsp; we use bun now</span><span class="ok">on Walrus</span></div>
-      <div class="fact"><span><em>style</em>&nbsp; keep answers short</span><span class="ok">on Walrus</span></div>
+  <h1>A chatbot that remembers you,<br>on memory you own</h1>
+  <p class="sub">Your memory lives on Walrus, in a Sui account you can own. hippo only holds a key you can take back.</p>
+  <div class="flow">
+    <div class="step">
+      <div class="head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg></span>
+        <span class="num">01</span>
+      </div>
+      <div><div class="title">You say it</div><div class="detail">“We moved to bun.”</div></div>
+    </div>
+    <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+    <div class="step">
+      <div class="head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg></span>
+        <span class="num">02</span>
+      </div>
+      <div><div class="title">hippo keeps the fact</div><div class="detail">One line, keys stripped</div></div>
+    </div>
+    <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+    <div class="step">
+      <div class="head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+        <span class="num">03</span>
+      </div>
+      <div><div class="title">Sealed on Walrus</div><div class="detail">Encrypted, kept ~7 months</div></div>
+    </div>
+    <span class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+    <div class="step">
+      <div class="head">
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span>
+        <span class="num">04</span>
+      </div>
+      <div><div class="title">Recalled next time</div><div class="detail">Any chat, any channel</div></div>
     </div>
   </div>
+  <div class="url">ask-hippo.vercel.app</div>
 </div>

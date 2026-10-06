@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/web/public/og.png" alt="hippo: a chatbot that remembers you, on memory you own. A new chat recalls two memories from Walrus." width="820">
+  <img src="apps/web/public/og.png" alt="hippo: a chatbot that remembers you, on memory you own. A memory goes from what you say, to a fact hippo keeps, to an encrypted blob on Walrus, and is recalled in the next chat." width="820">
 </p>
 
 <h1 align="center">hippo</h1>
