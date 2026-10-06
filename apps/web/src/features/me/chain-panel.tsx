@@ -7,11 +7,12 @@
  * from that exact list. Showing our own `delegate_keys` table here would have
  * been easier and would have proved nothing.
  */
+
+import { Hash } from "@/components/hash";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Hash } from "@/features/me/hash";
 import { useAccount } from "@/features/me/use-account";
 
 export function ChainPanel({ owned, onError }: { owned: boolean; onError: (m: string) => void }) {

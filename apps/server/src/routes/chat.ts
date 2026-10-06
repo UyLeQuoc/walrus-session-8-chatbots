@@ -1,7 +1,7 @@
 import { gatherContext, runTurn } from "@hippo/core";
 import { type CommandTable, packCommandBody } from "@hippo/core/command-table";
 import { and, delegateKeys, desc, eq, memoryIndex } from "@hippo/db";
-import { createSuiClient, explorer, NAMESPACE, RelayerExtras, readAccount } from "@hippo/memory";
+import { createSuiClient, explorer, RelayerExtras, readAccount } from "@hippo/memory";
 import { generateText } from "ai";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
@@ -42,8 +42,8 @@ import {
   setHidden,
 } from "../identity/persons.ts";
 import { meIdentity } from "../identity/predicates.ts";
-import { currentTeam, inviteToTeam, leaveTeam } from "../identity/teams.ts";
 import { asDownload, exportFor } from "../memory/export-person.ts";
+import { searchResult } from "../memory/search-result.ts";
 import { plainReply, textReply } from "./reply.ts";
 
 /** The web page and the CLI share this route; the CLI identifies itself by header. */
@@ -561,17 +561,7 @@ export const chatRoutes = new Hono()
           .where(ownMemoryOf(person.id))
       ).flatMap((r) => (r.blobId ? [r.blobId] : [])),
     );
-    return c.json({
-      results: hits.map((h) => ({
-        mine: own.has(h.blob_id),
-        text: h.parsed?.text ?? h.text,
-        type: h.parsed?.type ?? null,
-        // Distance is the relayer's language; relevance is the reader's.
-        relevance: Number((1 - h.distance).toFixed(2)),
-        blobId: h.blob_id,
-        explorerUrl: explorer.blobExplorer(h.blob_id),
-      })),
-    });
+    return c.json({ results: hits.map((hit) => searchResult(hit, own)) });
   })
 
   /**
@@ -596,66 +586,6 @@ export const chatRoutes = new Hono()
       "content-disposition": `attachment; filename="${file.name}"`,
       "cache-control": "no-store",
     });
-  })
-
-  /**
-   * The team this person is in, and what the team holds.
-   *
-   * Metadata only, as everywhere on /me: memory text is never in Postgres.
-   * Teammates are never named. Each shared memory says only whether this person
-   * added it, because the page is about what hippo holds, not about who said
-   * what to whom.
-   */
-  .get("/api/me/team", async (c) => {
-    const person = await mePerson(c);
-    if (!person) return c.json({ team: null });
-    const team = await currentTeam(person.id);
-    if (!team) return c.json({ team: null });
-    const rows = await db
-      .select()
-      .from(memoryIndex)
-      .where(eq(memoryIndex.namespace, NAMESPACE.team(team.teamId)))
-      .orderBy(desc(memoryIndex.createdAt))
-      .limit(50);
-    return c.json({
-      team: {
-        name: team.name,
-        memberCount: team.memberCount,
-        memories: rows.map((r) => ({
-          id: r.id,
-          type: r.type,
-          status: r.status,
-          createdAt: r.createdAt,
-          blobId: r.blobId,
-          explorerUrl: r.blobId ? explorer.blobExplorer(r.blobId) : null,
-          mine: r.personId === person.id,
-        })),
-      },
-    });
-  })
-
-  /** An invite code, the same one `/team invite` gives. */
-  .post("/api/me/team/invite", async (c) => {
-    const person = await mePerson(c);
-    if (!person) return c.json({ error: "Say something first." }, 401);
-    const gate = await checkRate(person.id);
-    if (!gate.allowed) return c.json({ error: gate.message }, 429);
-    await noteCommand(person.id, CHANNEL);
-    const team = await currentTeam(person.id);
-    if (!team) return c.json({ error: "You are not in a team." }, 409);
-    return c.json(await inviteToTeam(person, team.teamId));
-  })
-
-  /** Leave, as `/team leave` does. What was added stays with the team. */
-  .post("/api/me/team/leave", async (c) => {
-    const person = await mePerson(c);
-    if (!person) return c.json({ error: "Say something first." }, 401);
-    const gate = await checkRate(person.id);
-    if (!gate.allowed) return c.json({ error: gate.message }, 429);
-    await noteCommand(person.id, CHANNEL);
-    const left = await leaveTeam(person.id);
-    if (!left) return c.json({ error: "You are not in a team." }, 409);
-    return c.json({ left: left.name });
   })
 
   /**

@@ -60,7 +60,7 @@ Never edit files inside `memwal/`. Never import from it; depend on the published
 ## Repo layout (target)
 
 ```
-apps/web         Vite + React + Tailwind v4 + shadcn/ui: chat, /connect/:token, /disconnect/:token, /me
+apps/web         Vite + React + Tailwind v4 + shadcn/ui: chat, /connect/:token, /disconnect/:token, /me, /team
 apps/server      Hono API (/api/chat streaming, /api/connect/*, /api/me/*) + channel adapters
   src/channels/  telegram (grammY), discord (discord.js), slack (Bolt socket mode), web
 packages/core    agent loop, prompts, tools (remember / recall), channel-agnostic
@@ -79,10 +79,11 @@ that mount each page with the network stubbed and assert what a reader sees, bec
 typecheck and build both pass happily on a component that throws on first paint. `.github/workflows/ci.yml` runs lint, typecheck, test, the web
 build and `bun pm scan` on every push, plus a guard that `.env`, `memwal/` and
 `.turbo/` are never tracked. CI uses Bun for package management and Node 20 for
-the application checks. `jsdom` is pinned to 26 because 30 needs Node 22. There is one
-`overrides` entry, for esbuild,
+the application checks. `jsdom` is pinned to 26 because 30 needs Node 22. There are two
+`overrides` entries: esbuild,
 because `drizzle-kit` still pulls a version with a dev-server advisory it never
-uses; the reasoning is in `package.json`. Tests that read the real mainnet account skip themselves when
+uses, and `source-map-js` >=1.2.2, because Tailwind and PostCSS still pin 1.2.1,
+which carries CVE-2026-93749 and makes `bun install` abort under the OSV scanner. Tests that read the real mainnet account skip themselves when
 credentials are absent, so a fork gets a green run without secrets.
 
 ## Conventions

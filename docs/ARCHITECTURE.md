@@ -58,7 +58,7 @@ Two modes per person, stored in `people.mode`:
 | Who can revoke | Nobody but the operator | The user, on-chain |
 | Write rate limit | Shared 60 weighted req/min per delegate key across all guests | 60 weighted req/min per user |
 
-Team/shared scope is a stretch goal (Discord guild or Slack workspace namespace `hippo-team:<id>` in the operator account). Personal scope ships first.
+Team scope shipped on 2026-09-24: namespace `hippo-team:<id>` in the operator account, written only by an explicit add (`/team remember` in any channel, or the form on the web `/team` page). Everything the chat command does is also on `/team` since 2026-10-06.
 
 Namespace names are public on-chain metadata. Person IDs are random UUIDs, not channel IDs,, but nothing else goes into a namespace.
 
