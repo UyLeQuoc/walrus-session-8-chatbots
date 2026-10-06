@@ -14,7 +14,7 @@ Mainnet (relayer.memory.walrus.xyz)
 
 ### What happened?
 
-`restore()` is the documented recovery path if the relayer's index is lost. On our mainnet account it finds nothing, or almost nothing, in namespaces whose memories `recall()` returns, and it says so with `truncated: false`, which reads like a complete answer. Not covered by #623 (package migration), #754 (unreadable blobs dropped), #762 (fixed) or #1060 (`created_at` reset on restore).
+`restore()` is the documented recovery path if the relayer's index is lost. On our mainnet account it finds nothing, or almost nothing, in namespaces whose memories `recall()` returns, and it says so with `truncated: false`, which reads like a complete answer. Not covered by #623 (package migration), #754 (unreadable blobs dropped), #762 (fixed), #1060 (`created_at` reset on restore), #1108 (MCP restore truncates at its default page size with no cursor) or #1086 (`limit` validation): here `total` itself is zero, at every limit, while recall answers from the namespace.
 
 ### Steps to reproduce
 

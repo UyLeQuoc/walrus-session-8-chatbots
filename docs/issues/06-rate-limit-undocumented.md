@@ -54,4 +54,4 @@ A client that paces from the docs runs at half the real ceiling. One that paces 
 - [X] I searched existing issues and this is not a duplicate.
 - [X] This report contains no private keys, mnemonics, or other secrets.
 
-<!-- hippo (walrus-session-8-chatbots): first observed 2026-09-22; re-checked 2026-10-03 against main 1e023585. Related: #1073 (says undocumented), #686 (60/min measured), #1002 (different bug). The 60/min was not re-measured on 2026-10-03 because tripping it throttles a key live users share. -->
+<!-- hippo (walrus-session-8-chatbots): first observed 2026-09-22; re-checked 2026-10-03 against main 1e023585. Related: #1073 (says undocumented), #686 (60/min measured), #1002 (different bug), #1114 and #1116 (2026-10-05, account burst cap and remember bursts; a different layer). The 60/min was not re-measured on 2026-10-03 because tripping it throttles a key live users share. -->

@@ -8,7 +8,7 @@ We hit this on the hosted mainnet relayer while building a chatbot on Walrus Mem
 - Four runs of the same eval gave 4, 9, 0 and 15 drop events, with no pattern by query or concurrency.
 - On 2026-09-25, while recall was slow (medians of 9–60 s against a usual 2 s), 7 all-dropped attempts on 0.1.8 across two eval runs and 120 bench recalls, and 3 on 0.1.7 across 60. On 0.1.8, which sends the relayer its deadline, the recalls that stalled outright came back as `504 {"code":"RECALL_TIMEOUT","stage":"seal_decrypt"}`, so the slow step was Seal key fetching, the step the relayer logs for the drops.
 
-That matches the cause described in `25ba0fb5` (2026-09-28, "fix(server): run seal off the upload sidecar process": a full Walrus upload queue stalls `fetchKeys` on the shared event loop, so recall misses its deadline).
+#1102 measured the same `RECALL_TIMEOUT` at `seal_decrypt` on 2026-09-25, also before the fix. That matches the cause described in `25ba0fb5` (2026-09-28, "fix(server): run seal off the upload sidecar process": a full Walrus upload queue stalls `fetchKeys` on the shared event loop, so recall misses its deadline).
 
 **Since then we have not seen it.** On 2026-10-02 18:51 UTC, 18 recalls over two namespaces (3 queries × 3 rounds each) returned their results with `dropped_count: 0` every time, and five days of our production logs (832 lines across 6 deployments) contain no all-dropped recall. So from our side this looks fixed by `25ba0fb5`. Even so, an empty page with `dropped_count > 0` is still indistinguishable from "no memories" for a caller that reads `results`, which is the part this issue asks about.
 
