@@ -25,6 +25,7 @@ import {
 import { isConversationTurn } from "../chat/turn-modes.ts";
 import { db, operator } from "../context.ts";
 import { env } from "../env/load.ts";
+import { isUniqueViolation } from "../unique-violation.ts";
 import { inheritedGuestIds } from "./predicates.ts";
 import { currentTeam } from "./teams.ts";
 
@@ -36,24 +37,27 @@ export async function resolvePerson(
   externalId: string,
   displayName?: string,
 ): Promise<Person> {
-  const existing = await db
-    .select({ person: people })
-    .from(channelIdentities)
-    .innerJoin(people, eq(people.id, channelIdentities.personId))
-    .where(
-      and(eq(channelIdentities.channel, channel), eq(channelIdentities.externalId, externalId)),
-    )
-    .limit(1);
-  const hit = existing[0]?.person;
-  if (hit) return hit;
-  return db.transaction(async (tx) => {
-    const [person] = await tx.insert(people).values({ displayName }).returning();
-    if (!person) throw new Error("failed to create person");
-    await tx
-      .insert(channelIdentities)
-      .values({ personId: person.id, channel, externalId, displayName });
-    return person;
-  });
+  const existing = await personByChannel(channel, externalId);
+  if (existing) return existing;
+  try {
+    return await db.transaction(async (tx) => {
+      const [person] = await tx.insert(people).values({ displayName }).returning();
+      if (!person) throw new Error("failed to create person");
+      await tx
+        .insert(channelIdentities)
+        .values({ personId: person.id, channel, externalId, displayName });
+      return person;
+    });
+  } catch (err) {
+    // Two first requests for one new identity (the web page loads several
+    // /api/me routes at once) both miss the select above, and the loser's insert
+    // hits channel_identity_unique. Its transaction rolled back, so no orphan
+    // person is left; answer with the winner's.
+    if (!isUniqueViolation(err)) throw err;
+    const winner = await personByChannel(channel, externalId);
+    if (!winner) throw err;
+    return winner;
+  }
 }
 
 /**

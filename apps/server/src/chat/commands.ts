@@ -17,10 +17,17 @@ import {
   type Person,
   portFor,
   setHidden,
-  teamPortFor,
 } from "../identity/persons.ts";
+import {
+  createRefusalSentence,
+  joinedSentence,
+  joinRefusalSentence,
+  teamFactRefusalSentence,
+  teamFactSentence,
+} from "../identity/team-copy.ts";
 import { createTeam, currentTeam, inviteToTeam, joinTeam, leaveTeam } from "../identity/teams.ts";
 import { asDownload, type ExportDownload, exportFor } from "../memory/export-person.ts";
+import { rememberTeamFact } from "../memory/team-person.ts";
 import {
   compareView,
   connectLinkView,
@@ -114,13 +121,7 @@ async function team(ctx: CommandContext, arg: string): Promise<CommandResult> {
 
     case "new": {
       const outcome = await createTeam(ctx.person, value);
-      if (!outcome.ok) {
-        return sentence(
-          outcome.reason === "bad-name"
-            ? "Give it a name: /team new Platform"
-            : "You are already in a team. /team leave first.",
-        );
-      }
+      if (!outcome.ok) return sentence(createRefusalSentence(outcome.reason));
       return teamStartedView({
         name: outcome.team.name,
         code: outcome.code,
@@ -136,33 +137,18 @@ async function team(ctx: CommandContext, arg: string): Promise<CommandResult> {
 
     case "join": {
       const outcome = await joinTeam(ctx.person, value);
-      if (!outcome.ok) {
-        const why: Record<string, string> = {
-          unknown: "That is not a code. They look like ABC234.",
-          expired: "That code has been used or has expired. Ask for another.",
-          "already-in-a-team": "You are already in a team. /team leave first.",
-          "already-member": "You are already in that team.",
-          full: "That team is full.",
-        };
-        return sentence(why[outcome.reason] ?? "That is not a code. They look like ABC234.");
-      }
-      return sentence(
-        `Joined "${outcome.team.name}". You will now recall what the team has put in, and /team remember adds to it.\n\nYour own memory stays yours and is not shared.`,
-      );
+      if (!outcome.ok) return sentence(joinRefusalSentence(outcome.reason));
+      return sentence(joinedSentence(outcome.team.name));
     }
 
     case "remember": {
-      if (!mine) return sentence("You are not in a team. /team new <name> starts one.");
-      if (value.trim().length < 3) return sentence("Usage: /team remember <fact>");
-      const port = await teamPortFor(ctx.person, ctx.channel, mine.teamId);
-      const result = await port.remember({ type: "decision", text: value, channel: ctx.channel });
-      if (!result.saved) return sentence(`"${mine.name}" already knows that.`);
-      const redacted = result.redacted.length
-        ? ` I stripped ${result.redacted.join(", ")} out of it first.`
-        : "";
-      return sentence(
-        `Added to "${mine.name}". Everyone in the team can recall it from now on.${redacted}`,
-      );
+      const outcome = await rememberTeamFact({
+        person: ctx.person,
+        channel: ctx.channel,
+        text: value,
+      });
+      if (!outcome.ok) return sentence(teamFactRefusalSentence(outcome.reason));
+      return sentence(teamFactSentence(outcome));
     }
 
     case "leave": {

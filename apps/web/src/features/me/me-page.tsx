@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { useShellTitle } from "@/app/shell";
+import { Hash } from "@/components/hash";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +12,9 @@ import { ChainPanel } from "@/features/me/chain-panel";
 import { ChangesPanel } from "@/features/me/changes-panel";
 import { ClaudeCodePanel } from "@/features/me/claude-code-panel";
 import { ExportPanel } from "@/features/me/export-panel";
-import { Hash } from "@/features/me/hash";
 import { ImportPanel } from "@/features/me/import-panel";
 import { MemoryList } from "@/features/me/memory-list";
-import { TeamPanel } from "@/features/me/team-panel";
+import { TeamCard } from "@/features/me/team-card";
 import { UsagePanel } from "@/features/me/usage-panel";
 import { useMe } from "@/features/me/use-me";
 import { useUsage } from "@/features/me/use-usage";
@@ -118,7 +118,7 @@ export function MePage() {
 
       <ClaudeCodePanel owned={owned} />
 
-      <TeamPanel onError={(message) => toast.error(message)} />
+      <TeamCard />
 
       <MemoryList
         memories={memories}

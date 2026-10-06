@@ -11,6 +11,7 @@ import { decryptSecret, encryptSecret } from "@hippo/memory";
 import type { ModelMessage } from "ai";
 import { db } from "../context.ts";
 import { env } from "../env/load.ts";
+import { isUniqueViolation } from "../unique-violation.ts";
 import { type Citation, type DocumentCite, packTurnBody, unpackTurnBody } from "./citations.ts";
 import {
   contextWindow,
@@ -71,13 +72,6 @@ function unseal(payload: string, id: string): string | null {
     console.error("[history] decrypt failed", id, err instanceof Error ? err.name : "error");
     return null;
   }
-}
-
-function isUniqueViolation(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  if ("code" in err && err.code === "23505") return true;
-  if ("cause" in err) return isUniqueViolation(err.cause);
-  return false;
 }
 
 export async function claimWebConversation(

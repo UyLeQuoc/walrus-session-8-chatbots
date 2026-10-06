@@ -29,9 +29,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Web3Address } from "@/components/web3-address";
-import { ago, type Memory } from "@/features/me/memory";
+import type { Memory } from "@/features/me/memory";
 import { useMemoriesTable } from "@/features/me/use-memories-table";
 import { usedInLabel } from "@/features/me/use-usage";
+import { ago } from "@/lib/ago";
 
 function daysUntil(iso: string): number {
   return Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000);

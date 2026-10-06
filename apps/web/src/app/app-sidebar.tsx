@@ -1,4 +1,4 @@
-import { BookOpen, Library, Search, SquarePen, Trash2 } from "lucide-react";
+import { BookOpen, Library, Search, SquarePen, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { WalletAccount } from "@/app/wallet-account";
@@ -69,6 +69,14 @@ export function AppSidebar({
                   <Link to="/me" onClick={closeOnPhone}>
                     <Library />
                     <span>My memory</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/team"}>
+                  <Link to="/team" onClick={closeOnPhone}>
+                    <Users />
+                    <span>Team</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
