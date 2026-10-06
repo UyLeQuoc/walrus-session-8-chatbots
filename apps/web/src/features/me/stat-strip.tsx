@@ -27,7 +27,7 @@ function Tile({
     <div
       className={cn("flex flex-col gap-2 rounded-xl border bg-card p-3 sm:gap-3 sm:p-4", className)}
     >
-      <div className="flex items-center gap-2 text-sm text-muted-foreground [&_svg]:size-4">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground [&_svg]:size-4 [&_svg]:text-brand">
         {icon}
         {label}
       </div>
@@ -35,7 +35,13 @@ function Tile({
         <span className="text-xl font-medium sm:text-2xl">{value}</span>
         {note ? <span className="text-sm text-muted-foreground">{note}</span> : null}
       </div>
-      {progress === undefined ? null : <Progress value={progress} aria-label={label} />}
+      {progress === undefined ? null : (
+        <Progress
+          value={progress}
+          aria-label={label}
+          className="bg-brand/20 [&>[data-slot=progress-indicator]]:bg-brand"
+        />
+      )}
     </div>
   );
 }

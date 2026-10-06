@@ -86,7 +86,7 @@ export function GuidePage() {
       </GuideSection>
 
       <section className="flex flex-col items-start gap-4 rounded-xl border bg-card p-4 sm:flex-row sm:items-center">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted [&_svg]:size-4">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand [&_svg]:size-4">
           <Users />
         </span>
         <div className="flex flex-1 flex-col gap-1">

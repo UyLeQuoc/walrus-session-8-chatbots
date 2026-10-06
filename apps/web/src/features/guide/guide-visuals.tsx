@@ -47,7 +47,7 @@ function Connector({ label }: { label?: string }) {
 
 function IconTile({ children }: { children: ReactNode }) {
   return (
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground [&_svg]:size-4">
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand [&_svg]:size-4">
       {children}
     </span>
   );
@@ -77,7 +77,7 @@ export function MemoryFlow() {
           </li>
         ))}
       </ol>
-      <div className="flex flex-col gap-1 rounded-xl border border-dashed p-3">
+      <div className="flex flex-col gap-1 rounded-xl border border-dashed border-brand/40 p-3">
         <span className="text-xs text-muted-foreground">
           What lands on Walrus, before encryption
         </span>
@@ -103,7 +103,7 @@ export function ChatVsMemory() {
                 )}
               >
                 {line.yes ? (
-                  <Check aria-label="yes" className="size-4 shrink-0" />
+                  <Check aria-label="yes" className="size-4 shrink-0 text-brand" />
                 ) : (
                   <X aria-label="no" className="size-4 shrink-0" />
                 )}

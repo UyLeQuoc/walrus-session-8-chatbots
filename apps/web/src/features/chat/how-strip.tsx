@@ -16,7 +16,7 @@ export function HowStrip() {
           <Fragment key={step.label}>
             {index > 0 ? <ArrowRight aria-hidden className="size-3.5" /> : null}
             <li className="flex items-center gap-1.5">
-              <step.icon aria-hidden className="size-4" />
+              <step.icon aria-hidden className="size-4 text-brand" />
               {step.label}
             </li>
           </Fragment>

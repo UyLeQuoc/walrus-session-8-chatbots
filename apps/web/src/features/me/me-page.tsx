@@ -54,7 +54,7 @@ export function MePage() {
       <Page>
         <Empty>
           <EmptyHeader>
-            <EmptyMedia variant="icon">
+            <EmptyMedia variant="icon" className="bg-brand/15 text-brand">
               <Library />
             </EmptyMedia>
             <EmptyTitle>Nothing remembered yet</EmptyTitle>

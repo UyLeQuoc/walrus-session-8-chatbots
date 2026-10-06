@@ -253,7 +253,11 @@ function Status({ memory }: { memory: Memory }) {
   if (memory.status === "failed") {
     return <span className="text-muted-foreground">write failed</span>;
   }
-  return <Badge variant="outline">stored</Badge>;
+  return (
+    <Badge variant="outline" className="border-brand/40 text-brand">
+      stored
+    </Badge>
+  );
 }
 
 function RowActions({

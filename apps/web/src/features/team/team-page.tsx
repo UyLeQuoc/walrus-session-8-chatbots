@@ -54,7 +54,7 @@ export function TeamPage() {
       <Page>
         <Empty>
           <EmptyHeader>
-            <EmptyMedia variant="icon">
+            <EmptyMedia variant="icon" className="bg-brand/15 text-brand">
               <Users />
             </EmptyMedia>
             <EmptyTitle>No team yet</EmptyTitle>
