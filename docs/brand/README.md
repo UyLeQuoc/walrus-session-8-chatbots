@@ -1,68 +1,57 @@
 # Brand
 
 The mark in use since 2026-09-25 (`2291934`) is the hippo silhouette in
-`apps/web/public/logo-black.svg`, `logo-white.svg` and `favicon.svg`. The five
-SVG candidates below are the earlier round and are kept for the record.
-`mark-white.png` and `mark-black.png` are that silhouette rendered and cropped
-to its ink, for the social card.
+`apps/web/public/logo-black.svg`, `logo-white.svg` and `favicon.svg`.
+`mark-white.png` is that silhouette rendered and cropped to its ink, for the
+social card and the Telegram avatar.
 
-## The candidates
+The accent is one teal, `--brand` in `apps/web/src/index.css`, used only for
+what is about memory on Walrus: icon tiles, progress bars, "stored" labels.
 
-| file | idea |
+## Files
+
+| file | what it is |
 |---|---|
-| `logo-1-waterline.svg` | **In use.** A hippo shows its eyes and keeps the rest below the waterline, which is what the memory does too: held elsewhere, surfaced on ask |
-| `logo-2-resolve.svg` | Ciphertext turning back into a letter |
-| `logo-3-revoke.svg` | A key leaving the ring |
-| `logo-4-blob.svg` | A blob with a keyhole: public bytes, one reader |
-| `logo-5-link.svg` | Two rings joined only while you allow it |
+| `banner.html` | the 1200×630 social card, rendered into `apps/web/public/og.png` |
+| `avatar.html` | the 640×640 Telegram avatar, rendered into `telegram-avatar.png` |
+| `mark-white.png` | the mark on transparent, used by both pages above |
+| `telegram-avatar.png` | the bot's profile photo |
 
-`contact-sheet.html` shows all five at 88px, 36px and 20px on both backgrounds.
-The 20px row is the one that decides it, since that is a favicon and a header.
+The earlier round of five logo candidates (waterline, resolve, revoke, blob,
+link), their contact sheet and the 512×512 rasters of the waterline mark were
+removed on 2026-10-06 as unused. They are in git at `eb1ba0d`
+(`git show eb1ba0d:docs/brand/contact-sheet.html`).
 
-Why 1 and not 4: the blob scales best and says the least. It reads as generic
-security, where the waterline is specific to this project and to its name. If a
-sharper mark is ever wanted at very small sizes, 4 is the fallback.
-
-## Raster versions
-
-`logo-512-dark.png` and `logo-512-light.png` are 512×512 for the places that
-take no SVG: a Telegram bot avatar set through BotFather, a GitHub organisation
-picture, a submission form. Both are cropped around the ink rather than around
-the viewBox, because the waterline sits below the middle of the drawing and a
-circle crop would otherwise cut the ripples and leave dead space above.
-
-`apps/web/public/og.png` is the 1200×630 social card.
-
-`telegram-avatar.png` is the bot's profile photo since 2026-10-06: 640×640, the
-white mark on the dark background with a teal glow, drawn from `avatar.html`
-and rendered like the card below. It was set through the Bot API
-(`setMyProfilePhoto` with an `InputProfilePhotoStatic`), together with the
-name `hippo` and the short and long descriptions (`setMyName`,
-`setMyShortDescription`, `setMyDescription`). BotFather's `/setuserpic` does
-the same by hand.
+`telegram-avatar.png` has been the bot's profile photo since 2026-10-06. It was
+set through the Bot API (`setMyProfilePhoto` with an `InputProfilePhotoStatic`),
+together with the name `hippo` and the short and long descriptions
+(`setMyName`, `setMyShortDescription`, `setMyDescription`). BotFather's
+`/setuserpic` does the same by hand.
 
 ## Changing the mark
 
-Three places, all hand-edited:
-
-1. `apps/web/src/components/logo.tsx` — the header, in `currentColor`
-2. `apps/web/public/favicon.svg` — carries both themes itself, since a favicon
+1. `apps/web/src/components/logo.tsx`: the header, in `currentColor`
+2. `apps/web/public/favicon.svg`: carries both themes itself, since a favicon
    cannot inherit one
-3. `docs/brand/banner.html` — the social card, then regenerate `og.png`
-4. The two 512×512 pngs, regenerated the same way as the card
+3. `mark-white.png`, then regenerate `og.png` and `telegram-avatar.png`
 
-## Regenerating the social card
+## Regenerating the social card and the avatar
 
-`apps/web/public/og.png` is `banner.html`, a 1200×630 page, rendered at twice
-the size and scaled down, so the edges stay sharp in a link card and at the top
-of the README:
+Each page is rendered at twice the size and scaled down, so the edges stay sharp
+in a link card and at the top of the README:
 
 ```bash
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-"$CHROME" --headless=new --hide-scrollbars --force-device-scale-factor=2 \
+"$CHROME" --headless=new --hide-scrollbars --force-device-scale-factor=2 --virtual-time-budget=5000 \
   --window-size=1200,630 --screenshot=/tmp/banner-2x.png "file://$PWD/docs/brand/banner.html"
 python3 -c "from PIL import Image; Image.open('/tmp/banner-2x.png').convert('RGB').resize((1200, 630), Image.LANCZOS).save('apps/web/public/og.png', optimize=True)"
+
+"$CHROME" --headless=new --hide-scrollbars --force-device-scale-factor=2 --virtual-time-budget=3000 \
+  --window-size=640,640 --screenshot=/tmp/avatar-2x.png "file://$PWD/docs/brand/avatar.html"
+python3 -c "from PIL import Image; Image.open('/tmp/avatar-2x.png').convert('RGB').resize((640, 640), Image.LANCZOS).save('docs/brand/telegram-avatar.png', optimize=True)"
 ```
+
+`--virtual-time-budget` gives the Google Font in `banner.html` time to load.
 
 The icons in `apps/web/public` (`favicon-32.png`, `apple-touch-icon.png`,
 `icon-192.png`, `icon-512.png`) are `favicon.svg` rendered the same way at
