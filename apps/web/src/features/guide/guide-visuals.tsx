@@ -1,4 +1,13 @@
-import { ArrowLeftRight, ArrowRight, ArrowUpRight, Check, Globe, Send, X } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Globe,
+  MessagesSquare,
+  Send,
+  X,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +20,7 @@ import {
   PROOFS,
   SAMPLE_MEMORY,
 } from "@/features/guide/guide-content";
-import { TELEGRAM_BOT } from "@/lib/channels";
+import { DISCORD_BOT, TELEGRAM_BOT } from "@/lib/channels";
 import { cn } from "@/lib/utils";
 
 export function GuideSection({
@@ -198,40 +207,67 @@ export function ClaudeCodeSteps() {
   );
 }
 
+const CHANNELS = [
+  { icon: Globe, name: "Web", detail: "ask-hippo.vercel.app", href: null },
+  { icon: Send, name: "Telegram", detail: TELEGRAM_BOT.handle, href: TELEGRAM_BOT.url },
+  {
+    icon: MessagesSquare,
+    name: "Discord",
+    detail: "Add to a server, then DM",
+    href: DISCORD_BOT.url,
+  },
+] as const;
+
 export function ChannelPair() {
   return (
-    <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-center">
-      <div className="flex flex-1 items-center gap-3 rounded-xl border bg-card p-4">
-        <IconTile>
-          <Globe />
-        </IconTile>
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <p className="text-sm font-medium">Web</p>
-          <p className="text-sm text-muted-foreground">ask-hippo.vercel.app</p>
-        </div>
-      </div>
-      <div
-        aria-hidden
-        className="flex shrink-0 items-center justify-center gap-1 text-muted-foreground md:flex-col"
-      >
-        <code className="font-mono text-xs">/link</code>
-        <ArrowLeftRight className="size-4 rotate-90 md:rotate-0" />
-      </div>
-      <a
-        href={TELEGRAM_BOT.url}
-        target="_blank"
-        rel="noreferrer"
-        className="flex flex-1 items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent"
-      >
-        <IconTile>
-          <Send />
-        </IconTile>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p className="text-sm font-medium">Telegram</p>
-          <p className="text-sm text-muted-foreground">{TELEGRAM_BOT.handle}</p>
-        </div>
-        <ArrowUpRight className="size-4 text-muted-foreground" />
-      </a>
+    <ol className="flex flex-col items-stretch gap-2 md:flex-row md:items-center">
+      {CHANNELS.map((channel, index) => {
+        const body = (
+          <>
+            <IconTile>
+              <channel.icon />
+            </IconTile>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <p className="text-sm font-medium">{channel.name}</p>
+              <p className="text-sm break-words text-muted-foreground">{channel.detail}</p>
+            </div>
+            {channel.href ? (
+              <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
+            ) : null}
+          </>
+        );
+        return (
+          <li key={channel.name} className="contents">
+            {index > 0 ? <ChannelLink /> : null}
+            {channel.href ? (
+              <a
+                href={channel.href}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-1 items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent"
+              >
+                {body}
+              </a>
+            ) : (
+              <div className="flex flex-1 items-center gap-3 rounded-xl border bg-card p-4">
+                {body}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function ChannelLink() {
+  return (
+    <div
+      aria-hidden
+      className="flex shrink-0 items-center justify-center gap-1 text-muted-foreground md:flex-col"
+    >
+      <code className="font-mono text-xs">/link</code>
+      <ArrowLeftRight className="size-4 rotate-90 md:rotate-0" />
     </div>
   );
 }

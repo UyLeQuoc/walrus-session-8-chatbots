@@ -177,7 +177,7 @@ back from Walrus, because the text is never stored in Postgres.
 | Web | Live: https://ask-hippo.vercel.app |
 | Telegram | Live: [@walrussession8_bot](https://t.me/walrussession8_bot). `/export` arrives as a file. |
 | CLI | `bun run hippo`, against a running server |
-| Discord | Adapter written and tested, starts when `DISCORD_TOKEN` is set. Answers DMs and mentions; slash-menu clicks are not handled yet. |
+| Discord | Live since 2026-10-06: [add the bot to a server](https://discord.com/oauth2/authorize?client_id=1556955188798169228&scope=bot&permissions=68608), then DM it or mention it. Commands are typed as messages; no slash menu is registered. |
 | Slack | Adapter written and tested, starts when the Slack tokens are set. DMs and mentions. |
 
 Every channel shares the same commands:

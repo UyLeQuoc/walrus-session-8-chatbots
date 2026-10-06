@@ -1,7 +1,7 @@
 import { ArrowRight, Users } from "lucide-react";
 import { Link } from "react-router";
 import { useShellTitle } from "@/app/shell";
-import { TelegramButton } from "@/components/telegram-link";
+import { DiscordButton, TelegramButton } from "@/components/channel-links";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +52,7 @@ export function GuidePage() {
             <Link to="/me">See my memory</Link>
           </Button>
           <TelegramButton />
+          <DiscordButton />
         </div>
       </header>
 
@@ -60,8 +61,8 @@ export function GuidePage() {
       </GuideSection>
 
       <GuideSection
-        title="One memory, on the web and on Telegram"
-        lead="Type /link in one, send the code in the other, and both read the same memory."
+        title="One memory, on the web, Telegram and Discord"
+        lead="Type /link in one, send the code in another, and they all read the same memory."
       >
         <ChannelPair />
       </GuideSection>
@@ -84,7 +85,10 @@ export function GuidePage() {
         <ProofGrid />
       </GuideSection>
 
-      <GuideSection title="Commands" lead="The same on the web, Telegram and the terminal.">
+      <GuideSection
+        title="Commands"
+        lead="The same on the web, Telegram, Discord and the terminal."
+      >
         <CommandGroups />
       </GuideSection>
 

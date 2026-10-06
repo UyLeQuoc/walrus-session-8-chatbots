@@ -1215,7 +1215,10 @@ describe("how it works", () => {
     expect(screen.getByRole("link", { name: /Open in Telegram/ }).getAttribute("href")).toBe(
       "https://t.me/walrussession8_bot",
     );
-    expect(screen.getByText("One memory, on the web and on Telegram")).toBeDefined();
+    expect(screen.getByText("One memory, on the web, Telegram and Discord")).toBeDefined();
+    expect(screen.getByRole("link", { name: /Add to Discord/ }).getAttribute("href")).toContain(
+      "client_id=1556955188798169228",
+    );
     expect(screen.queryByRole("button", { name: /own this memory/i })).toBeNull();
   });
 });

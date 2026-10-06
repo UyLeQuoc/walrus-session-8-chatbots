@@ -66,7 +66,7 @@ type Files = ReturnType<typeof useDocuments>;
 const PAGE_META = {
   title: "hippo — the chatbot that remembers you, on memory you own",
   description:
-    "Chat on the web, Telegram or a CLI and hippo remembers you between sessions. Your memory lives on Walrus, in a Sui account you own and can revoke.",
+    "Chat on the web, Telegram, Discord or a CLI and hippo remembers you between sessions. Your memory lives on Walrus, in a Sui account you own and can revoke.",
   path: "/",
   index: true,
 };
