@@ -1,7 +1,8 @@
 import { App } from "@slack/bolt";
+import { CHANNEL_COMMANDS } from "../chat/command-catalog.ts";
 import { handleIncoming } from "../chat/turn.ts";
 import { env } from "../env/load.ts";
-import { slackHandler } from "./handlers.ts";
+import { slackCommandText, slackHandler } from "./handlers.ts";
 import type { ChannelAdapter } from "./types.ts";
 
 const CHANNEL = "slack";
@@ -23,6 +24,21 @@ export function slackAdapter(): ChannelAdapter | null {
       (t) => say(t),
     );
   });
+
+  for (const { name } of CHANNEL_COMMANDS) {
+    app.command(`/${name}`, async ({ command, ack, respond }) => {
+      await ack();
+      await handle(
+        {
+          user: command.user_id,
+          team: command.team_id,
+          channel: command.channel_id,
+          text: slackCommandText(command.command, command.text),
+        },
+        (t) => respond(t),
+      );
+    });
+  }
 
   app.message(async ({ message, say }) => {
     if (message.channel_type !== "im") return;

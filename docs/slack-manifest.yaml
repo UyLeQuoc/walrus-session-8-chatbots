@@ -37,15 +37,31 @@ features:
     - command: /proof
       description: The memories behind my last answer
       should_escape: false
+    - command: /compare
+      description: My last answer again, without memory
+      should_escape: false
+    - command: /export
+      description: Your memory as a file you keep
+      should_escape: false
     - command: /link
       description: Use the same memory on another channel
       usage_hint: "[code]"
+      should_escape: false
+    - command: /team
+      description: Share a memory with a few people
+      usage_hint: "[new <name> | join <code> | invite | remember <fact> | leave]"
       should_escape: false
     - command: /connect
       description: Own your memory in your own Walrus account
       should_escape: false
     - command: /disconnect
       description: Revoke my access on-chain
+      should_escape: false
+    - command: /privacy
+      description: What is stored, where, and for how long
+      should_escape: false
+    - command: /help
+      description: All commands
       should_escape: false
 oauth_config:
   scopes:

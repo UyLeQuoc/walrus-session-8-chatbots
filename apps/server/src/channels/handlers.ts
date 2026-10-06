@@ -120,6 +120,10 @@ export interface SlackMessage {
   text: string;
 }
 
+export function slackCommandText(command: string, text: string): string {
+  return `${command} ${text}`.trim();
+}
+
 export function slackHandler(handle: Handle) {
   return async (event: SlackMessage, say: (text: string) => Promise<unknown>): Promise<void> => {
     // An event without a user used to be answered as "unknown", which put every

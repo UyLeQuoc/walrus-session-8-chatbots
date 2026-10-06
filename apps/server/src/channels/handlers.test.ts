@@ -5,7 +5,7 @@
 import { InputFile } from "grammy";
 import { describe, expect, it, vi } from "vitest";
 import type { IncomingMessage, TurnReply } from "../chat/turn.ts";
-import { discordHandler, slackHandler, telegramHandler } from "./handlers.ts";
+import { discordHandler, slackCommandText, slackHandler, telegramHandler } from "./handlers.ts";
 
 const EXPORT_FILES = [
   { name: "hippo-memory-2026-09-25.md", mime: "text/markdown", content: "# Your memory" },
@@ -150,6 +150,19 @@ describe("discord", () => {
 });
 
 describe("slack", () => {
+  it("turns a slash command into the same text a typed command would be, for the same person", async () => {
+    expect(slackCommandText("/memory", "search bun")).toBe("/memory search bun");
+    expect(slackCommandText("/whoami", "")).toBe("/whoami");
+    const { handle, seen } = recordingHandle({ text: "ok", command: true });
+    const respond = vi.fn(async () => {});
+    await slackHandler(handle)(
+      { user: "U1", team: "T1", channel: "D1", text: slackCommandText("/memory", "search bun") },
+      respond,
+    );
+    expect(seen[0]).toMatchObject({ externalId: "T1/U1", text: "/memory search bun" });
+    expect(respond).toHaveBeenCalledWith("ok");
+  });
+
   it("keys the person by team and user, and says the reply", async () => {
     const { handle, seen } = recordingHandle({ text: "Use bun.", command: false });
     const say = vi.fn(async () => {});
