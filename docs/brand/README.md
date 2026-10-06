@@ -33,6 +33,14 @@ circle crop would otherwise cut the ripples and leave dead space above.
 
 `apps/web/public/og.png` is the 1200×630 social card.
 
+`telegram-avatar.png` is the bot's profile photo since 2026-10-06: 640×640, the
+white mark on the dark background with a teal glow, drawn from `avatar.html`
+and rendered like the card below. It was set through the Bot API
+(`setMyProfilePhoto` with an `InputProfilePhotoStatic`), together with the
+name `hippo` and the short and long descriptions (`setMyName`,
+`setMyShortDescription`, `setMyDescription`). BotFather's `/setuserpic` does
+the same by hand.
+
 ## Changing the mark
 
 Three places, all hand-edited:
