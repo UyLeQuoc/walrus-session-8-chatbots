@@ -9,7 +9,7 @@ export function WalletReadPanel({ memories }: { memories: Memory[] }) {
   return (
     <Section
       title="Read it yourself"
-      description="Fetch your memory from Walrus and decrypt it in this browser with your wallet, through Seal. Neither hippo's server nor the Walrus Memory relayer takes part."
+      description="Decrypt your memory in this browser with your wallet. No hippo server, no relayer."
       action={
         read.refusal ? null : (
           <Button

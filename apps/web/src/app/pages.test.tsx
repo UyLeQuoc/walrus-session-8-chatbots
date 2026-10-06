@@ -1191,7 +1191,7 @@ describe("logo", () => {
 });
 
 describe("how it works", () => {
-  it("explains the app and the chain, and does not list memories", async () => {
+  it("shows a memory's life, the ownership path and the commands, and lists no memories", async () => {
     vi.stubGlobal(
       "fetch",
       stubFetch({
@@ -1204,9 +1204,11 @@ describe("how it works", () => {
         <GuidePage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(container.textContent ?? "").toMatch(/On chain/));
+    await waitFor(() => expect(container.textContent ?? "").toMatch(/Sealed on Walrus/));
     expect(container.textContent ?? "").toMatch(/seven months/);
     expect(container.textContent ?? "").toMatch(/\/connect/);
+    expect(container.textContent ?? "").toMatch(/\/compare/);
+    expect(screen.getByRole("link", { name: /Start chatting/ }).getAttribute("href")).toBe("/");
     expect(screen.queryByRole("button", { name: /own this memory/i })).toBeNull();
   });
 });
@@ -1289,8 +1291,9 @@ describe("me page, memory at work", () => {
         <MePage />
       </MemoryRouter>,
     );
-    expect(await screen.findByText("34 of 50 answers used your memory")).toBeDefined();
-    expect(screen.getByText(/That is 68%/)).toBeDefined();
+    expect(await screen.findByText("34 of 50")).toBeDefined();
+    expect(screen.getByText("Answers that used your memory")).toBeDefined();
+    expect(screen.getByText("68%")).toBeDefined();
     expect(await screen.findByText("12 answers")).toBeDefined();
   });
 
@@ -1309,7 +1312,7 @@ describe("me page, memory at work", () => {
       </MemoryRouter>,
     );
     await screen.findByText("Bring your memory from another assistant");
-    expect(screen.queryByText("Memory at work")).toBeNull();
+    expect(screen.queryByText("Answers that used your memory")).toBeNull();
   });
 });
 
@@ -1455,12 +1458,14 @@ describe("me page", () => {
       "fetch",
       stubFetch({ "/api/me": { mode: "anonymous" }, "/api/me/memories": { memories: [] } }),
     );
-    const { container } = render(
+    render(
       <MemoryRouter>
         <MePage />
       </MemoryRouter>,
     );
-    await waitFor(() => expect(container.textContent ?? "").toMatch(/start remembering you/i));
+    expect(await screen.findByText("Nothing remembered yet")).toBeDefined();
+    expect(screen.getByRole("link", { name: "Start chatting" }).getAttribute("href")).toBe("/");
+    expect(screen.queryByRole("table")).toBeNull();
   });
 
   it("shows a guest their memories, with storage expiry and a blob link", async () => {
@@ -1561,8 +1566,8 @@ describe("me page", () => {
       </MemoryRouter>,
     );
     const full = await screen.findByRole("button", { name: /full record/i });
-    // The limit is on the page before anyone downloads, not only inside the file.
-    expect(document.body.textContent).toMatch(/cannot do yet: let you decrypt/i);
+    // What the file holds is on the page before anyone downloads, not only inside it.
+    expect(document.body.textContent).toMatch(/checked against the hash hippo recorded/i);
     full.click();
     await screen.findByText(/verified for/i);
     expect(exportFetch).toHaveBeenCalledTimes(1);
@@ -2052,8 +2057,8 @@ describe("team page", () => {
     );
     mountTeam();
 
-    await screen.findByText(/Say something in the/);
-    expect(screen.getByRole("link", { name: "chat" }).getAttribute("href")).toBe("/");
+    await screen.findByText("No team yet");
+    expect(screen.getByRole("link", { name: "Start chatting" }).getAttribute("href")).toBe("/");
     expect(screen.queryByLabelText("Team name")).toBeNull();
     expect(screen.queryByLabelText("Invite code")).toBeNull();
     expect(calls.filter((call) => call.method === "POST")).toHaveLength(0);

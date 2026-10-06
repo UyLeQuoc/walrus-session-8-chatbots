@@ -32,6 +32,7 @@ import { ComposerShell } from "@/features/chat/composer-shell";
 import { Examples, rememberPendingAsk, takePendingAsk } from "@/features/chat/examples";
 import { FollowUpRow } from "@/features/chat/follow-up-row";
 import { GreetingLine } from "@/features/chat/greeting-line";
+import { HowStrip } from "@/features/chat/how-strip";
 import { MemoryPanel } from "@/features/chat/memory-panel";
 import { MemoryStrip } from "@/features/chat/memory-strip";
 import { RememberDialog } from "@/features/chat/remember-dialog";
@@ -204,8 +205,9 @@ export function ChatPage() {
         ) : messages.length === 0 ? (
           <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-4 py-6">
             <div data-slot="empty-cluster" className="flex w-full max-w-xl flex-col gap-10">
-              <div data-slot="greeting" className="text-center">
+              <div data-slot="greeting" className="flex flex-col gap-6 text-center">
                 <GreetingLine greeting={greeting} />
+                <HowStrip />
               </div>
               <ComposerDock
                 text={text}

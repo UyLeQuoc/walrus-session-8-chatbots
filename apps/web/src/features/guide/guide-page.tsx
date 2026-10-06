@@ -1,36 +1,19 @@
+import { ArrowRight, Users } from "lucide-react";
+import { Link } from "react-router";
 import { useShellTitle } from "@/app/shell";
-import { CopyButton } from "@/components/copy-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  ChatVsMemory,
+  ClaudeCodeSteps,
+  CommandGroups,
+  GuideSection,
+  MemoryFlow,
+  OwnershipPath,
+  ProofGrid,
+} from "@/features/guide/guide-visuals";
 import { useMe } from "@/features/me/use-me";
 import { usePageMeta } from "@/hooks/use-page-meta";
-
-const COMMANDS: Array<[string, string]> = [
-  ["/memory", "what hippo remembers"],
-  ["/memory search", "read it back from Walrus"],
-  ["/memory forget <blob>", "stop using one memory"],
-  ["/memory forget all", "make everything unrecallable"],
-  ["/proof", "blobs behind the last answer"],
-  ["/export", "download your memory"],
-  ["/team", "share a memory"],
-  ["/link", "same memory, another channel"],
-  ["/connect", "own it in your account"],
-  ["/disconnect", "revoke hippo on chain"],
-  ["/privacy", "what is stored, and for how long"],
-];
-
-const CLAUDE_CODE_STEPS = [
-  "/plugin marketplace add MystenLabs/MemWal",
-  "/plugin install memwal@memwal-plugins",
-  "restart, then memwal_login with the same wallet",
-  'ask it: "recall what you know about me", namespace hippo',
-];
 
 const PAGE_META = {
   title: "How hippo works · memory on Walrus, owned on Sui",
@@ -46,85 +29,75 @@ export function GuidePage() {
   usePageMeta(PAGE_META);
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col gap-8 overflow-y-auto px-4 py-6">
-      <section className="flex flex-col gap-2">
-        <h2 className="text-base font-medium">In the app</h2>
-        <p className="text-sm text-muted-foreground">
-          The chat is the words back and forth. It stays on this server, encrypted, so a reload can
-          show it again. It is not written to Walrus. A memory is a fact hippo decides is worth
-          keeping. <code className="font-mono text-xs">/memory off</code> stops new facts. It does
-          not delete the chat, and it does not delete what is already stored.
+    <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-12 overflow-y-auto px-4 py-8">
+      <header className="flex flex-col items-start gap-4">
+        <Badge variant="outline">How it works</Badge>
+        <h1 className="font-greeting text-4xl leading-tight text-balance sm:text-5xl">
+          A chatbot that remembers you, on memory you own
+        </h1>
+        <p className="max-w-2xl text-muted-foreground">
+          hippo keeps the facts you tell it on Walrus, in a Sui account you can own. It only holds a
+          key, and you can take it back.
         </p>
-      </section>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link to="/">
+              Start chatting
+              <ArrowRight />
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/me">See my memory</Link>
+          </Button>
+        </div>
+      </header>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-base font-medium">Guest, then your account</h2>
-        <p className="text-sm text-muted-foreground">
-          Before you connect, memory sits in a namespace named{" "}
-          <code className="font-mono text-xs">hippo-guest:…</code> inside hippo's own Walrus Memory
-          account. After <code className="font-mono text-xs">/connect</code>, new facts go to an
-          account your wallet owns. Facts from before that cannot be moved.{" "}
-          <code className="font-mono text-xs">/disconnect</code> removes hippo's delegate key on
-          chain, so hippo can no longer read your account. What you said as a guest stays in hippo's
-          account. <code className="font-mono text-xs">/memory forget all</code> makes that
-          unrecallable. It still cannot delete the encrypted bytes early.
-        </p>
-      </section>
+      <GuideSection title="The life of a memory">
+        <MemoryFlow />
+      </GuideSection>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-base font-medium">On chain</h2>
-        <p className="text-sm text-muted-foreground">
-          The account is an object on Sui. The delegate key is hippo's permission to read and write
-          it. The explorer links on My memory open that object and the owning wallet. Each memory is
-          an encrypted blob on Walrus. Anyone can download the ciphertext. Only the owning account
-          can read it. A blob written today lasts about seven months, then it expires. Nothing,
-          including hippo, can delete it sooner.
-        </p>
-      </section>
+      <GuideSection
+        title="The chat and the memory are different things"
+        lead="/memory off stops new facts. It deletes nothing."
+      >
+        <ChatVsMemory />
+      </GuideSection>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-base font-medium">Commands</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Command</TableHead>
-              <TableHead>What it does</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {COMMANDS.map(([command, what]) => (
-              <TableRow key={command}>
-                <TableCell className="font-mono">{command}</TableCell>
-                <TableCell>{what}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </section>
+      <GuideSection
+        title="Guest first, then yours"
+        lead="Facts from guest time stay in hippo's account. New ones go to yours."
+      >
+        <OwnershipPath />
+      </GuideSection>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-base font-medium">Claude Code</h2>
-        <p className="text-sm text-muted-foreground">Same wallet, namespace hippo.</p>
-        <ol className="flex flex-col gap-2">
-          {CLAUDE_CODE_STEPS.map((step) => (
-            <li key={step} className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 font-mono text-xs [overflow-wrap:anywhere]">
-                {step}
-              </code>
-              <CopyButton value={step} label="step" />
-            </li>
-          ))}
-        </ol>
-      </section>
+      <GuideSection title="Check it yourself" lead="Nothing here asks you to take hippo's word.">
+        <ProofGrid />
+      </GuideSection>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-base font-medium">Team</h2>
-        <p className="text-sm text-muted-foreground">
-          A team shares memory that anyone in it can recall. Ordinary chat stays yours. Only{" "}
-          <code className="font-mono text-xs">/team remember</code> adds to the shared pile. That
-          pile lives in hippo's account, so no member owns it. Leaving does not take back what you
-          added: a memory on Walrus cannot be deleted.
-        </p>
+      <GuideSection title="Commands" lead="The same on the web, Telegram and the terminal.">
+        <CommandGroups />
+      </GuideSection>
+
+      <GuideSection
+        title="The same memory in Claude Code"
+        lead="Once you own it, any agent you add as a delegate can read it through the official Walrus Memory MCP."
+      >
+        <ClaudeCodeSteps />
+      </GuideSection>
+
+      <section className="flex flex-col items-start gap-4 rounded-xl border bg-card p-4 sm:flex-row sm:items-center">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted [&_svg]:size-4">
+          <Users />
+        </span>
+        <div className="flex flex-1 flex-col gap-1">
+          <p className="text-sm font-medium">Share with a team</p>
+          <p className="text-sm text-muted-foreground">
+            Only what you add is shared. Your own memory stays yours.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link to="/team">Open team</Link>
+        </Button>
       </section>
 
       {me?.surveyUrl ? (

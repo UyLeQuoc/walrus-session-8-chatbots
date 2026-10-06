@@ -11,7 +11,7 @@ export function ImportPanel({ onSaved }: { onSaved: () => void }) {
   return (
     <Section
       title="Bring your memory from another assistant"
-      description="Paste what ChatGPT, Claude or another assistant says it knows about you. hippo lists the facts it finds and you choose what to keep. Nothing is stored until you do."
+      description="Paste what another assistant knows about you. hippo keeps only the facts you tick."
     >
       <Textarea
         aria-label="What another assistant knows about you"

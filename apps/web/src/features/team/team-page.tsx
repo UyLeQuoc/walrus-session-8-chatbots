@@ -1,7 +1,16 @@
+import { Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useShellTitle } from "@/app/shell";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamAdd } from "@/features/team/team-add";
 import { TeamHeader } from "@/features/team/team-header";
@@ -45,12 +54,19 @@ export function TeamPage() {
       <Page>
         <Empty>
           <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Users />
+            </EmptyMedia>
             <EmptyTitle>No team yet</EmptyTitle>
             <EmptyDescription>
-              Say something in the <Link to="/">chat</Link> first. Once hippo knows you, you can
-              start a team here or join one with an invite code.
+              Chat with hippo once. Then start a team here, or join one with an invite code.
             </EmptyDescription>
           </EmptyHeader>
+          <EmptyContent>
+            <Button asChild>
+              <Link to="/">Start chatting</Link>
+            </Button>
+          </EmptyContent>
         </Empty>
       </Page>
     );

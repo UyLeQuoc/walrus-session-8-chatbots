@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Pencil } from "lucide-react";
+import { Eye, EyeOff, NotebookPen, Pencil } from "lucide-react";
 import { Link } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,11 @@ export function RememberedList({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
         {error ? <p className="text-sm text-muted-foreground">{error}</p> : null}
+        <span className="mb-1 flex size-10 items-center justify-center rounded-lg bg-muted [&_svg]:size-5">
+          <NotebookPen aria-hidden />
+        </span>
         <p className="text-sm text-muted-foreground">Nothing remembered in this chat yet.</p>
+        <p className="text-sm text-muted-foreground">Facts hippo keeps land here.</p>
       </div>
     );
   }

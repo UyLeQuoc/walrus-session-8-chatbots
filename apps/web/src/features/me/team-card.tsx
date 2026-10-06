@@ -24,8 +24,7 @@ export function TeamCard() {
         <CardHeader>
           <CardTitle>Team memory</CardTitle>
           <CardDescription>
-            You are not in a team. A team shares memory everyone in it recalls; your own memory
-            stays yours, and only what you add yourself is shared.
+            You are not in a team. In one, your own memory stays yours: only what you add is shared.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -43,8 +42,7 @@ export function TeamCard() {
         <CardTitle className="min-w-0 wrap-anywhere">Team: {team.name}</CardTitle>
         <CardDescription>
           {membersLabel(team.memberCount)} · {sharedCounts(team.memories).shared} shared. Team
-          memory is not part of yours: it lives in hippo's account, and only what someone adds on
-          purpose goes in.
+          memory is not part of yours: it lives in hippo's account.
         </CardDescription>
       </CardHeader>
       <CardContent>

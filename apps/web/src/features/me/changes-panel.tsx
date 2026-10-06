@@ -5,10 +5,7 @@ import { useChanges } from "@/features/me/use-changes";
 export function ChangesPanel() {
   const { changes, loading, error } = useChanges();
   return (
-    <Section
-      title="How your memory changed"
-      description="When you change your mind, hippo writes the new fact next to the old one and believes the newer. Walrus keeps both; nothing is overwritten."
-    >
+    <Section title="How your memory changed" description="The newer fact wins. Walrus keeps both.">
       {loading ? <p className="text-sm text-muted-foreground">Reading your changes…</p> : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {!loading && !error && changes.length === 0 ? (

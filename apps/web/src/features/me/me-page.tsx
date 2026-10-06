@@ -1,4 +1,5 @@
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { Library } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -6,16 +7,22 @@ import { useShellTitle } from "@/app/shell";
 import { Hash } from "@/components/hash";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { ChainPanel } from "@/features/me/chain-panel";
 import { ChangesPanel } from "@/features/me/changes-panel";
 import { ClaudeCodePanel } from "@/features/me/claude-code-panel";
 import { ExportPanel } from "@/features/me/export-panel";
 import { ImportPanel } from "@/features/me/import-panel";
 import { MemoryList } from "@/features/me/memory-list";
+import { StatStrip } from "@/features/me/stat-strip";
 import { TeamCard } from "@/features/me/team-card";
-import { UsagePanel } from "@/features/me/usage-panel";
 import { useMe } from "@/features/me/use-me";
 import { useUsage } from "@/features/me/use-usage";
 import { WalletReadPanel } from "@/features/me/wallet-read-panel";
@@ -47,12 +54,19 @@ export function MePage() {
       <Page>
         <Empty>
           <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Library />
+            </EmptyMedia>
             <EmptyTitle>Nothing remembered yet</EmptyTitle>
             <EmptyDescription>
-              Say something in the <Link to="/">chat</Link> first and hippo will start remembering
-              you.
+              Tell hippo something in the chat. It shows up here once it is on Walrus.
             </EmptyDescription>
           </EmptyHeader>
+          <EmptyContent>
+            <Button asChild>
+              <Link to="/">Start chatting</Link>
+            </Button>
+          </EmptyContent>
         </Empty>
         {linked ? null : <WalletSignIn onSignedIn={load} />}
       </Page>
@@ -68,9 +82,6 @@ export function MePage() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={owned ? "accent" : "outline"}>{owned ? "you own this" : "guest"}</Badge>
           <Badge variant="outline">{me.memoryEnabled ? "remembering" : "paused"}</Badge>
-          <span className="text-sm text-muted-foreground">
-            {stored} of {memories.length} on Walrus
-          </span>
           {me.namespace ? (
             <span className="min-w-48 max-w-xs flex-1 text-sm text-muted-foreground">
               <Hash value={me.namespace} label="namespace" />
@@ -84,41 +95,14 @@ export function MePage() {
         </div>
         {owned ? null : (
           <p className="text-sm text-muted-foreground">
-            Right now hippo keeps your memory under its own account.
+            Right now hippo keeps it under its own account. Own it with a wallet below.
           </p>
         )}
-        {stored > 0 ? <ExportPanel onError={(message) => toast.error(message)} /> : null}
       </div>
 
-      {usage && usage.answers > 0 ? <UsagePanel usage={usage} /> : null}
-
-      <ImportPanel onSaved={load} />
+      <StatStrip stored={stored} total={memories.length} usage={usage} owned={owned} />
 
       {!me.signedIn && !linked ? <WalletSignIn onSignedIn={load} /> : null}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <ChainPanel owned={owned} onError={(message) => toast.error(message)} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Storage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {stored} of {memories.length} on Walrus.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {stored > 0 ? <WalletReadPanel memories={memories} /> : null}
-
-      {memories.some((m) => m.type === "correction" && m.status === "stored") ? (
-        <ChangesPanel />
-      ) : null}
-
-      <ClaudeCodePanel owned={owned} />
-
-      <TeamCard />
 
       <MemoryList
         memories={memories}
@@ -126,6 +110,24 @@ export function MePage() {
         onError={(message) => toast.error(message)}
         onChange={load}
       />
+
+      {memories.some((m) => m.type === "correction" && m.status === "stored") ? (
+        <ChangesPanel />
+      ) : null}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <ChainPanel owned={owned} onError={(message) => toast.error(message)} />
+        <div className="flex flex-col gap-6">
+          {stored > 0 ? <ExportPanel onError={(message) => toast.error(message)} /> : null}
+          <TeamCard />
+        </div>
+      </div>
+
+      {stored > 0 ? <WalletReadPanel memories={memories} /> : null}
+
+      <ImportPanel onSaved={load} />
+
+      <ClaudeCodePanel owned={owned} />
     </Page>
   );
 }
